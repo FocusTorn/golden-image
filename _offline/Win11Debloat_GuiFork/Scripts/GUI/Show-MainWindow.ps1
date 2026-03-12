@@ -32,6 +32,8 @@ function Show-MainWindow {
     $menuReportBug = $window.FindName('MenuReportBug')
     $menuLogs = $window.FindName('MenuLogs')
     $menuAbout = $window.FindName('MenuAbout')
+    $menuExportSettings = $window.FindName('MenuExportSettings')
+    $menuImportSettings = $window.FindName('MenuImportSettings')
 
     # Title bar event handlers
     $titleBar.Add_MouseLeftButtonDown({
@@ -70,6 +72,106 @@ function Show-MainWindow {
 
     $menuAbout.Add_Click({
         Show-AboutDialog -Owner $window
+    })
+
+    $menuExportSettings.Add_Click({
+        $settingsJson = Get-CurrentTweakSettingsFromUi
+        $appsPanelRef = $window.FindName('AppSelectionPanel')
+        $selectedApps = @()
+        foreach ($child in $appsPanelRef.Children) {
+            if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) {
+                $selectedApps += $child.Tag
+            }
+        }
+        if ($selectedApps.Count -gt 0) {
+            $settingsJson.Settings += @{ Name = 'RemoveApps'; Value = $true }
+            $settingsJson.Settings += @{ Name = 'Apps'; Value = ($selectedApps -join ',') }
+        }
+        $restorePointCheckBox = $window.FindName('RestorePointCheckBox')
+        if ($restorePointCheckBox -and $restorePointCheckBox.IsChecked) {
+            $settingsJson.Settings += @{ Name = 'CreateRestorePoint'; Value = $true }
+        }
+        $userSelCombo = $window.FindName('UserSelectionCombo')
+        $otherUserTb = $window.FindName('OtherUsernameTextBox')
+        if ($userSelCombo.SelectedIndex -eq 1) {
+            if ($otherUserTb -and $otherUserTb.Text.Trim()) {
+                $settingsJson.Settings += @{ Name = 'User'; Value = $otherUserTb.Text.Trim() }
+            }
+        }
+        if ($userSelCombo.SelectedIndex -eq 2) {
+            $settingsJson.Settings += @{ Name = 'Sysprep'; Value = $true }
+        }
+        $appRemovalScopeCombo = $window.FindName('AppRemovalScopeCombo')
+        if ($appRemovalScopeCombo -and $selectedApps.Count -gt 0) {
+            $scopeContent = if ($appRemovalScopeCombo.SelectedItem) { $appRemovalScopeCombo.SelectedItem.Content } else { $null }
+            if ($scopeContent -eq 'Current user only') { $settingsJson.Settings += @{ Name = 'AppRemovalTarget'; Value = 'CurrentUser' } }
+            elseif ($scopeContent -eq 'Target user only') { $settingsJson.Settings += @{ Name = 'AppRemovalTarget'; Value = ($otherUserTb.Text.Trim()) } }
+            else { $settingsJson.Settings += @{ Name = 'AppRemovalTarget'; Value = 'AllUsers' } }
+        }
+        $dlg = New-Object Microsoft.Win32.SaveFileDialog
+        $dlg.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'
+        $dlg.DefaultExt = 'json'
+        $dlg.FileName = "Win11Debloat-Settings-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"
+        if ($dlg.ShowDialog() -eq $true) {
+            try {
+                $settingsJson | ConvertTo-Json -Depth 10 | Set-Content -Path $dlg.FileName -Encoding UTF8
+                Show-MessageBox -Message "Settings exported to:`n$($dlg.FileName)" -Title "Export" -Button 'OK' -Icon 'Information' | Out-Null
+            } catch {
+                Show-MessageBox -Message "Failed to export: $_" -Title "Export Error" -Button 'OK' -Icon 'Warning' | Out-Null
+            }
+        }
+    })
+
+    $menuImportSettings.Add_Click({
+        $dlg = New-Object Microsoft.Win32.OpenFileDialog
+        $dlg.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'
+        if ($dlg.ShowDialog() -eq $true) {
+            try {
+                $imported = Get-Content -Path $dlg.FileName -Raw | ConvertFrom-Json
+                if (-not $imported.Settings) {
+                    Show-MessageBox -Message "Invalid settings file format." -Title "Import" -Button 'OK' -Icon 'Warning' | Out-Null
+                    return
+                }
+                $settingsObj = @{ Version = $imported.Version; Settings = @() }
+                foreach ($s in $imported.Settings) {
+                    $settingsObj.Settings += @{ Name = $s.Name; Value = $s.Value }
+                }
+                ApplySettingsToUiControls -window $window -settingsJson $settingsObj -uiControlMappings $script:UiControlMappings
+                if ($settingsObj.Settings | Where-Object { $_.Name -eq 'Apps' }) {
+                    $appsSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'Apps' } | Select-Object -First 1
+                    $appIds = $appsSetting.Value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+                    $appsPanelRef = $window.FindName('AppSelectionPanel')
+                    foreach ($child in $appsPanelRef.Children) {
+                        if ($child -is [System.Windows.Controls.CheckBox] -and $child.Tag) {
+                            $child.IsChecked = $appIds -contains $child.Tag
+                        }
+                    }
+                }
+                $restorePointCheckBox = $window.FindName('RestorePointCheckBox')
+                if ($restorePointCheckBox -and ($settingsObj.Settings | Where-Object { $_.Name -eq 'CreateRestorePoint' })) {
+                    $restorePointCheckBox.IsChecked = $true
+                }
+                $userSelectionCombo = $window.FindName('UserSelectionCombo')
+                $otherUsernameTextBox = $window.FindName('OtherUsernameTextBox')
+                $userSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'User' } | Select-Object -First 1
+                $sysprepSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'Sysprep' } | Select-Object -First 1
+                if ($sysprepSetting) { $userSelectionCombo.SelectedIndex = 2 }
+                elseif ($userSetting) { $userSelectionCombo.SelectedIndex = 1; if ($otherUsernameTextBox) { $otherUsernameTextBox.Text = $userSetting.Value } }
+                else { $userSelectionCombo.SelectedIndex = 0 }
+                $scopeSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'AppRemovalTarget' } | Select-Object -First 1
+                $appRemovalScopeCombo = $window.FindName('AppRemovalScopeCombo')
+                if ($appRemovalScopeCombo -and $scopeSetting) {
+                    switch ($scopeSetting.Value) {
+                        'CurrentUser' { $appRemovalScopeCombo.SelectedIndex = 1 }
+                        'AllUsers' { $appRemovalScopeCombo.SelectedIndex = 0 }
+                        default { $appRemovalScopeCombo.SelectedIndex = 2; if ($otherUsernameTextBox -and $scopeSetting.Value) { $otherUsernameTextBox.Text = $scopeSetting.Value } }
+                    }
+                }
+                Show-MessageBox -Message "Settings imported from:`n$($dlg.FileName)" -Title "Import" -Button 'OK' -Icon 'Information' | Out-Null
+            } catch {
+                Show-MessageBox -Message "Failed to import: $_" -Title "Import Error" -Button 'OK' -Icon 'Warning' | Out-Null
+            }
+        }
     })
 
     $closeBtn.Add_Click({
@@ -225,6 +327,8 @@ function Show-MainWindow {
     $script:CurrentAppLoadTimer = $null
     $script:CurrentAppLoadJob = $null
     $script:CurrentAppLoadJobStartTime = $null
+    $script:CurrentAppDetailsJob = $null
+    $script:CurrentAppDetailsJobStartTime = $null
     
     # Set script-level variable for GUI window reference
     $script:GuiWindow = $window
@@ -238,6 +342,24 @@ function Show-MainWindow {
             }
         }
         $appSelectionStatus.Text = "$selectedCount app(s) selected for removal"
+    }
+
+    # GuiFork: Get restart marker suffix for feature/group labels (explorer/reboot/none)
+    function Get-RestartMarkerSuffix {
+        param($featureOrGroup, $featuresJson, [switch]$IsGroup)
+        $req = 'explorer'
+        if ($IsGroup) {
+            $allFids = $featureOrGroup.Values | ForEach-Object { $_.FeatureIds } | ForEach-Object { $_ }
+            foreach ($fid in $allFids) {
+                $f = $featuresJson.Features | Where-Object { $_.FeatureId -eq $fid } | Select-Object -First 1
+                $r = if ($f.RequiresRestart) { $f.RequiresRestart } elseif ($fid -match '^Remove|^ForceRemove' -or $fid -in @('EnableWindowsSandbox','EnableWindowsSubsystemForLinux','DisableCopilot')) { 'reboot' } elseif ($f.RegistryKey) { 'explorer' } else { 'explorer' }
+                if ($r -eq 'reboot') { $req = 'reboot'; break }
+                if ($r -eq 'explorer' -and $req -eq 'none') { $req = 'explorer' }
+            }
+        } else {
+            $req = if ($featureOrGroup.RequiresRestart) { $featureOrGroup.RequiresRestart } elseif ($featureOrGroup.FeatureId -match '^Remove|^ForceRemove' -or $featureOrGroup.FeatureId -in @('EnableWindowsSandbox','EnableWindowsSubsystemForLinux','DisableCopilot')) { 'reboot' } elseif ($featureOrGroup.RegistryKey) { 'explorer' } else { 'explorer' }
+        }
+        switch ($req) { 'reboot' { ' [reboot]' } 'explorer' { ' [restart]' } default { '' } }
     }
 
     # Dynamically builds Tweaks UI from Features.json
@@ -480,7 +602,8 @@ function Show-MainWindow {
                     $group = $item.Data
                     $items = @('No Change') + ($group.Values | ForEach-Object { $_.Label })
                     $comboName = 'Group_{0}Combo' -f $group.GroupId
-                    $combo = CreateLabeledCombo -parent $panel -labelText $group.Label -comboName $comboName -items $items -feature $null
+                    $groupLabel = $group.Label + (Get-RestartMarkerSuffix -featureOrGroup $group -featuresJson $featuresJson -IsGroup)
+                    $combo = CreateLabeledCombo -parent $panel -labelText $groupLabel -comboName $comboName -items $items -feature $null
                     # attach tooltip from UiGroups if present
                     if ($group.ToolTip) {
                         $tipBlock = New-Object System.Windows.Controls.TextBlock
@@ -500,7 +623,8 @@ function Show-MainWindow {
                     if ($feature.FeatureId -match '^Disable') { $opt = 'Disable' } elseif ($feature.FeatureId -match '^Enable') { $opt = 'Enable' }
                     $items = @('No Change', $opt)
                     $comboName = ("Feature_{0}_Combo" -f $feature.FeatureId) -replace '[^a-zA-Z0-9_]',''
-                    $combo = CreateLabeledCombo -parent $panel -labelText ($feature.Action + ' ' + $feature.Label) -comboName $comboName -items $items -feature $feature
+                    $featureLabel = $feature.Action + ' ' + $feature.Label + (Get-RestartMarkerSuffix -featureOrGroup $feature -featuresJson $featuresJson)
+                    $combo = CreateLabeledCombo -parent $panel -labelText $featureLabel -comboName $comboName -items $items -feature $feature
                     if ($feature.ToolTip) {
                         $tipBlock = New-Object System.Windows.Controls.TextBlock
                         $tipBlock.Text = $feature.ToolTip
@@ -514,15 +638,10 @@ function Show-MainWindow {
         }
     }
 
-    # Helper function to complete app loading with the WinGet list
-    function script:LoadAppsWithList($listOfApps) {
-        # Checked = show all apps, Unchecked = only installed (default)
-$appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.IsChecked) -InstalledList $listOfApps -InitialCheckedFromJson:$false
-
-        # Reset the last selected checkbox when loading a new list
+    # Adds app checkboxes to the panel (runs on UI thread)
+    function script:AddAppsToPanel($appsToAdd) {
         $script:MainWindowLastSelectedCheckbox = $null
-
-        # Sort apps alphabetically and add to panel
+        if (-not $appsToAdd) { $appsToAdd = @() }
         $appsToAdd | Sort-Object -Property FriendlyName | ForEach-Object {
             $checkbox = New-Object System.Windows.Controls.CheckBox
             $checkbox.SetValue([System.Windows.Automation.AutomationProperties]::NameProperty, $_.FriendlyName)
@@ -573,11 +692,51 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
             
             $appsPanel.Children.Add($checkbox) | Out-Null
         }
-
-        # Hide loading indicator and navigation blocker, update status
         $loadingAppsIndicator.Visibility = 'Collapsed'
-
+        UpdateNavigationButtons
         UpdateAppSelectionStatus
+    }
+
+    # Starts LoadAppsDetailsFromJson in a background job; timer will poll and call AddAppsToPanel when done
+    function script:LoadAppsWithList($listOfApps) {
+        $onlyInstalledVal = -not $onlyInstalledAppsBox.IsChecked
+        $script:CurrentAppDetailsJob = Start-Job -ScriptBlock {
+            param($appsListFilePath, $sourceRoot, $onlyInstalled, $installedList)
+            $script:AppsListFilePath = $appsListFilePath
+            . "$sourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
+            LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalled -InstalledList $installedList -InitialCheckedFromJson:$false
+        } -ArgumentList $script:AppsListFilePath, $script:SourceRoot, $onlyInstalledVal, $listOfApps
+        $script:CurrentAppDetailsJobStartTime = Get-Date
+
+        if (-not $script:CurrentAppLoadTimer -or -not $script:CurrentAppLoadTimer.IsEnabled) {
+            $script:CurrentAppLoadTimer = New-Object System.Windows.Threading.DispatcherTimer
+            $script:CurrentAppLoadTimer.Interval = [TimeSpan]::FromMilliseconds(100)
+            $script:CurrentAppLoadTimer.Add_Tick({
+                if ($script:CurrentAppDetailsJob) {
+                    $elapsed = (Get-Date) - $script:CurrentAppDetailsJobStartTime
+                    if ($script:CurrentAppDetailsJob.State -eq 'Completed') {
+                        $script:CurrentAppLoadTimer.Stop()
+                        $appsToAdd = Receive-Job -Job $script:CurrentAppDetailsJob
+                        Remove-Job -Job $script:CurrentAppDetailsJob -ErrorAction SilentlyContinue
+                        $script:CurrentAppDetailsJob = $null
+                        $script:CurrentAppLoadTimer = $null
+                        $script:CurrentAppDetailsJobStartTime = $null
+                        AddAppsToPanel $appsToAdd
+                    }
+                    elseif ($elapsed.TotalSeconds -gt 30 -or $script:CurrentAppDetailsJob.State -eq 'Failed') {
+                        $script:CurrentAppLoadTimer.Stop()
+                        Remove-Job -Job $script:CurrentAppDetailsJob -Force -ErrorAction SilentlyContinue
+                        $script:CurrentAppDetailsJob = $null
+                        $script:CurrentAppLoadTimer = $null
+                        $script:CurrentAppDetailsJobStartTime = $null
+                        $loadingAppsIndicator.Visibility = 'Collapsed'
+                        UpdateNavigationButtons
+                        Show-MessageBox -Message 'Unable to load app list. Showing empty list.' -Title 'Error' -Button 'OK' -Icon 'Warning' | Out-Null
+                    }
+                }
+            })
+            $script:CurrentAppLoadTimer.Start()
+        }
     }
 
     # Loads apps into the UI
@@ -589,9 +748,14 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
         if ($script:CurrentAppLoadJob) {
             Remove-Job -Job $script:CurrentAppLoadJob -Force -ErrorAction SilentlyContinue
         }
+        if ($script:CurrentAppDetailsJob) {
+            Remove-Job -Job $script:CurrentAppDetailsJob -Force -ErrorAction SilentlyContinue
+        }
         $script:CurrentAppLoadTimer = $null
         $script:CurrentAppLoadJob = $null
         $script:CurrentAppLoadJobStartTime = $null
+        $script:CurrentAppDetailsJob = $null
+        $script:CurrentAppDetailsJobStartTime = $null
         
         # Show loading indicator and navigation blocker, clear existing apps immediately
         $loadingAppsIndicator.Visibility = 'Visible'
@@ -1550,6 +1714,96 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
         $window.Close()
     })
 
+    # Handle Export CLI button - build CLI command from current selections and copy to clipboard
+    $deploymentExportCliBtn = $window.FindName('DeploymentExportCliBtn')
+    $deploymentExportCliBtn.Add_Click({
+        if (-not (ValidateOtherUsername)) {
+            Show-MessageBox -Message "Please enter a valid username." -Title "Invalid Username" -Button 'OK' -Icon 'Warning' | Out-Null
+            return
+        }
+        $exportParams = @{}
+        $selectedApps = @()
+        foreach ($child in $appsPanel.Children) {
+            if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) {
+                $selectedApps += $child.Tag
+            }
+        }
+        if ($selectedApps.Count -gt 0) {
+            $exportParams['RemoveApps'] = $true
+            $exportParams['Apps'] = $selectedApps -join ','
+            $selectedScopeItem = $appRemovalScopeCombo.SelectedItem
+            if ($selectedScopeItem) {
+                switch ($selectedScopeItem.Content) {
+                    "All users" { $exportParams['AppRemovalTarget'] = 'AllUsers' }
+                    "Current user only" { $exportParams['AppRemovalTarget'] = 'CurrentUser' }
+                    "Target user only" { $exportParams['AppRemovalTarget'] = $otherUsernameTextBox.Text.Trim() }
+                }
+            }
+        }
+        if ($script:UiControlMappings) {
+            foreach ($mappingKey in $script:UiControlMappings.Keys) {
+                $control = $window.FindName($mappingKey)
+                $mapping = $script:UiControlMappings[$mappingKey]
+                $isSelected = $false
+                $isRevert = $false
+                $selectedIndex = 0
+                if ($control -is [System.Windows.Controls.CheckBox]) {
+                    if ($mapping.IsSystemApplied) {
+                        $isSelected = $control.IsChecked -eq $true
+                        $isRevert = $control.IsChecked -eq $false
+                    } else { $isSelected = $control.IsChecked -eq $true }
+                    $selectedIndex = if ($isSelected) { 1 } else { 0 }
+                }
+                elseif ($control -is [System.Windows.Controls.ComboBox]) {
+                    $isSelected = $control.SelectedIndex -gt 0 -and (-not $mapping.IsSystemApplied -or $control.SelectedIndex -ne $mapping.AppliedIndex)
+                    $selectedIndex = $control.SelectedIndex
+                }
+                if ($control -and $isSelected) {
+                    if ($mapping.Type -eq 'group') {
+                        if ($selectedIndex -gt 0 -and $selectedIndex -le $mapping.Values.Count) {
+                            foreach ($fid in $mapping.Values[$selectedIndex - 1].FeatureIds) { $exportParams[$fid] = $true }
+                        }
+                    }
+                    elseif ($mapping.Type -eq 'feature') { $exportParams[$mapping.FeatureId] = $true }
+                }
+                if ($control -and $isRevert -and $mapping.Type -eq 'feature') {
+                    $featuresJson = LoadJsonFile -filePath $script:FeaturesFilePath -expectedVersion "1.0"
+                    $feat = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1
+                    if ($feat -and $feat.RegistryUndoKey) { $exportParams["Revert_$($mapping.FeatureId)"] = $true }
+                }
+            }
+        }
+        $restorePointCheckBox = $window.FindName('RestorePointCheckBox')
+        if ($restorePointCheckBox -and $restorePointCheckBox.IsChecked) { $exportParams['CreateRestorePoint'] = $true }
+        switch ($userSelectionCombo.SelectedIndex) {
+            1 { $exportParams['User'] = $otherUsernameTextBox.Text.Trim() }
+            2 { $exportParams['Sysprep'] = $true }
+        }
+        $totalChanges = ($exportParams.Keys | Where-Object { $script:ControlParams -notcontains $_ }).Count
+        if ($exportParams.ContainsKey('Apps')) { $totalChanges-- }
+        if ($totalChanges -eq 0) {
+            Show-MessageBox -Message 'No changes have been selected. Select at least one option to export.' -Title 'No Changes Selected' -Button 'OK' -Icon 'Information' | Out-Null
+            return
+        }
+        $scriptPath = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "Win11Debloat_GuiFork.ps1"
+        $argList = @()
+        foreach ($key in $exportParams.Keys) {
+            if ($script:ControlParams -contains $key) { continue }
+            if ($exportParams[$key] -eq $true) {
+                $argList += "-$key"
+            } else {
+                $argList += "-$key", "`"$($exportParams[$key])`""
+            }
+        }
+        $cliCmd = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" $($argList -join ' ')"
+        try {
+            [System.Windows.Clipboard]::SetText($cliCmd)
+            Show-MessageBox -Message "CLI command copied to clipboard. Run in an elevated PowerShell terminal.`n`n$cliCmd" -Title "Export CLI" -Button 'OK' -Icon 'Information' -Width 600 | Out-Null
+        } catch {
+            Show-MessageBox -Message "Command (clipboard copy failed):`n`n$cliCmd" -Title "Export CLI" -Button 'OK' -Icon 'Information' -Width 600 | Out-Null
+        }
+    })
+
     # Initialize UI elements on window load
     $window.Add_Loaded({
         # GuiFork: Remove splash screen (Home tab) and go directly to Custom Setup (App Removal)
@@ -2002,10 +2256,26 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
     $tweakProfileReplaceBtn = $window.FindName('TweakProfileReplaceBtn')
     $tweakProfileMergeBtn = $window.FindName('TweakProfileMergeBtn')
     $tweakProfileSaveBtn = $window.FindName('TweakProfileSaveBtn')
+    $tweakUpdateStatus = $window.FindName('TweakUpdateStatus')
     if ($tweakUpdateBtn) {
         $tweakUpdateBtn.Add_Click({
             Update-TweakSelectionsFromSystem
-            Show-MessageBox -Message "System scan complete. Applied tweaks now use 3-state: star (ignore), check (reinstall), empty (revert). Default is star." -Title "Update" -Button 'OK' -Icon 'Information' | Out-Null
+            if ($tweakUpdateStatus) {
+                if ($script:TweakUpdateStatusHideTimer -and $script:TweakUpdateStatusHideTimer.IsEnabled) {
+                    $script:TweakUpdateStatusHideTimer.Stop()
+                }
+                $tweakUpdateStatus.Text = "Scan completed successfully"
+                $tweakUpdateStatus.Foreground = $window.Resources["AppliedColor"]
+                $tweakUpdateStatus.FontSize = 16
+                $tweakUpdateStatus.Visibility = 'Visible'
+                $script:TweakUpdateStatusHideTimer = New-Object System.Windows.Threading.DispatcherTimer
+                $script:TweakUpdateStatusHideTimer.Interval = [TimeSpan]::FromSeconds(2)
+                $script:TweakUpdateStatusHideTimer.Add_Tick({
+                    $script:TweakUpdateStatusHideTimer.Stop()
+                    $tweakUpdateStatus.Visibility = 'Collapsed'
+                })
+                $script:TweakUpdateStatusHideTimer.Start()
+            }
         })
     }
     if ($tweakProfileCombo -and $tweakProfileReplaceBtn -and $tweakProfileMergeBtn -and $tweakProfileSaveBtn) {

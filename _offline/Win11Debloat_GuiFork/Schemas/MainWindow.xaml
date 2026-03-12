@@ -665,6 +665,17 @@
                                                 <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
                                             </MenuItem.Icon>
                                         </MenuItem>
+                                        <Separator/>
+                                        <MenuItem x:Name="MenuExportSettings" Header="Export settings..." AutomationProperties.Name="Export settings">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem x:Name="MenuImportSettings" Header="Import settings..." AutomationProperties.Name="Import settings">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="&#xE8B5;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
@@ -871,20 +882,26 @@
                             
                                 <!-- Filter Options -->
                                 <Grid Margin="0,0,0,12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <TextBlock x:Name="TweakUpdateStatus" Grid.Row="0" Grid.ColumnSpan="3" Text="" Foreground="{DynamicResource FgColor}" FontSize="12" Margin="0,0,0,6" Visibility="Collapsed"/>
+                                    
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
                                         <Button x:Name="TweakUpdateBtn" Content="Update" ToolTip="Scan system and update selections based on applied tweaks" Style="{DynamicResource SecondaryButtonStyle}" Padding="10,0" Height="32" Margin="0,0,10,0" AutomationProperties.Name="Update from system"/>
                                         <Button x:Name="LoadDefaultsBtn" Content="Select Default Settings" ToolTip="Select the settings that are recommended for most people" Style="{DynamicResource SecondaryButtonStyle}" Padding="10,0" Height="32" Margin="0,0,10,0" AutomationProperties.Name="Select Default Settings"/>
                                         <Button x:Name="LoadLastUsedBtn" Content="Select Last Used Settings" ToolTip="Select the settings that were used the last time Win11Debloat was run" Style="{DynamicResource SecondaryButtonStyle}" Padding="10,0" Height="32" Margin="0,0,10,0" AutomationProperties.Name="Select Last Used Settings"/>
                                         <Button x:Name="ClearAllTweaksBtn" Content="Clear Selection" ToolTip="Clear all selected tweaks" Style="{DynamicResource SecondaryButtonStyle}" Padding="10,0" Height="32" Margin="0,0,10,0" AutomationProperties.Name="Clear Selection"/>
                                     </StackPanel>
 
-                                    <Border x:Name="TweakSearchBorder" Grid.Column="2">
+                                    <Border x:Name="TweakSearchBorder" Grid.Row="1" Grid.Column="2">
                                         <Border.Style>
                                             <Style TargetType="Border" BasedOn="{StaticResource SearchBoxBorderStyle}">
                                                 <Style.Triggers>
@@ -1088,12 +1105,20 @@
                                         </ControlTemplate>
                                     </Button.Template>
                                 </Button>
-                                <Button x:Name="DeploymentApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="190" Height="44" HorizontalAlignment="Center" AutomationProperties.Name="Apply Changes">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xE73E;" FontFamily="Segoe Fluent Icons" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Margin="8,0,0,4"/>
-                                    </StackPanel>
-                                </Button>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button x:Name="DeploymentApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="190" Height="44" Margin="0,0,8,0" AutomationProperties.Name="Apply Changes">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xE73E;" FontFamily="Segoe Fluent Icons" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Margin="8,0,0,4"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="DeploymentExportCliBtn" Style="{DynamicResource SecondaryButtonStyle}" Width="140" Height="44" AutomationProperties.Name="Export CLI" ToolTip="Copy CLI command to apply current selections">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xE8C8;" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Export CLI" VerticalAlignment="Center" FontSize="14" Margin="6,0,0,2"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
                             </StackPanel>
                         </Grid>
                     </DockPanel>
