@@ -6,7 +6,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 [void][System.Windows.Forms.Application]::EnableVisualStyles()
-[void][System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($true)
+[void][System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)  # GDI rendering; avoids monospace fallback in elevated processes
 
 # Auto-elevate if not admin
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -28,7 +28,13 @@ $script:ClrBorder = [System.Drawing.Color]::FromArgb(60, 60, 80) # Card border
 $script:ClrAccent = [System.Drawing.Color]::FromArgb(0, 120, 212)  # #0078d4
 $script:ClrText = [System.Drawing.Color]::FromArgb(230, 230, 240)
 $script:ClrTextDim = [System.Drawing.Color]::FromArgb(160, 160, 180)
+$script:ClrTextHover = [System.Drawing.Color]::FromArgb(255, 255, 255)   # Lighter for checkbox row hover
 $script:ClrApplied = [System.Drawing.Color]::FromArgb(0, 180, 120) # Green for already applied
+
+# Checkbox icons (Segoe Fluent Icons) - E739=unchecked, E73A=checked, E73C=indeterminate/removing
+$script:ChkIconUnchecked = [char]0xE739
+$script:ChkIconChecked = [char]0xE73A
+$script:ChkIconIndeterminate = [char]0xE73C
 
 # Category icons (Segoe Fluent Icons) - map group name keywords to Unicode
 $script:CategoryIcons = @{
@@ -40,17 +46,29 @@ $script:CategoryIcons = @{
     "Run mode" = [char]0xE895
 }
 
-# Universal font - use system default UI font family for consistency
-$script:DefaultUIFont = [System.Drawing.SystemFonts]::DefaultFont
+# Universal font - create via Font(string,size); avoids monospace fallback in elevated processes
+$script:MainFontFamily = "Segoe UI"   # Change to "Calibri", "Tahoma", etc. if desired
 $script:MainFontSize = 9
 $script:TitleFontSize = 14
 $script:SubtitleFontSize = 12
-$script:MainFont = New-Object System.Drawing.Font($script:DefaultUIFont.FontFamily, $script:MainFontSize)
-$script:MainFontBold = New-Object System.Drawing.Font($script:DefaultUIFont.FontFamily, $script:MainFontSize, [System.Drawing.FontStyle]::Bold)
-$script:TitleFont = New-Object System.Drawing.Font($script:DefaultUIFont.FontFamily, $script:TitleFontSize, [System.Drawing.FontStyle]::Bold)
-$script:SubtitleFont = New-Object System.Drawing.Font($script:DefaultUIFont.FontFamily, $script:SubtitleFontSize, [System.Drawing.FontStyle]::Bold)
-$script:IconFont = $null
-try { $script:IconFont = New-Object System.Drawing.Font("Segoe Fluent Icons", 16) } catch { $script:IconFont = $script:MainFont }
+$script:TitleBarIconFontSize = 17
+$script:StatusIconFontSize = 12
+$script:MainFont = $null
+foreach ($f in @($script:MainFontFamily, "Segoe UI", "Segoe UI Variable", "Tahoma", "Arial")) {
+    try {
+        $script:MainFont = New-Object System.Drawing.Font($f, [float]$script:MainFontSize)
+        break
+    } catch { }
+}
+if (-not $script:MainFont) { $script:MainFont = New-Object System.Drawing.Font([System.Drawing.FontFamily]::GenericSansSerif, $script:MainFontSize) }
+$script:UIFontFamily = $script:MainFont.FontFamily
+$script:MainFontBold = New-Object System.Drawing.Font($script:UIFontFamily, $script:MainFontSize, [System.Drawing.FontStyle]::Bold)
+$script:TitleFont = New-Object System.Drawing.Font($script:UIFontFamily, $script:TitleFontSize, [System.Drawing.FontStyle]::Bold)
+$script:SubtitleFont = New-Object System.Drawing.Font($script:UIFontFamily, $script:SubtitleFontSize, [System.Drawing.FontStyle]::Bold)
+$script:TitleBarIconFont = $null
+$script:StatusIconFont = $null
+try { $script:TitleBarIconFont = New-Object System.Drawing.Font("Segoe Fluent Icons", $script:TitleBarIconFontSize) } catch { $script:TitleBarIconFont = $script:MainFont }
+try { $script:StatusIconFont = New-Object System.Drawing.Font("Segoe Fluent Icons", $script:StatusIconFontSize) } catch { $script:StatusIconFont = $script:MainFont }
 
 # --- Parse config options from Win11Debloat_Config.ps1 ---
 function Get-ConfigOptions {
@@ -98,6 +116,22 @@ function Get-CategoryIcon {
         if ($GroupName -like "*$key*") { return $script:CategoryIcons[$key] }
     }
     return [char]0xE8A7  # Default: settings gear
+}
+
+# Update checkbox row appearance: icon (Segoe Fluent), colors. Hover uses lighter colors per spec.
+function Update-CheckboxRowAppearance {
+    param([hashtable]$RowInfo, [bool]$Checked, [bool]$Hovered, [bool]$IsApplied)
+    $iconLbl = $RowInfo.IconLbl
+    $textLbl = $RowInfo.TextLbl
+    $baseColor = if ($IsApplied -and $Checked) { $script:ClrApplied } else { $script:ClrText }
+    $color = if ($Hovered) { $script:ClrTextHover } else { $baseColor }
+    $iconLbl.ForeColor = $color
+    $textLbl.ForeColor = $color
+    if ($Checked) {
+        $iconLbl.Text = if ($Hovered) { $script:ChkIconIndeterminate } else { $script:ChkIconChecked }
+    } else {
+        $iconLbl.Text = $script:ChkIconUnchecked
+    }
 }
 
 # --- Check if setting is already applied (subset of registry checks) ---
@@ -226,13 +260,21 @@ $form.BackColor = $script:ClrBg
 $form.ForeColor = $script:ClrText
 $form.MinimumSize = New-Object System.Drawing.Size(600, 450)
 
+# $form.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+
 $settingsPath = Join-Path $script:RootDir "MainWindow.json"
 if (Test-Path $settingsPath) {
     try {
         $s = Get-Content $settingsPath -Raw | ConvertFrom-Json
-        $form.StartPosition = "Manual"
-        $form.Location = New-Object System.Drawing.Point($s.X, $s.Y)
-        $form.Size = New-Object System.Drawing.Size($s.Width, $s.Height)
+        # Sanity check: if coordinates are -32000 (minimized) or way off-screen, reset to center
+        if ($s.X -lt -10000 -or $s.Y -lt -10000) {
+            $form.StartPosition = "CenterScreen"
+            $form.Size = New-Object System.Drawing.Size(900, 580)
+        } else {
+            $form.StartPosition = "Manual"
+            $form.Location = New-Object System.Drawing.Point($s.X, $s.Y)
+            $form.Size = New-Object System.Drawing.Size($s.Width, $s.Height)
+        }
     } catch { $form.StartPosition = "CenterScreen"; $form.Size = New-Object System.Drawing.Size(900, 580) }
 } else {
     $form.StartPosition = "CenterScreen"
@@ -299,7 +341,7 @@ $btnApply.Font = $script:MainFont
 $toolbar.Controls.Add($btnApply)
 
 $lblHint = New-Object System.Windows.Forms.Label
-$lblHint.UseCompatibleTextRendering = $true
+$lblHint.UseCompatibleTextRendering = $false
 $lblHint.Text = "Green check = already applied"
 $lblHint.ForeColor = $script:ClrApplied
 $lblHint.Font = $script:MainFont
@@ -352,8 +394,9 @@ foreach ($grp in $groups) {
             $w = [System.Windows.Forms.TextRenderer]::MeasureText($opt.Label, $script:MainFont).Width
             if ($w -gt $colMax) { $colMax = $w }
         } else {
-            $txt = [char]0x2610 + " " + $opt.Label
-            $w = [System.Windows.Forms.TextRenderer]::MeasureText($txt, $script:MainFont).Width
+            $iconW = [System.Windows.Forms.TextRenderer]::MeasureText([string]$script:ChkIconUnchecked, $script:StatusIconFont).Width
+            $labelW = [System.Windows.Forms.TextRenderer]::MeasureText($opt.Label, $script:MainFont).Width
+            $w = $iconW + 6 + $labelW
             if ($w -gt $colMax) { $colMax = $w }
         }
     }
@@ -425,8 +468,9 @@ function Update-CategoryLayout {
 
 $form.Add_Load({
     Update-CategoryLayout
-    foreach ($lbl in $script:Checkboxes.Values) {
-        $lbl.Font = $script:MainFont
+    foreach ($info in $script:Checkboxes.Values) {
+        $info.TextLbl.Font = $script:MainFont
+        $info.IconLbl.Font = $script:StatusIconFont
     }
 })
 $form.Add_Resize({
@@ -451,8 +495,9 @@ for ($i = 0; $i -lt $script:MaxCols; $i++) {
     $columnGroups += ,@($colGrps)
 }
 
-$script:Checkboxes = @{}
+$script:Checkboxes = @{}      # Param -> { RowPanel, IconLbl, TextLbl }
 $script:CheckboxStates = @{}
+$script:CheckboxApplied = @{} # Param -> bool (set by Update button)
 $script:PickOneDropdowns = @{}   # GroupName -> ComboBox
 $script:PickOneCurrentText = @{} # GroupName -> Label
 $script:AllCards = @()
@@ -485,16 +530,16 @@ foreach ($colGrps in $columnGroups) {
 
     $icon = Get-CategoryIcon -GroupName $grp.Name
     $lblIcon = New-Object System.Windows.Forms.Label
-    $lblIcon.UseCompatibleTextRendering = $true
+    $lblIcon.UseCompatibleTextRendering = $false
     $lblIcon.Text = $icon
-    $lblIcon.Font = $script:IconFont
+    $lblIcon.Font = $script:TitleBarIconFont
     $lblIcon.ForeColor = $script:ClrText
     $lblIcon.AutoSize = $true
     $lblIcon.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 0)
     $headerPanel.Controls.Add($lblIcon)
 
     $lblGrp = New-Object System.Windows.Forms.Label
-    $lblGrp.UseCompatibleTextRendering = $true
+    $lblGrp.UseCompatibleTextRendering = $false
     $lblGrp.Text = $grp.Name
     $lblGrp.Font = $script:TitleFont
     $lblGrp.ForeColor = $script:ClrText
@@ -517,7 +562,7 @@ foreach ($colGrps in $columnGroups) {
         $subTitle = $firstOpt.SubGroup
         if ($subTitle) {
             $lblSub = New-Object System.Windows.Forms.Label
-            $lblSub.UseCompatibleTextRendering = $true
+            $lblSub.UseCompatibleTextRendering = $false
             $lblSub.Text = (Get-Culture).TextInfo.ToTitleCase($subTitle)
             $lblSub.Font = $script:SubtitleFont
             $lblSub.ForeColor = $script:ClrTextDim
@@ -529,7 +574,7 @@ foreach ($colGrps in $columnGroups) {
         $isPickOne = $firstOpt.IsPickOne
         if ($isPickOne) {
             $lblCurrentVal = New-Object System.Windows.Forms.Label
-            $lblCurrentVal.UseCompatibleTextRendering = $true
+            $lblCurrentVal.UseCompatibleTextRendering = $false
             $lblCurrentVal.Text = "(click Update)"
             $lblCurrentVal.ForeColor = $script:ClrTextDim
             $lblCurrentVal.Font = $script:MainFont
@@ -563,38 +608,87 @@ foreach ($colGrps in $columnGroups) {
                 $isSelected = ($e.State -band [System.Windows.Forms.DrawItemState]::Selected) -ne 0
                 if ($isSelected) {
                     $e.Graphics.FillRectangle((New-Object System.Drawing.SolidBrush($script:ClrAccent)), $e.Bounds)
-                    $brush = [System.Drawing.Brushes]::White
+                    $color = [System.Drawing.Color]::White
                 } else {
                     $e.Graphics.FillRectangle((New-Object System.Drawing.SolidBrush($script:ClrPanel)), $e.Bounds)
-                    $brush = New-Object System.Drawing.SolidBrush($script:ClrText)
+                    $color = $script:ClrText
                 }
-                $e.Graphics.DrawString($txt, $script:MainFont, $brush, $e.Bounds.X, $e.Bounds.Y)
+                [System.Windows.Forms.TextRenderer]::DrawText($e.Graphics, $txt, $script:MainFont, $e.Bounds, $color, [System.Windows.Forms.TextFormatFlags]::Left)
             })
             $colFlow.Controls.Add($cmb)
             $script:PickOneDropdowns[$pickOneKey] = $cmb
         } else {
             foreach ($opt in $subOpts) {
-                $lblChk = New-Object System.Windows.Forms.Label
-                $lblChk.UseCompatibleTextRendering = $true
-                $lblChk.Font = $script:MainFont
-                $lblChk.ForeColor = $script:ClrText
-                $lblChk.BackColor = [System.Drawing.Color]::Transparent
-                $lblChk.AutoSize = $true
-                $lblChk.AutoEllipsis = $false
-                $lblChk.Tag = @{ Param = $opt.Param; Label = $opt.Label }
-                $lblChk.Margin = New-Object System.Windows.Forms.Padding(4, 2, 0, 2)
-                $lblChk.Cursor = [System.Windows.Forms.Cursors]::Hand
-                $script:CheckboxStates[$opt.Param] = $false
-                $lblChk.Text = [char]0x2610 + " " + $opt.Label
-                $lblChk.Add_Click({
-                    $t = $this.Tag
-                    $p = $t.Param
-                    $script:CheckboxStates[$p] = -not $script:CheckboxStates[$p]
-                    $glyph = if ($script:CheckboxStates[$p]) { [char]0x2611 } else { [char]0x2610 }
-                    $this.Text = "$glyph $($t.Label)"
-                })
-                $script:Checkboxes[$opt.Param] = $lblChk
-                $colFlow.Controls.Add($lblChk)
+                $p = $opt.Param
+                $script:CheckboxStates[$p] = $false
+                $script:CheckboxApplied[$p] = $false
+
+                $rowPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+                $rowPanel.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
+                $rowPanel.WrapContents = $false
+                $rowPanel.AutoSize = $true
+                $rowPanel.BackColor = [System.Drawing.Color]::Transparent
+                $rowPanel.Margin = New-Object System.Windows.Forms.Padding(4, 2, 0, 2)
+                $rowPanel.Cursor = [System.Windows.Forms.Cursors]::Hand
+                $rowPanel.Padding = [System.Windows.Forms.Padding]::Empty
+
+                $iconLbl = New-Object System.Windows.Forms.Label
+                $iconLbl.UseCompatibleTextRendering = $false
+                $iconLbl.Text = $script:ChkIconUnchecked
+                $iconLbl.Font = $script:StatusIconFont
+                $iconLbl.ForeColor = $script:ClrText
+                $iconLbl.BackColor = [System.Drawing.Color]::Transparent
+                $iconLbl.AutoSize = $true
+                $iconLbl.Margin = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
+                $iconLbl.Cursor = [System.Windows.Forms.Cursors]::Hand
+
+                $textLbl = New-Object System.Windows.Forms.Label
+                $textLbl.UseCompatibleTextRendering = $false
+                $textLbl.Text = $opt.Label
+                $textLbl.Font = $script:MainFont
+                $textLbl.ForeColor = $script:ClrText
+                $textLbl.BackColor = [System.Drawing.Color]::Transparent
+                $textLbl.AutoSize = $true
+                $textLbl.Cursor = [System.Windows.Forms.Cursors]::Hand
+
+                $rowInfo = @{ IconLbl = $iconLbl; TextLbl = $textLbl }
+                $rowPanel.Tag = @{ Param = $p; RowInfo = $rowInfo }
+                $iconLbl.Tag = @{ Param = $p }
+                $textLbl.Tag = @{ Param = $p }
+
+                $doUpdate = {
+                    param($param, $hovered)
+                    $info = $script:Checkboxes[$param]
+                    if (-not $info) { return }
+                    $checked = $script:CheckboxStates[$param]
+                    $applied = if ($script:CheckboxApplied.ContainsKey($param)) { $script:CheckboxApplied[$param] } else { $false }
+                    Update-CheckboxRowAppearance -RowInfo $info.RowInfo -Checked $checked -Hovered $hovered -IsApplied $applied
+                }
+                $doClick = {
+                    $param = if ($this.Tag.Param) { $this.Tag.Param } else { $this.Parent.Tag.Param }
+                    $script:CheckboxStates[$param] = -not $script:CheckboxStates[$param]
+                    $info = $script:Checkboxes[$param]
+                    $applied = if ($script:CheckboxApplied.ContainsKey($param)) { $script:CheckboxApplied[$param] } else { $false }
+                    Update-CheckboxRowAppearance -RowInfo $info.RowInfo -Checked $script:CheckboxStates[$param] -Hovered $false -IsApplied $applied
+                }
+                $onEnter = { & $doUpdate -param $this.Tag.Param -hovered $true }
+                $onLeave = { & $doUpdate -param $this.Tag.Param -hovered $false }
+
+                $rowPanel.Add_MouseEnter($onEnter)
+                $rowPanel.Add_MouseLeave($onLeave)
+                $rowPanel.Add_Click($doClick)
+                $iconLbl.Add_MouseEnter($onEnter)
+                $iconLbl.Add_MouseLeave($onLeave)
+                $iconLbl.Add_Click($doClick)
+                $textLbl.Add_MouseEnter($onEnter)
+                $textLbl.Add_MouseLeave($onLeave)
+                $textLbl.Add_Click($doClick)
+
+                $rowPanel.Controls.Add($iconLbl)
+                $rowPanel.Controls.Add($textLbl)
+
+                $script:Checkboxes[$p] = @{ RowPanel = $rowPanel; IconLbl = $iconLbl; TextLbl = $textLbl; RowInfo = $rowInfo }
+                $colFlow.Controls.Add($rowPanel)
             }
         }
     }
@@ -605,6 +699,9 @@ foreach ($colGrps in $columnGroups) {
     }
 }
 $form.Add_Shown({
+    $this.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+    $this.Activate()
+    $this.BringToFront()
     $categoryFlow.PerformLayout()
     $script:CardHeights = @()
     for ($i = 0; $i -lt $script:AllCards.Count; $i++) {
@@ -626,13 +723,12 @@ $form.Controls.Add($menu)
 # --- Load current config state ---
 $configContent = Get-Content $script:ConfigScript -Raw
 foreach ($param in $script:Checkboxes.Keys) {
-    $lbl = $script:Checkboxes[$param]
+    $info = $script:Checkboxes[$param]
     $esc = [regex]::Escape($param)
     $checked = $configContent -match "(?m)^\s*(-?$esc)(\s|$)"
     $script:CheckboxStates[$param] = $checked
-    $t = $lbl.Tag
-    $glyph = if ($checked) { [char]0x2611 } else { [char]0x2610 }
-    $lbl.Text = "$glyph $($t.Label)"
+    $applied = if ($script:CheckboxApplied.ContainsKey($param)) { $script:CheckboxApplied[$param] } else { $false }
+    Update-CheckboxRowAppearance -RowInfo $info.RowInfo -Checked $checked -Hovered $false -IsApplied $applied
 }
 foreach ($grpName in $script:PickOneDropdowns.Keys) {
     $cmb = $script:PickOneDropdowns[$grpName]
@@ -654,9 +750,11 @@ foreach ($grpName in $script:PickOneDropdowns.Keys) {
 # --- Update button: check system, color applied items, populate pick-one current ---
 $btnUpdate.Add_Click({
     foreach ($param in $script:Checkboxes.Keys) {
-        $lbl = $script:Checkboxes[$param]
-        $applied = Test-SettingApplied -ParamName $param
-        $lbl.ForeColor = if ($applied -and $script:CheckboxStates[$param]) { $script:ClrApplied } else { $script:ClrText }
+        $script:CheckboxApplied[$param] = Test-SettingApplied -ParamName $param
+        $info = $script:Checkboxes[$param]
+        $checked = $script:CheckboxStates[$param]
+        $applied = $script:CheckboxApplied[$param]
+        Update-CheckboxRowAppearance -RowInfo $info.RowInfo -Checked $checked -Hovered $false -IsApplied $applied
     }
     foreach ($grpName in $script:PickOneDropdowns.Keys) {
         $tag = $script:PickOneDropdowns[$grpName].Tag
@@ -692,8 +790,10 @@ $btnApply.Add_Click({
 })
 
 $form.Add_FormClosing({
-    $bounds = $this.Bounds
-    @{ X = $bounds.X; Y = $bounds.Y; Width = $bounds.Width; Height = $bounds.Height } | ConvertTo-Json | Set-Content $settingsPath -Encoding UTF8
+    if ($this.WindowState -eq [System.Windows.Forms.FormWindowState]::Normal) {
+        $bounds = $this.Bounds
+        @{ X = $bounds.X; Y = $bounds.Y; Width = $bounds.Width; Height = $bounds.Height } | ConvertTo-Json | Set-Content $settingsPath -Encoding UTF8
+    }
 })
 
 $form.ShowDialog()
