@@ -1,0 +1,20 @@
+{
+  "AskToDeleteNewDesktopShortcuts": "",
+  "DeletableDesktopShortcuts.json": "{\r\n  \u0022C:\\\\Users\\\\Public\\\\Desktop\\\\Zen.lnk\u0022: true,\r\n  \u0022C:\\\\Users\\\\slett\\\\Desktop\\\\Bitwarden.lnk\u0022: true,\r\n  \u0022C:\\\\Users\\\\Public\\\\Desktop\\\\Oracle VirtualBox.lnk\u0022: true\r\n}",
+  "DependencyManagement.json": "{\r\n  \u0022Scoop-Search\u0022: \u0022attempted\u0022,\r\n  \u0022Git\u0022: \u0022attempted\u0022,\r\n  \u0022cargo-update\u0022: \u0022attempted\u0022,\r\n  \u0022cargo-binstall\u0022: \u0022attempted\u0022\r\n}",
+  "DisabledManagers.json": "{\r\n  \u0022Npm\u0022: true,\r\n  \u0022Cargo\u0022: false,\r\n  \u0022vcpkg\u0022: true,\r\n  \u0022.NET Tool\u0022: true,\r\n  \u0022PowerShell7\u0022: false,\r\n  \u0022Pip\u0022: false\r\n}",
+  "DisableInstantSearch.json": "{\r\n  \u0022Discover\u0022: false,\r\n  \u0022Updates\u0022: false,\r\n  \u0022Installed\u0022: false,\r\n  \u0022Bundles\u0022: false\r\n}",
+  "EnablePackageBackup": "",
+  "EnablePackageBackup_CLOUD": "",
+  "GitHubUserLogin": "FocusTorn",
+  "HideToggleFilters.json": "{\r\n  \u0022Discover\u0022: false,\r\n  \u0022Installed\u0022: false\r\n}",
+  "IgnoredPackageUpdates.json": "{\r\n  \u0022winget\\\\Cybelsoft.DriversCloud\u0022: \u0022*\u0022\r\n}",
+  "PackageListViewMode.json": "{\r\n  \u0022Discover\u0022: 0,\r\n  \u0022Updates\u0022: 0,\r\n  \u0022Installed\u0022: 0,\r\n  \u0022Bundles\u0022: 0\r\n}",
+  "PreferredTheme": "auto",
+  "RemoveAllDesktopShortcuts": "",
+  "ShownTelemetryBanner": "",
+  "SidepanelWidths.json": "{\r\n  \u0022Discover\u0022: 249,\r\n  \u0022Bundles\u0022: 249,\r\n  \u0022Installed\u0022: 249,\r\n  \u0022Updates\u0022: 249\r\n}",
+  "UpdatesCheckInterval": "14400",
+  "UseSystemChocolatey": "",
+  "WindowGeometry": "884,64,1647,981,0"
+}

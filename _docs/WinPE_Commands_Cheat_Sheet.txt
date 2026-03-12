@@ -1,0 +1,16 @@
+# DISM COMMANDS FOR WINPE
+
+--- CAPTURE (BACKUP) ---
+dism /Capture-Image /ImageFile:"OS_BACKUP.wim" /CaptureDir:C:\ /Name:"PreDebloatBackup" /Compress:max
+
+--- RESTORE (APPLY) ---
+dism /Apply-Image /ImageFile:"OS_BACKUP.wim" /Index:1 /ApplyDir:C:
+
+--- FIX BOOT (IF NEEDED) ---
+bcdboot C:\Windows
+
+--- DRIVE LETTER CHECK ---
+If C: is not your Windows drive in WinPE, use:
+diskpart
+list volume
+exit

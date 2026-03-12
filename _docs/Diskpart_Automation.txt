@@ -1,0 +1,28 @@
+# DISKPART SCRIPT FOR AUTOMATED WINDOWS PARTITIONING
+# Use this to skip the "Diskpart Shit" and manually prepare a drive for UEFI.
+# Usage: diskpart /s Diskpart_Automation.txt
+
+select disk 0
+clean
+convert gpt
+
+# EFI Partition (Boot)
+create partition efi size=100
+format quick fs=fat32 label="System"
+assign letter=S
+
+# MSR Partition (Reserved)
+create partition msr size=16
+
+# Recovery Partition (Hidden)
+create partition primary size=500
+format quick fs=ntfs label="Recovery"
+set id="de94bba4-06d1-4d40-a16a-bfd50179d6ac"
+gpt attributes=0x8000000000000001
+
+# Windows Partition (Primary OS)
+create partition primary
+format quick fs=ntfs label="Windows"
+assign letter=W
+
+exit

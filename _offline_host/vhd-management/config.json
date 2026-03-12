@@ -1,0 +1,6 @@
+{
+    "VhdPath": "N:\\VHD\\MasterInstallers.vhdx",
+    "VMName": "Windows 11 Master",
+    "OfflinePath": "S:\\_offline",
+    "InstallersPath": "S:\\installers"
+}
