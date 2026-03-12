@@ -1317,8 +1317,15 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                 $control = $window.FindName($mappingKey)
                 $mapping = $script:UiControlMappings[$mappingKey]
                 $isSelected = $false
+                $isRevert = $false
                 if ($control -is [System.Windows.Controls.CheckBox]) {
-                    $isSelected = $control.IsChecked -eq $true
+                    if ($mapping.IsSystemApplied) {
+                        $isSelected = $control.IsChecked -eq $true
+                        $isRevert = $control.IsChecked -eq $false
+                    }
+                    else {
+                        $isSelected = $control.IsChecked -eq $true
+                    }
                 }
                 elseif ($control -is [System.Windows.Controls.ComboBox]) {
                     $isSelected = $control.SelectedIndex -gt 0
@@ -1335,6 +1342,10 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                         $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1
                         if ($feature) { $changesList += ($feature.Action + ' ' + $feature.Label) }
                     }
+                }
+                if ($control -and $isRevert -and $mapping.Type -eq 'feature') {
+                    $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1
+                    if ($feature -and $feature.RegistryUndoKey) { $changesList += ("Revert " + $feature.Action + ' ' + $feature.Label) }
                 }
             }
         }
@@ -1455,10 +1466,18 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
         if ($script:UiControlMappings) {
             foreach ($mappingKey in $script:UiControlMappings.Keys) {
                 $control = $window.FindName($mappingKey)
+                $mapping = $script:UiControlMappings[$mappingKey]
                 $isSelected = $false
+                $isRevert = $false
                 $selectedIndex = 0
                 if ($control -is [System.Windows.Controls.CheckBox]) {
-                    $isSelected = $control.IsChecked -eq $true
+                    if ($mapping.IsSystemApplied) {
+                        $isSelected = $control.IsChecked -eq $true
+                        $isRevert = $control.IsChecked -eq $false
+                    }
+                    else {
+                        $isSelected = $control.IsChecked -eq $true
+                    }
                     $selectedIndex = if ($isSelected) { 1 } else { 0 }
                 }
                 elseif ($control -is [System.Windows.Controls.ComboBox]) {
@@ -1466,7 +1485,6 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                     $selectedIndex = $control.SelectedIndex
                 }
                 if ($control -and $isSelected) {
-                    $mapping = $script:UiControlMappings[$mappingKey]
                     if ($mapping.Type -eq 'group') {
                         if ($selectedIndex -gt 0 -and $selectedIndex -le $mapping.Values.Count) {
                             $selectedValue = $mapping.Values[$selectedIndex - 1]
@@ -1475,6 +1493,13 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                     }
                     elseif ($mapping.Type -eq 'feature') {
                         AddParameter $mapping.FeatureId
+                    }
+                }
+                if ($control -and $isRevert -and $mapping.Type -eq 'feature') {
+                    $featuresJson = LoadJsonFile -filePath $script:FeaturesFilePath -expectedVersion "1.0"
+                    $feat = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1
+                    if ($feat -and $feat.RegistryUndoKey) {
+                        AddParameter "Revert_$($mapping.FeatureId)"
                     }
                 }
             }
@@ -1653,8 +1678,14 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
         if ($script:UiControlMappings) {
             foreach ($comboName in $script:UiControlMappings.Keys) {
                 $control = $window.FindName($comboName)
+                $mapping = $script:UiControlMappings[$comboName]
                 if ($control -is [System.Windows.Controls.CheckBox]) {
-                    $control.IsChecked = $false
+                    if ($mapping.IsSystemApplied) {
+                        $control.IsChecked = $null
+                    }
+                    else {
+                        $control.IsChecked = $false
+                    }
                 }
                 elseif ($control -is [System.Windows.Controls.ComboBox]) {
                     $control.SelectedIndex = 0
@@ -1664,15 +1695,10 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
         Clear-AppliedTweakStyling
     })
 
-    # GuiFork: Clear system-activated styling only (restore checkmark, blue border). Don't touch normal checkboxes.
+    # GuiFork: Clear system-activated styling. For system-applied checkboxes, reset to star (ignore). For combos, clear green.
     function Clear-AppliedTweakStyling {
         if (-not $script:UiControlMappings) { return }
         $defaultFg = $window.Resources["FgColor"]
-        $checkBoxBg = $window.Resources["CheckBoxBgColor"]
-        $checkBoxBorder = $window.Resources["CheckBoxBorderColor"]
-        $buttonBg = $window.Resources["ButtonBg"]
-        $whiteBrush = [System.Windows.Media.Brushes]::White
-        $starChar = [char]0xE735
         foreach ($comboName in $script:UiControlMappings.Keys) {
             $control = $window.FindName($comboName)
             $lblBorder = $window.FindName("$comboName`_LabelBorder")
@@ -1681,17 +1707,9 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                 $control.Background = [System.Windows.Media.Brushes]::Transparent
             }
             elseif ($control -is [System.Windows.Controls.CheckBox]) {
-                $control.ApplyTemplate()
-                $checkMark = $control.Template.FindName("CheckMark", $control)
-                if ($checkMark -and $checkMark.Text -eq $starChar) {
-                    $control.Foreground = $defaultFg
-                    $cbBorder = $control.Template.FindName("CheckBoxBorder", $control)
-                    if ($cbBorder) {
-                        $cbBorder.Background = $buttonBg
-                        $cbBorder.BorderBrush = $buttonBg
-                    }
-                    $checkMark.Text = [char]0xE73E
-                    $checkMark.Foreground = $whiteBrush
+                $mapping = $script:UiControlMappings[$comboName]
+                if ($mapping.IsSystemApplied) {
+                    $control.IsChecked = $null
                 }
             }
             if ($lblBorder -and $lblBorder.Child) { $lblBorder.Child.Foreground = $defaultFg }
@@ -1701,15 +1719,65 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
     # GuiFork: Test if a .reg file's values are already applied
     function Test-RegistryFileApplied {
         param([string]$RegFileName)
+        $guiForkRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $logPath = Join-Path $guiForkRoot 'debug-619e9b.log'
+        $dbg = @{ RegFile = $RegFileName; KeyFound = $null; Actual = $null; Expected = $null; Result = $null; Path = $null; Hive = $null; RegPath = $null }
         $regPath = Join-Path $script:RegfilesPath $RegFileName
+        $dbg.RegPath = $regPath
         if (-not (Test-Path $regPath)) { return $false }
+        if ($RegFileName -match 'Show_Hidden|Show_Extensions|Disable_Show_More') {
+            $testKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software', $false)
+            $dbg.HKCU_Software_Accessible = ($null -ne $testKey)
+            if ($testKey) { $testKey.Close() }
+        }
         $content = Get-Content $regPath -Raw
         $currentKey = $null
         $allMatch = $true
-        foreach ($line in ($content -split "`r?`n")) {
+        $lines = $content -split "`r?`n"
+        if ($RegFileName -match 'Show_Hidden|Show_Extensions|Disable_Show_More') { $dbg.LineCount = $lines.Count; $idx = [Math]::Min(4, [Math]::Max(0, $lines.Count - 1)); $dbg.FirstLines = if ($lines.Count -gt 0) { ($lines[0..$idx] | ForEach-Object { $_ -replace '"', "'" }) } else { @() } }
+        foreach ($line in $lines) {
             $line = $line.Trim()
-            if ($line -match '^\[(HKEY_[^\]]+)\\(.+)\]$') {
+            if ($line -match '^\[(HKEY_[^\\]+)\\(.+)\]$') {
                 $currentKey = @{ Hive = $matches[1]; Path = $matches[2] }
+                if ($RegFileName -match 'Show_Hidden|Show_Extensions|Disable_Show_More') { $dbg.Path = $matches[2]; $dbg.Hive = $matches[1]; $dbg.KeyLineMatched = $true }
+            }
+            elseif ($currentKey -and $line -match '^@=(.+)$') {
+                $valData = $matches[1]
+                $valName = $null
+                try {
+                    $baseKey = switch -Regex ($currentKey.Hive) {
+                        'HKEY_CURRENT_USER' { [Microsoft.Win32.Registry]::CurrentUser }
+                        'HKEY_LOCAL_MACHINE' { [Microsoft.Win32.Registry]::LocalMachine }
+                        default { $allMatch = $false; break }
+                    }
+                    if (-not $allMatch) { break }
+                    $key = $baseKey.OpenSubKey($currentKey.Path, $false)
+                    if (-not $key) { $dbg.KeyFound = $false; $dbg.Result = 'key_not_found'; $dbg.TriedPath = $currentKey.Path; $allMatch = $false; break }
+                    $dbg.KeyFound = $true
+                    $actual = $key.GetValue($valName)
+                    $key.Close()
+                    $expected = $null
+                    if ($valData -eq '-') {
+                        if ($null -ne $actual) { $allMatch = $false }
+                    }
+                    elseif ($valData -match '^dword:([0-9a-fA-F]+)$') {
+                        $expected = [int][Convert]::ToInt32($matches[1], 16)
+                        $actualStr = if ($null -eq $actual) { $null } else { $actual.ToString() }
+                        $expectedStr = $expected.ToString()
+                        $dbg.Actual = $actualStr; $dbg.Expected = $expectedStr
+                        if ($actualStr -ne $expectedStr) { $allMatch = $false }
+                    }
+                    elseif ($valData -eq '""' -or $valData -match '^"(.+)"$') {
+                        $expected = if ($valData -eq '""') { '' } else { $matches[1] -replace '\\"','"' }
+                        $actualStr = if ($null -eq $actual) { '' } else { $actual.ToString() }
+                        $expectedStr = if ($null -eq $expected) { '' } else { $expected.ToString() }
+                        $dbg.Actual = $actualStr; $dbg.Expected = $expectedStr
+                        if ($actualStr -ne $expectedStr) { $allMatch = $false }
+                    }
+                } catch { $dbg.Result = $_.Exception.Message; $allMatch = $false }
+                $dbg.Result = $allMatch
+                if ($RegFileName -match 'Show_Hidden|Show_Extensions|Disable_Show_More') { try { [System.IO.File]::AppendAllText($logPath, (@{ sessionId = '619e9b'; location = 'Test-RegistryFileApplied'; message = 'check'; data = $dbg; timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() } | ConvertTo-Json -Compress) + "`n") } catch {} }
+                if (-not $allMatch) { break }
             }
             elseif ($currentKey -and $line -match '^"([^"]+)"=(.+)$') {
                 $valName = $matches[1]
@@ -1720,8 +1788,10 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                         'HKEY_LOCAL_MACHINE' { [Microsoft.Win32.Registry]::LocalMachine }
                         default { $allMatch = $false; break }
                     }
+                    if (-not $allMatch) { break }
                     $key = $baseKey.OpenSubKey($currentKey.Path, $false)
-                    if (-not $key) { $allMatch = $false; break }
+                    if (-not $key) { $dbg.KeyFound = $false; $dbg.Result = 'key_not_found'; $dbg.TriedPath = $currentKey.Path; $allMatch = $false; break }
+                    $dbg.KeyFound = $true
                     $actual = $key.GetValue($valName)
                     $key.Close()
                     $expected = $null
@@ -1730,28 +1800,38 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                     }
                     elseif ($valData -match '^dword:([0-9a-fA-F]+)$') {
                         $expected = [int][Convert]::ToInt32($matches[1], 16)
-                        if ($actual -ne $expected) { $allMatch = $false }
+                        $actualStr = if ($null -eq $actual) { $null } else { $actual.ToString() }
+                        $expectedStr = $expected.ToString()
+                        $dbg.Actual = $actualStr; $dbg.Expected = $expectedStr
+                        if ($actualStr -ne $expectedStr) { $allMatch = $false }
                     }
-                    elseif ($valData -match '^"(.+)"$') {
-                        $expected = $matches[1] -replace '\\"','"'
-                        if ($actual -ne $expected) { $allMatch = $false }
+                    elseif ($valData -eq '""' -or $valData -match '^"(.+)"$') {
+                        $expected = if ($valData -eq '""') { '' } else { $matches[1] -replace '\\"','"' }
+                        $actualStr = if ($null -eq $actual) { '' } else { $actual.ToString() }
+                        $expectedStr = if ($null -eq $expected) { '' } else { $expected.ToString() }
+                        $dbg.Actual = $actualStr; $dbg.Expected = $expectedStr
+                        if ($actualStr -ne $expectedStr) { $allMatch = $false }
                     }
-                } catch { $allMatch = $false }
+                } catch { $dbg.Result = $_.Exception.Message; $allMatch = $false }
+                $dbg.Result = $allMatch
+                if ($RegFileName -match 'Show_Hidden|Show_Extensions|Disable_Show_More') { try { [System.IO.File]::AppendAllText($logPath, (@{ sessionId = '619e9b'; location = 'Test-RegistryFileApplied'; message = 'check'; data = $dbg; timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() } | ConvertTo-Json -Compress) + "`n") } catch {} }
                 if (-not $allMatch) { break }
             }
         }
+        $dbg.Result = $allMatch
+        if ($RegFileName -match 'Show_Hidden|Show_Extensions|Disable_Show_More') { try { [System.IO.File]::AppendAllText($logPath, (@{ sessionId = '619e9b'; location = 'Test-RegistryFileApplied'; message = 'final'; data = $dbg; timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() } | ConvertTo-Json -Compress) + "`n") } catch {} }
         return $allMatch
     }
 
     # GuiFork: Update tweak selections from system registry scan
-    # System-activated: star (E735) inside checkbox instead of checkmark (E73E), green styling
+    # System-applied checkboxes: 3-state style (star=ignore, check=reinstall, empty=revert), default star
+    # System-applied combos: green styling, keep current selection
     function Update-TweakSelectionsFromSystem {
         $featuresJson = LoadJsonFile -filePath $script:FeaturesFilePath -expectedVersion "1.0"
         if (-not $featuresJson) { return }
         Clear-AppliedTweakStyling
         $window.UpdateLayout()
         $appliedColor = $window.Resources["AppliedColor"]
-        $checkBoxBg = $window.Resources["CheckBoxBgColor"]
         foreach ($comboName in $script:UiControlMappings.Keys) {
             $mapping = $script:UiControlMappings[$comboName]
             $control = $window.FindName($comboName)
@@ -1780,20 +1860,11 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                 $feat = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1
                 if ($feat -and $feat.RegistryKey -and (Test-RegistryFileApplied -RegFileName $feat.RegistryKey)) {
                     if ($control -is [System.Windows.Controls.CheckBox]) {
-                        $control.ApplyTemplate()
-                        $control.IsChecked = $true
+                        $control.Style = $window.Resources["FeatureCheckboxSystemAppliedStyle"]
+                        $control.IsThreeState = $true
+                        $control.IsChecked = $null
                         $control.Foreground = $appliedColor
-                        $cbBorder = $control.Template.FindName("CheckBoxBorder", $control)
-                        $checkMark = $control.Template.FindName("CheckMark", $control)
-                        if ($cbBorder) {
-                            $cbBorder.Background = $checkBoxBg
-                            $cbBorder.BorderBrush = $appliedColor
-                        }
-                        if ($checkMark) {
-                            $checkMark.Text = [char]0xE735
-                            $checkMark.Foreground = $appliedColor
-                            $checkMark.Visibility = [System.Windows.Visibility]::Visible
-                        }
+                        $script:UiControlMappings[$comboName].IsSystemApplied = $true
                     }
                     elseif ($control -is [System.Windows.Controls.ComboBox]) {
                         $control.SelectedIndex = 1
@@ -1813,17 +1884,25 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
             $control = $window.FindName($comboName)
             $mapping = $script:UiControlMappings[$comboName]
             if (-not $control) { continue }
-            $isSelected = $false
             $paramName = $null
             if ($control -is [System.Windows.Controls.CheckBox]) {
-                $isSelected = $control.IsChecked -eq $true
-                $paramName = $mapping.FeatureId
+                if ($mapping.IsSystemApplied) {
+                    if ($control.IsChecked -eq $true) {
+                        $paramName = $mapping.FeatureId
+                        $settings += @{ Name = $paramName; Value = $true }
+                    }
+                    elseif ($control.IsChecked -eq $false) {
+                        $paramName = "Revert_$($mapping.FeatureId)"
+                        $settings += @{ Name = $paramName; Value = $true }
+                    }
+                }
+                elseif ($control.IsChecked -eq $true) {
+                    $paramName = $mapping.FeatureId
+                    $settings += @{ Name = $paramName; Value = $true }
+                }
             }
             elseif ($control -is [System.Windows.Controls.ComboBox] -and $control.SelectedIndex -gt 0) {
-                $isSelected = $true
                 $paramName = $mapping.Values[$control.SelectedIndex - 1].FeatureIds[0]
-            }
-            if ($isSelected -and $paramName) {
                 $settings += @{ Name = $paramName; Value = $true }
             }
         }
@@ -1877,7 +1956,7 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
     if ($tweakUpdateBtn) {
         $tweakUpdateBtn.Add_Click({
             Update-TweakSelectionsFromSystem
-            Show-MessageBox -Message "System scan complete. Selections updated based on applied tweaks. Applied tweaks show a star in the checkbox (green)." -Title "Update" -Button 'OK' -Icon 'Information' | Out-Null
+            Show-MessageBox -Message "System scan complete. Applied tweaks now use 3-state: star (ignore), check (reinstall), empty (revert). Default is star." -Title "Update" -Button 'OK' -Icon 'Information' | Out-Null
         })
     }
     if ($tweakProfileCombo -and $tweakProfileReplaceBtn -and $tweakProfileMergeBtn -and $tweakProfileSaveBtn) {
@@ -1894,7 +1973,6 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                 return
             }
             ApplySettingsToUiControls -window $window -settingsJson $profileJson -uiControlMappings $script:UiControlMappings
-            Clear-AppliedTweakStyling
         })
         $tweakProfileMergeBtn.Add_Click({
             $item = $tweakProfileCombo.SelectedItem
@@ -1911,6 +1989,25 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                 if ($setting.Value -ne $true) { continue }
                 $paramName = $setting.Name
                 if ($paramName -eq 'CreateRestorePoint') { continue }
+                if ($paramName -match '^Revert_(.+)$') {
+                    $featureId = $matches[1]
+                    $appliedColor = $window.Resources["AppliedColor"]
+                    foreach ($comboName in $script:UiControlMappings.Keys) {
+                        $mapping = $script:UiControlMappings[$comboName]
+                        if ($mapping.Type -eq 'feature' -and $mapping.FeatureId -eq $featureId) {
+                            $control = $window.FindName($comboName)
+                            if ($control -and $control -is [System.Windows.Controls.CheckBox]) {
+                                $control.Style = $window.Resources["FeatureCheckboxSystemAppliedStyle"]
+                                $control.IsThreeState = $true
+                                $control.IsChecked = $false
+                                $control.Foreground = $appliedColor
+                                $script:UiControlMappings[$comboName].IsSystemApplied = $true
+                            }
+                            break
+                        }
+                    }
+                    continue
+                }
                 foreach ($comboName in $script:UiControlMappings.Keys) {
                     $mapping = $script:UiControlMappings[$comboName]
                     $control = $window.FindName($comboName)

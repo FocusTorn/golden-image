@@ -233,6 +233,7 @@ if (-not $script:WingetInstalled -and -not $Silent) {
 . "$script:SourceRoot/Scripts/Features/DisableStoreSearchSuggestions.ps1"
 . "$script:SourceRoot/Scripts/Features/EnableWindowsFeature.ps1"
 . "$script:SourceRoot/Scripts/Features/ImportRegistryFile.ps1"
+. "$PSScriptRoot/Scripts/Features/ImportRegistryFileForRevert.ps1"
 . "$script:SourceRoot/Scripts/Features/ReplaceStartMenu.ps1"
 . "$script:SourceRoot/Scripts/Features/RestartExplorer.ps1"
 
@@ -524,6 +525,19 @@ function ExecuteParameter {
         [string]$paramKey
     )
     
+    # GuiFork: Handle revert (system-applied tweak unchecked in 3-state UI)
+    if ($paramKey -match '^Revert_(.+)$') {
+        $featureId = $matches[1]
+        $feature = $null
+        if ($script:Features.ContainsKey($featureId)) {
+            $feature = $script:Features[$featureId]
+        }
+        if ($feature -and $feature.RegistryUndoKey -and $feature.UndoAction) {
+            ImportRegistryFileForRevert "> $($feature.UndoAction) $($feature.Label)..." $feature.RegistryUndoKey
+            return
+        }
+    }
+    
     # Check if this feature has metadata in Features.json
     $feature = $null
     if ($script:Features.ContainsKey($paramKey)) {
@@ -691,7 +705,14 @@ function ExecuteAllChanges {
         
         # Get friendly name for the step
         $stepName = $paramKey
-        if ($script:Features.ContainsKey($paramKey)) {
+        if ($paramKey -match '^Revert_(.+)$') {
+            $featureId = $matches[1]
+            if ($script:Features.ContainsKey($featureId)) {
+                $feature = $script:Features[$featureId]
+                $stepName = "$($feature.UndoAction) $($feature.Label)"
+            }
+        }
+        elseif ($script:Features.ContainsKey($paramKey)) {
             $feature = $script:Features[$paramKey]
             if ($feature.ApplyText) {
                 # Prefer explicit ApplyText when provided
