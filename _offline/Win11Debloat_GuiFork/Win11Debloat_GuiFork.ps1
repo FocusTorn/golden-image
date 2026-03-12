@@ -115,11 +115,14 @@ $script:DefaultLogPath = "$script:SourceRoot/Logs/Win11Debloat-GuiFork.log"
 $script:RegfilesPath = "$script:SourceRoot/Regfiles"
 $script:AssetsPath = "$script:SourceRoot/Assets"
 $script:AppSelectionSchema = "$script:SourceRoot/Schemas/AppSelectionWindow.xaml"
-$script:MainWindowSchema = "$script:SourceRoot/Schemas/MainWindow.xaml"
+# GuiFork: use our MainWindow.xaml with profile UI and default "installed only"
+$script:MainWindowSchema = if (Test-Path (Join-Path $PSScriptRoot "Schemas/MainWindow.xaml")) { Join-Path $PSScriptRoot "Schemas/MainWindow.xaml" } else { "$script:SourceRoot/Schemas/MainWindow.xaml" }
 $script:MessageBoxSchema = "$script:SourceRoot/Schemas/MessageBoxWindow.xaml"
 $script:AboutWindowSchema = "$script:SourceRoot/Schemas/AboutWindow.xaml"
 $script:ApplyChangesWindowSchema = "$script:SourceRoot/Schemas/ApplyChangesWindow.xaml"
 $script:SharedStylesSchema = "$script:SourceRoot/Schemas/SharedStyles.xaml"
+$script:AppProfilesPath = Join-Path $PSScriptRoot "Config\AppProfiles"
+$script:TweakProfilesPath = Join-Path $PSScriptRoot "Config\TweakProfiles"
 
 $script:ControlParams = 'WhatIf', 'Confirm', 'Verbose', 'Debug', 'LogPath', 'Silent', 'Sysprep', 'User', 'NoRestartExplorer', 'RunDefaults', 'RunDefaultsLite', 'RunSavedSettings', 'RunAppsListGenerator', 'CLI', 'AppRemovalTarget'
 
@@ -177,18 +180,22 @@ catch {
     Exit
 }
 
-# Check if WinGet is installed & if it is, check if the version is at least v1.4
+# Check if WinGet is installed & store full path for use in background jobs
 try {
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
+    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+    if ($wingetCmd) {
         $script:WingetInstalled = $true
+        $script:WingetPath = $wingetCmd.Source
     }
     else {
         $script:WingetInstalled = $false
+        $script:WingetPath = $null
     }
 }
 catch {
     Write-Error "Unable to determine if WinGet is installed, winget command failed: $_"
     $script:WingetInstalled = $false
+    $script:WingetPath = $null
 }
 
 # Show WinGet warning that requires user confirmation, Suppress confirmation if Silent parameter was passed
@@ -233,7 +240,8 @@ if (-not $script:WingetInstalled -and -not $Silent) {
 . "$script:SourceRoot/Scripts/GUI/GetSystemUsesDarkMode.ps1"
 . "$script:SourceRoot/Scripts/GUI/SetWindowThemeResources.ps1"
 . "$script:SourceRoot/Scripts/GUI/AttachShiftClickBehavior.ps1"
-. "$script:SourceRoot/Scripts/GUI/ApplySettingsToUiControls.ps1"
+# GuiFork: Use GuiFork's ApplySettingsToUiControls (handles tristate + RevertFeatures)
+. "$PSScriptRoot/Scripts/GUI/ApplySettingsToUiControls.ps1"
 . "$script:SourceRoot/Scripts/GUI/Show-MessageBox.ps1"
 . "$script:SourceRoot/Scripts/GUI/Show-ApplyModal.ps1"
 . "$script:SourceRoot/Scripts/GUI/Show-AppSelectionWindow.ps1"
@@ -324,20 +332,24 @@ function AddParameter {
 
 
 # Run winget list and return installed apps (sync or async)
+# Uses full path to winget because Start-Job runs in a separate process that may not have winget in PATH
 function GetInstalledAppsViaWinget {
     param (
-        [int]$TimeOut = 10,
+        [int]$TimeOut = 15,
         [switch]$Async
     )
 
-    if (-not $script:WingetInstalled) { return $null }
+    if (-not $script:WingetInstalled -or -not $script:WingetPath) { return $null }
+
+    $wingetExe = $script:WingetPath
+    $scriptBlock = { param($exe) & $exe list --accept-source-agreements --disable-interactivity }
 
     if ($Async) {
-        $wingetListJob = Start-Job { return winget list --accept-source-agreements --disable-interactivity }
+        $wingetListJob = Start-Job -ArgumentList $wingetExe -ScriptBlock $scriptBlock
         return @{ Job = $wingetListJob; StartTime = Get-Date }
     }
     else {
-        $wingetListJob = Start-Job { return winget list --accept-source-agreements --disable-interactivity }
+        $wingetListJob = Start-Job -ArgumentList $wingetExe -ScriptBlock $scriptBlock
         $jobDone = $wingetListJob | Wait-Job -TimeOut $TimeOut
         if (-not $jobDone) {
             Remove-Job -Job $wingetListJob -Force -ErrorAction SilentlyContinue
@@ -748,7 +760,7 @@ else {
 }
 
 if ($script:Params.ContainsKey("Sysprep")) {
-    $defaultUserPath = GetUserDirectory -userName "Default"
+    $null = GetUserDirectory -userName "Default"
 
     # Exit script if run in Sysprep mode on Windows 10
     if ($WinVersion -lt 22000) {

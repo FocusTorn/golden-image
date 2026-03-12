@@ -18,6 +18,11 @@ function Show-MainWindow {
 
     SetWindowThemeResources -window $window -usesDarkMode $usesDarkMode
 
+    # GuiFork: Add green color for already-applied tweaks (green border + green check, background unchanged)
+    if (-not $window.Resources.Contains("AppliedColor")) {
+        $window.Resources.Add("AppliedColor", [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString("#22C55E")))
+    }
+
     # Get named elements
     $titleBar = $window.FindName('TitleBar')
     $kofiBtn = $window.FindName('KofiBtn')
@@ -258,8 +263,8 @@ function Show-MainWindow {
         $script:UiControlMappings = @{}
         $script:CategoryCardMap = @{}
 
-        function CreateLabeledCombo($parent, $labelText, $comboName, $items) {
-            # If only 2 items (No Change + one option), use a checkbox instead
+        function CreateLabeledCombo($parent, $labelText, $comboName, $items, $feature) {
+            # If only 2 items (No Change + one option), use checkbox
             if ($items.Count -eq 2) {
                 $checkbox = New-Object System.Windows.Controls.CheckBox
                 $checkbox.Content = $labelText
@@ -268,16 +273,11 @@ function Show-MainWindow {
                 $checkbox.IsChecked = $false
                 $checkbox.Style = $window.Resources["FeatureCheckboxStyle"]
                 $parent.Children.Add($checkbox) | Out-Null
-                
-                # Register the checkbox with the window's name scope
                 try {
                     [System.Windows.NameScope]::SetNameScope($checkbox, [System.Windows.NameScope]::GetNameScope($window))
                     $window.RegisterName($comboName, $checkbox)
                 }
-                catch {
-                    # Name might already be registered, ignore
-                }
-                
+                catch { }
                 return $checkbox
             }
             
@@ -480,7 +480,7 @@ function Show-MainWindow {
                     $group = $item.Data
                     $items = @('No Change') + ($group.Values | ForEach-Object { $_.Label })
                     $comboName = 'Group_{0}Combo' -f $group.GroupId
-                    $combo = CreateLabeledCombo -parent $panel -labelText $group.Label -comboName $comboName -items $items
+                    $combo = CreateLabeledCombo -parent $panel -labelText $group.Label -comboName $comboName -items $items -feature $null
                     # attach tooltip from UiGroups if present
                     if ($group.ToolTip) {
                         $tipBlock = New-Object System.Windows.Controls.TextBlock
@@ -500,17 +500,13 @@ function Show-MainWindow {
                     if ($feature.FeatureId -match '^Disable') { $opt = 'Disable' } elseif ($feature.FeatureId -match '^Enable') { $opt = 'Enable' }
                     $items = @('No Change', $opt)
                     $comboName = ("Feature_{0}_Combo" -f $feature.FeatureId) -replace '[^a-zA-Z0-9_]',''
-                    $combo = CreateLabeledCombo -parent $panel -labelText ($feature.Action + ' ' + $feature.Label) -comboName $comboName -items $items
-                    # attach tooltip from Features.json if present
+                    $combo = CreateLabeledCombo -parent $panel -labelText ($feature.Action + ' ' + $feature.Label) -comboName $comboName -items $items -feature $feature
                     if ($feature.ToolTip) {
                         $tipBlock = New-Object System.Windows.Controls.TextBlock
                         $tipBlock.Text = $feature.ToolTip
                         $tipBlock.TextWrapping = 'Wrap'
                         $tipBlock.MaxWidth = 420
                         $combo.ToolTip = $tipBlock
-                        $lblBorderObj = $null
-                        try { $lblBorderObj = $window.FindName("$comboName`_LabelBorder") } catch {}
-                        if ($lblBorderObj) { $lblBorderObj.ToolTip = $tipBlock }
                     }
                     $script:UiControlMappings[$comboName] = @{ Type='feature'; FeatureId = $feature.FeatureId; Action = $feature.Action }
                 }
@@ -520,7 +516,8 @@ function Show-MainWindow {
 
     # Helper function to complete app loading with the WinGet list
     function script:LoadAppsWithList($listOfApps) {
-        $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalledAppsBox.IsChecked -InstalledList $listOfApps -InitialCheckedFromJson:$false
+        # Checked = show all apps, Unchecked = only installed (default)
+$appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.IsChecked) -InstalledList $listOfApps -InitialCheckedFromJson:$false
 
         # Reset the last selected checkbox when loading a new list
         $script:MainWindowLastSelectedCheckbox = $null
@@ -610,7 +607,8 @@ function Show-MainWindow {
         $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [action]{
             $listOfApps = ""
 
-            if ($onlyInstalledAppsBox.IsChecked -and ($script:WingetInstalled -eq $true)) {
+            # Only installed when checkbox unchecked; use WinGet to filter
+            if ((-not $onlyInstalledAppsBox.IsChecked) -and ($script:WingetInstalled -eq $true)) {
                 # Start job to get list of installed apps via WinGet (async helper)
                 $asyncJob = GetInstalledAppsViaWinget -Async
                 $script:CurrentAppLoadJob = $asyncJob.Job
@@ -629,7 +627,7 @@ function Show-MainWindow {
                     
                     $elapsed = (Get-Date) - $script:CurrentAppLoadJobStartTime
                     
-                    # Check if job is complete or timed out (10 seconds)
+                    # Check if job is complete or timed out (15 seconds)
                     if ($script:CurrentAppLoadJob.State -eq 'Completed') {
                         $script:CurrentAppLoadTimer.Stop()
                         $listOfApps = Receive-Job -Job $script:CurrentAppLoadJob
@@ -641,7 +639,7 @@ function Show-MainWindow {
                         # Continue with loading apps
                         LoadAppsWithList $listOfApps
                     }
-                    elseif ($elapsed.TotalSeconds -gt 10 -or $script:CurrentAppLoadJob.State -eq 'Failed') {
+                    elseif ($elapsed.TotalSeconds -gt 15 -or $script:CurrentAppLoadJob.State -eq 'Failed') {
                         $script:CurrentAppLoadTimer.Stop()
                         Remove-Job -Job $script:CurrentAppLoadJob -Force -ErrorAction SilentlyContinue
                         $script:CurrentAppLoadJob = $null
@@ -649,10 +647,10 @@ function Show-MainWindow {
                         $script:CurrentAppLoadJobStartTime = $null
                         
                         # Show error that the script was unable to get list of apps from WinGet
-                        Show-MessageBox -Message 'Unable to load list of installed apps via WinGet.' -Title 'Error' -Button 'OK' -Icon 'Error' | Out-Null
-                        $onlyInstalledAppsBox.IsChecked = $false
+                        Show-MessageBox -Message 'Unable to load list of installed apps via WinGet. The command may have timed out or WinGet may not be available in this context. Showing all apps instead.' -Title 'WinGet Error' -Button 'OK' -Icon 'Warning' | Out-Null
+                        $onlyInstalledAppsBox.IsChecked = $true
                         
-                        # Continue with loading all apps (unchecked now)
+                        # Continue with loading all apps (checked = show all)
                         LoadAppsWithList ""
                     }
                 })
@@ -694,6 +692,165 @@ function Show-MainWindow {
             }
         }
     })
+
+    # Simple input dialog (GuiFork)
+    function Show-InputDialog {
+        param([string]$Prompt = "Enter value:", [string]$Title = "Input", [string]$DefaultText = "")
+        $script:inputDialogResult = $null
+        $tb = New-Object System.Windows.Controls.TextBox
+        $tb.Text = $DefaultText
+        $tb.MinWidth = 280
+        $tb.Margin = [System.Windows.Thickness]::new(0, 0, 0, 12)
+        $btnPanel = New-Object System.Windows.Controls.StackPanel
+        $btnPanel.Orientation = 'Horizontal'
+        $btnPanel.HorizontalAlignment = 'Right'
+        $okBtn = New-Object System.Windows.Controls.Button
+        $okBtn.Content = 'OK'
+        $okBtn.MinWidth = 75
+        $okBtn.Margin = [System.Windows.Thickness]::new(0, 0, 8, 0)
+        $cancelBtn = New-Object System.Windows.Controls.Button
+        $cancelBtn.Content = 'Cancel'
+        $cancelBtn.MinWidth = 75
+        $btnPanel.Children.Add($okBtn) | Out-Null
+        $btnPanel.Children.Add($cancelBtn) | Out-Null
+        $sp = New-Object System.Windows.Controls.StackPanel
+        $sp.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{ Text = $Prompt; Margin = [System.Windows.Thickness]::new(0, 0, 0, 8) })) | Out-Null
+        $sp.Children.Add($tb) | Out-Null
+        $sp.Children.Add($btnPanel) | Out-Null
+        $dialog = New-Object System.Windows.Window
+        $dialog.Title = $Title
+        $dialog.SizeToContent = 'WidthAndHeight'
+        $dialog.Content = $sp
+        $dialog.WindowStartupLocation = 'CenterOwner'
+        $dialog.Owner = $window
+        $dialog.Add_Loaded({ $tb.Focus(); $tb.SelectAll() })
+        $okBtn.Add_Click({ $script:inputDialogResult = $tb.Text; $dialog.Close() })
+        $cancelBtn.Add_Click({ $script:inputDialogResult = $null; $dialog.Close() })
+        $dialog.Add_KeyDown({
+            param($s, $e)
+            if ($e.Key -eq [System.Windows.Input.Key]::Return) { $script:inputDialogResult = $tb.Text; $s.Close() }
+            if ($e.Key -eq [System.Windows.Input.Key]::Escape) { $script:inputDialogResult = $null; $s.Close() }
+        })
+        $dialog.ShowDialog() | Out-Null
+        return $script:inputDialogResult
+    }
+
+    # App Profile functions (GuiFork)
+    function Get-AppProfilesPath {
+        if ($script:AppProfilesPath) { return $script:AppProfilesPath }
+        $guiForkRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        return Join-Path $guiForkRoot "Config\AppProfiles"
+    }
+    function Get-AppProfileList {
+        $profilesPath = Get-AppProfilesPath
+        if (-not (Test-Path $profilesPath)) { return @() }
+        Get-ChildItem -Path $profilesPath -Filter "*.json" -File | ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Name) } | Sort-Object
+    }
+    function Load-AppProfile {
+        param([string]$ProfileName)
+        $profilesPath = Get-AppProfilesPath
+        $filePath = Join-Path $profilesPath "$ProfileName.json"
+        if (-not (Test-Path $filePath)) { return @() }
+        try {
+            $data = Get-Content -Path $filePath -Raw | ConvertFrom-Json
+            if ($data.Apps) { return @($data.Apps) }
+            return @()
+        } catch { return @() }
+    }
+    function Save-AppProfile {
+        param([string]$ProfileName, [string[]]$AppIds)
+        $profilesPath = Get-AppProfilesPath
+        if (-not (Test-Path $profilesPath)) { New-Item -ItemType Directory -Path $profilesPath -Force | Out-Null }
+        $filePath = Join-Path $profilesPath "$ProfileName.json"
+        @{ Apps = @($AppIds) } | ConvertTo-Json | Set-Content -Path $filePath -Encoding UTF8
+    }
+    function Refresh-AppProfileCombo {
+        $combo = $window.FindName('AppProfileCombo')
+        if (-not $combo) { return }
+        $combo.Items.Clear()
+        $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = "(No profile selected)" })) | Out-Null
+        foreach ($name in Get-AppProfileList) {
+            $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = $name })) | Out-Null
+        }
+        $combo.SelectedIndex = 0
+    }
+    function Apply-AppProfileToUi {
+        param([string[]]$AppIds, [switch]$Replace)
+        if ($Replace) {
+            foreach ($child in $appsPanel.Children) {
+                if ($child -is [System.Windows.Controls.CheckBox]) {
+                    $child.IsChecked = $AppIds -contains $child.Tag
+                }
+            }
+        } else {
+            foreach ($child in $appsPanel.Children) {
+                if ($child -is [System.Windows.Controls.CheckBox] -and ($AppIds -contains $child.Tag)) {
+                    $child.IsChecked = $true
+                }
+            }
+        }
+        UpdateAppSelectionStatus
+    }
+
+    # App Profile UI handlers (GuiFork)
+    $appProfileCombo = $window.FindName('AppProfileCombo')
+    $appProfileReplaceBtn = $window.FindName('AppProfileReplaceBtn')
+    $appProfileMergeBtn = $window.FindName('AppProfileMergeBtn')
+    $appProfileSaveBtn = $window.FindName('AppProfileSaveBtn')
+    if ($appProfileCombo -and $appProfileReplaceBtn -and $appProfileMergeBtn -and $appProfileSaveBtn) {
+        Refresh-AppProfileCombo
+        $appProfileReplaceBtn.Add_Click({
+            $item = $appProfileCombo.SelectedItem
+            if (-not $item -or $appProfileCombo.SelectedIndex -eq 0) {
+                Show-MessageBox -Message "Select a profile first." -Title "App Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileName = $item.Content
+            $appIds = Load-AppProfile -ProfileName $profileName
+            if ($appIds.Count -eq 0) {
+                Show-MessageBox -Message "Profile '$profileName' is empty or could not be loaded." -Title "App Profile" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            Apply-AppProfileToUi -AppIds $appIds -Replace
+        })
+        $appProfileMergeBtn.Add_Click({
+            $item = $appProfileCombo.SelectedItem
+            if (-not $item -or $appProfileCombo.SelectedIndex -eq 0) {
+                Show-MessageBox -Message "Select a profile first." -Title "App Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileName = $item.Content
+            $appIds = Load-AppProfile -ProfileName $profileName
+            if ($appIds.Count -eq 0) {
+                Show-MessageBox -Message "Profile '$profileName' is empty or could not be loaded." -Title "App Profile" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            Apply-AppProfileToUi -AppIds $appIds -Replace:$false
+        })
+        $appProfileSaveBtn.Add_Click({
+            $selectedApps = @()
+            foreach ($child in $appsPanel.Children) {
+                if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) {
+                    $selectedApps += $child.Tag
+                }
+            }
+            if ($selectedApps.Count -eq 0) {
+                Show-MessageBox -Message "No apps selected. Select at least one app to save." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save App Profile" -DefaultText "New Profile"
+            if ([string]::IsNullOrWhiteSpace($profileName)) { return }
+            $profileName = $profileName.Trim()
+            $invalidPattern = '[<>:' + [char]34 + '/\\|?*]'
+            if ($profileName -match $invalidPattern) {
+                Show-MessageBox -Message 'Profile name cannot contain: < > : " / \ | ? *' -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            Save-AppProfile -ProfileName $profileName -AppIds $selectedApps
+            Refresh-AppProfileCombo
+            Show-MessageBox -Message "Profile '$profileName' saved with $($selectedApps.Count) app(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+        })
+    }
 
     # Helper function to scroll to an item if it's not visible, centering it in the viewport
     function ScrollToItemIfNotVisible {
@@ -1158,20 +1315,16 @@ function Show-MainWindow {
         if ($script:UiControlMappings) {
             foreach ($mappingKey in $script:UiControlMappings.Keys) {
                 $control = $window.FindName($mappingKey)
+                $mapping = $script:UiControlMappings[$mappingKey]
                 $isSelected = $false
-                
-                # Check if it's a checkbox or combobox
                 if ($control -is [System.Windows.Controls.CheckBox]) {
                     $isSelected = $control.IsChecked -eq $true
                 }
                 elseif ($control -is [System.Windows.Controls.ComboBox]) {
                     $isSelected = $control.SelectedIndex -gt 0
                 }
-                
                 if ($control -and $isSelected) {
-                    $mapping = $script:UiControlMappings[$mappingKey]
                     if ($mapping.Type -eq 'group') {
-                        # For combobox: SelectedIndex 0 = No Change, so subtract 1 to index into Values
                         $selectedValue = $mapping.Values[$control.SelectedIndex - 1]
                         foreach ($fid in $selectedValue.FeatureIds) {
                             $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $fid }
@@ -1179,7 +1332,7 @@ function Show-MainWindow {
                         }
                     }
                     elseif ($mapping.Type -eq 'feature') {
-                        $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId }
+                        $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1
                         if ($feature) { $changesList += ($feature.Action + ' ' + $feature.Label) }
                     }
                 }
@@ -1304,8 +1457,6 @@ function Show-MainWindow {
                 $control = $window.FindName($mappingKey)
                 $isSelected = $false
                 $selectedIndex = 0
-                
-                # Check if it's a checkbox or combobox
                 if ($control -is [System.Windows.Controls.CheckBox]) {
                     $isSelected = $control.IsChecked -eq $true
                     $selectedIndex = if ($isSelected) { 1 } else { 0 }
@@ -1314,15 +1465,12 @@ function Show-MainWindow {
                     $isSelected = $control.SelectedIndex -gt 0
                     $selectedIndex = $control.SelectedIndex
                 }
-                
                 if ($control -and $isSelected) {
                     $mapping = $script:UiControlMappings[$mappingKey]
                     if ($mapping.Type -eq 'group') {
                         if ($selectedIndex -gt 0 -and $selectedIndex -le $mapping.Values.Count) {
                             $selectedValue = $mapping.Values[$selectedIndex - 1]
-                            foreach ($fid in $selectedValue.FeatureIds) { 
-                                AddParameter $fid
-                            }
+                            foreach ($fid in $selectedValue.FeatureIds) { AddParameter $fid }
                         }
                     }
                     elseif ($mapping.Type -eq 'feature') {
@@ -1455,7 +1603,6 @@ function Show-MainWindow {
     $appsSetting = $null
     if ($lastUsedSettingsJson -and $lastUsedSettingsJson.Settings) {
         foreach ($s in $lastUsedSettingsJson.Settings) {
-            # Only count as hasSettings if a setting other than RemoveApps/Apps is present and true
             if ($s.Value -eq $true -and $s.Name -ne 'RemoveApps' -and $s.Name -ne 'Apps') { $hasSettings = $true }
             if ($s.Name -eq 'Apps' -and $s.Value) { $appsSetting = $s.Value }
         }
@@ -1492,7 +1639,7 @@ function Show-MainWindow {
                 }
             }
             catch {
-                Show-MessageBox -Message "Failed to load last used app selection: $_" -Title "Error" -Button 'OK' -Icon 'Error'
+                Show-MessageBox -Message "Failed to load last used app selection: $($_.Exception.Message)" -Title "Error" -Button 'OK' -Icon 'Error'
             }
         })
     }
@@ -1503,7 +1650,6 @@ function Show-MainWindow {
     # Clear All Tweaks button
     $clearAllTweaksBtn = $window.FindName('ClearAllTweaksBtn')
     $clearAllTweaksBtn.Add_Click({
-        # Reset all ComboBoxes to index 0 (No Change) and uncheck all CheckBoxes
         if ($script:UiControlMappings) {
             foreach ($comboName in $script:UiControlMappings.Keys) {
                 $control = $window.FindName($comboName)
@@ -1514,8 +1660,298 @@ function Show-MainWindow {
                     $control.SelectedIndex = 0
                 }
             }
-        } 
+        }
+        Clear-AppliedTweakStyling
     })
+
+    # GuiFork: Clear system-activated styling only (restore checkmark, blue border). Don't touch normal checkboxes.
+    function Clear-AppliedTweakStyling {
+        if (-not $script:UiControlMappings) { return }
+        $defaultFg = $window.Resources["FgColor"]
+        $checkBoxBg = $window.Resources["CheckBoxBgColor"]
+        $checkBoxBorder = $window.Resources["CheckBoxBorderColor"]
+        $buttonBg = $window.Resources["ButtonBg"]
+        $whiteBrush = [System.Windows.Media.Brushes]::White
+        $starChar = [char]0xE735
+        foreach ($comboName in $script:UiControlMappings.Keys) {
+            $control = $window.FindName($comboName)
+            $lblBorder = $window.FindName("$comboName`_LabelBorder")
+            if ($control -is [System.Windows.Controls.ComboBox]) {
+                $control.Foreground = $defaultFg
+                $control.Background = [System.Windows.Media.Brushes]::Transparent
+            }
+            elseif ($control -is [System.Windows.Controls.CheckBox]) {
+                $control.ApplyTemplate()
+                $checkMark = $control.Template.FindName("CheckMark", $control)
+                if ($checkMark -and $checkMark.Text -eq $starChar) {
+                    $control.Foreground = $defaultFg
+                    $cbBorder = $control.Template.FindName("CheckBoxBorder", $control)
+                    if ($cbBorder) {
+                        $cbBorder.Background = $buttonBg
+                        $cbBorder.BorderBrush = $buttonBg
+                    }
+                    $checkMark.Text = [char]0xE73E
+                    $checkMark.Foreground = $whiteBrush
+                }
+            }
+            if ($lblBorder -and $lblBorder.Child) { $lblBorder.Child.Foreground = $defaultFg }
+        }
+    }
+
+    # GuiFork: Test if a .reg file's values are already applied
+    function Test-RegistryFileApplied {
+        param([string]$RegFileName)
+        $regPath = Join-Path $script:RegfilesPath $RegFileName
+        if (-not (Test-Path $regPath)) { return $false }
+        $content = Get-Content $regPath -Raw
+        $currentKey = $null
+        $allMatch = $true
+        foreach ($line in ($content -split "`r?`n")) {
+            $line = $line.Trim()
+            if ($line -match '^\[(HKEY_[^\]]+)\\(.+)\]$') {
+                $currentKey = @{ Hive = $matches[1]; Path = $matches[2] }
+            }
+            elseif ($currentKey -and $line -match '^"([^"]+)"=(.+)$') {
+                $valName = $matches[1]
+                $valData = $matches[2]
+                try {
+                    $baseKey = switch -Regex ($currentKey.Hive) {
+                        'HKEY_CURRENT_USER' { [Microsoft.Win32.Registry]::CurrentUser }
+                        'HKEY_LOCAL_MACHINE' { [Microsoft.Win32.Registry]::LocalMachine }
+                        default { $allMatch = $false; break }
+                    }
+                    $key = $baseKey.OpenSubKey($currentKey.Path, $false)
+                    if (-not $key) { $allMatch = $false; break }
+                    $actual = $key.GetValue($valName)
+                    $key.Close()
+                    $expected = $null
+                    if ($valData -eq '-') {
+                        if ($null -ne $actual) { $allMatch = $false }
+                    }
+                    elseif ($valData -match '^dword:([0-9a-fA-F]+)$') {
+                        $expected = [int][Convert]::ToInt32($matches[1], 16)
+                        if ($actual -ne $expected) { $allMatch = $false }
+                    }
+                    elseif ($valData -match '^"(.+)"$') {
+                        $expected = $matches[1] -replace '\\"','"'
+                        if ($actual -ne $expected) { $allMatch = $false }
+                    }
+                } catch { $allMatch = $false }
+                if (-not $allMatch) { break }
+            }
+        }
+        return $allMatch
+    }
+
+    # GuiFork: Update tweak selections from system registry scan
+    # System-activated: star (E735) inside checkbox instead of checkmark (E73E), green styling
+    function Update-TweakSelectionsFromSystem {
+        $featuresJson = LoadJsonFile -filePath $script:FeaturesFilePath -expectedVersion "1.0"
+        if (-not $featuresJson) { return }
+        Clear-AppliedTweakStyling
+        $window.UpdateLayout()
+        $appliedColor = $window.Resources["AppliedColor"]
+        $checkBoxBg = $window.Resources["CheckBoxBgColor"]
+        foreach ($comboName in $script:UiControlMappings.Keys) {
+            $mapping = $script:UiControlMappings[$comboName]
+            $control = $window.FindName($comboName)
+            $lblBorder = $window.FindName("$comboName`_LabelBorder")
+            if (-not $control) { continue }
+            if ($mapping.Type -eq 'group') {
+                $matchedIndex = -1
+                for ($i = 0; $i -lt $mapping.Values.Count; $i++) {
+                    $val = $mapping.Values[$i]
+                    foreach ($fid in $val.FeatureIds) {
+                        $feat = $featuresJson.Features | Where-Object { $_.FeatureId -eq $fid } | Select-Object -First 1
+                        if ($feat -and $feat.RegistryKey -and (Test-RegistryFileApplied -RegFileName $feat.RegistryKey)) {
+                            $matchedIndex = $i + 1
+                            break
+                        }
+                    }
+                    if ($matchedIndex -ge 0) { break }
+                }
+                if ($matchedIndex -ge 0 -and $control -is [System.Windows.Controls.ComboBox]) {
+                    $control.SelectedIndex = $matchedIndex
+                    $control.Foreground = $appliedColor
+                    if ($lblBorder -and $lblBorder.Child) { $lblBorder.Child.Foreground = $appliedColor }
+                }
+            }
+            elseif ($mapping.Type -eq 'feature') {
+                $feat = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1
+                if ($feat -and $feat.RegistryKey -and (Test-RegistryFileApplied -RegFileName $feat.RegistryKey)) {
+                    if ($control -is [System.Windows.Controls.CheckBox]) {
+                        $control.ApplyTemplate()
+                        $control.IsChecked = $true
+                        $control.Foreground = $appliedColor
+                        $cbBorder = $control.Template.FindName("CheckBoxBorder", $control)
+                        $checkMark = $control.Template.FindName("CheckMark", $control)
+                        if ($cbBorder) {
+                            $cbBorder.Background = $checkBoxBg
+                            $cbBorder.BorderBrush = $appliedColor
+                        }
+                        if ($checkMark) {
+                            $checkMark.Text = [char]0xE735
+                            $checkMark.Foreground = $appliedColor
+                            $checkMark.Visibility = [System.Windows.Visibility]::Visible
+                        }
+                    }
+                    elseif ($control -is [System.Windows.Controls.ComboBox]) {
+                        $control.SelectedIndex = 1
+                        $control.Foreground = $appliedColor
+                    }
+                    if ($lblBorder -and $lblBorder.Child) { $lblBorder.Child.Foreground = $appliedColor }
+                }
+            }
+        }
+    }
+
+    # GuiFork: Get current tweak settings from UI (same format as LastUsedSettings)
+    function Get-CurrentTweakSettingsFromUi {
+        $settings = @()
+        if (-not $script:UiControlMappings) { return @{ Version = "1.0"; Settings = $settings } }
+        foreach ($comboName in $script:UiControlMappings.Keys) {
+            $control = $window.FindName($comboName)
+            $mapping = $script:UiControlMappings[$comboName]
+            if (-not $control) { continue }
+            $isSelected = $false
+            $paramName = $null
+            if ($control -is [System.Windows.Controls.CheckBox]) {
+                $isSelected = $control.IsChecked -eq $true
+                $paramName = $mapping.FeatureId
+            }
+            elseif ($control -is [System.Windows.Controls.ComboBox] -and $control.SelectedIndex -gt 0) {
+                $isSelected = $true
+                $paramName = $mapping.Values[$control.SelectedIndex - 1].FeatureIds[0]
+            }
+            if ($isSelected -and $paramName) {
+                $settings += @{ Name = $paramName; Value = $true }
+            }
+        }
+        return @{ Version = "1.0"; Settings = $settings }
+    }
+
+    # GuiFork: Tweak Profile functions
+    function Get-TweakProfilesPath {
+        if ($script:TweakProfilesPath) { return $script:TweakProfilesPath }
+        $guiForkRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        return Join-Path $guiForkRoot "Config\TweakProfiles"
+    }
+    function Get-TweakProfileList {
+        $path = Get-TweakProfilesPath
+        if (-not (Test-Path $path)) { return @() }
+        Get-ChildItem -Path $path -Filter "*.json" -File | ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Name) } | Sort-Object
+    }
+    function Load-TweakProfile {
+        param([string]$ProfileName)
+        $path = Get-TweakProfilesPath
+        $filePath = Join-Path $path "$ProfileName.json"
+        if (-not (Test-Path $filePath)) { return $null }
+        try {
+            return Get-Content -Path $filePath -Raw | ConvertFrom-Json
+        } catch { return $null }
+    }
+    function Save-TweakProfile {
+        param([string]$ProfileName, [object]$SettingsJson)
+        $path = Get-TweakProfilesPath
+        if (-not (Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
+        $filePath = Join-Path $path "$ProfileName.json"
+        $SettingsJson | ConvertTo-Json -Depth 10 | Set-Content -Path $filePath -Encoding UTF8
+    }
+    function Refresh-TweakProfileCombo {
+        $combo = $window.FindName('TweakProfileCombo')
+        if (-not $combo) { return }
+        $combo.Items.Clear()
+        $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = "(No profile selected)" })) | Out-Null
+        foreach ($name in Get-TweakProfileList) {
+            $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = $name })) | Out-Null
+        }
+        $combo.SelectedIndex = 0
+    }
+
+    # GuiFork: Tweak Update and Profile button handlers
+    $tweakUpdateBtn = $window.FindName('TweakUpdateBtn')
+    $tweakProfileCombo = $window.FindName('TweakProfileCombo')
+    $tweakProfileReplaceBtn = $window.FindName('TweakProfileReplaceBtn')
+    $tweakProfileMergeBtn = $window.FindName('TweakProfileMergeBtn')
+    $tweakProfileSaveBtn = $window.FindName('TweakProfileSaveBtn')
+    if ($tweakUpdateBtn) {
+        $tweakUpdateBtn.Add_Click({
+            Update-TweakSelectionsFromSystem
+            Show-MessageBox -Message "System scan complete. Selections updated based on applied tweaks. Applied tweaks show a star in the checkbox (green)." -Title "Update" -Button 'OK' -Icon 'Information' | Out-Null
+        })
+    }
+    if ($tweakProfileCombo -and $tweakProfileReplaceBtn -and $tweakProfileMergeBtn -and $tweakProfileSaveBtn) {
+        Refresh-TweakProfileCombo
+        $tweakProfileReplaceBtn.Add_Click({
+            $item = $tweakProfileCombo.SelectedItem
+            if (-not $item -or $tweakProfileCombo.SelectedIndex -eq 0) {
+                Show-MessageBox -Message "Select a profile first." -Title "Tweak Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileJson = Load-TweakProfile -ProfileName $item.Content
+            if (-not $profileJson -or -not $profileJson.Settings) {
+                Show-MessageBox -Message "Profile could not be loaded or is empty." -Title "Tweak Profile" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            ApplySettingsToUiControls -window $window -settingsJson $profileJson -uiControlMappings $script:UiControlMappings
+            Clear-AppliedTweakStyling
+        })
+        $tweakProfileMergeBtn.Add_Click({
+            $item = $tweakProfileCombo.SelectedItem
+            if (-not $item -or $tweakProfileCombo.SelectedIndex -eq 0) {
+                Show-MessageBox -Message "Select a profile first." -Title "Tweak Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileJson = Load-TweakProfile -ProfileName $item.Content
+            if (-not $profileJson -or -not $profileJson.Settings) {
+                Show-MessageBox -Message "Profile could not be loaded or is empty." -Title "Tweak Profile" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            foreach ($setting in $profileJson.Settings) {
+                if ($setting.Value -ne $true) { continue }
+                $paramName = $setting.Name
+                if ($paramName -eq 'CreateRestorePoint') { continue }
+                foreach ($comboName in $script:UiControlMappings.Keys) {
+                    $mapping = $script:UiControlMappings[$comboName]
+                    $control = $window.FindName($comboName)
+                    if (-not $control) { continue }
+                    if ($mapping.Type -eq 'group') {
+                        $i = 1
+                        foreach ($val in $mapping.Values) {
+                            if ($val.FeatureIds -contains $paramName) {
+                                if ($control -is [System.Windows.Controls.ComboBox]) { $control.SelectedIndex = $i }
+                                break
+                            }
+                            $i++
+                        }
+                    }
+                    elseif ($mapping.Type -eq 'feature' -and $mapping.FeatureId -eq $paramName) {
+                        if ($control -is [System.Windows.Controls.CheckBox]) { $control.IsChecked = $true }
+                        elseif ($control -is [System.Windows.Controls.ComboBox]) { $control.SelectedIndex = 1 }
+                        break
+                    }
+                }
+            }
+        })
+        $tweakProfileSaveBtn.Add_Click({
+            $settingsJson = Get-CurrentTweakSettingsFromUi
+            if ($settingsJson.Settings.Count -eq 0) {
+                Show-MessageBox -Message "No tweaks selected. Select at least one to save." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save Tweak Profile" -DefaultText "New Profile"
+            if ([string]::IsNullOrWhiteSpace($profileName)) { return }
+            $profileName = $profileName.Trim()
+            $invalidPattern = '[<>:' + [char]34 + '/\\|?*]'
+            if ($profileName -match $invalidPattern) {
+                Show-MessageBox -Message 'Profile name cannot contain: < > : " / \ | ? *' -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            Save-TweakProfile -ProfileName $profileName -SettingsJson $settingsJson
+            Refresh-TweakProfileCombo
+            Show-MessageBox -Message "Profile '$profileName' saved with $($settingsJson.Settings.Count) setting(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+        })
+    }
 
     # Show the window
     return $window.ShowDialog()
