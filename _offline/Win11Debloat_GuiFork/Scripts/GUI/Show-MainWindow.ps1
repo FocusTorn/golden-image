@@ -1328,7 +1328,7 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                     }
                 }
                 elseif ($control -is [System.Windows.Controls.ComboBox]) {
-                    $isSelected = $control.SelectedIndex -gt 0
+                    $isSelected = $control.SelectedIndex -gt 0 -and (-not $mapping.IsSystemApplied -or $control.SelectedIndex -ne $mapping.AppliedIndex)
                 }
                 if ($control -and $isSelected) {
                     if ($mapping.Type -eq 'group') {
@@ -1481,7 +1481,7 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                     $selectedIndex = if ($isSelected) { 1 } else { 0 }
                 }
                 elseif ($control -is [System.Windows.Controls.ComboBox]) {
-                    $isSelected = $control.SelectedIndex -gt 0
+                    $isSelected = $control.SelectedIndex -gt 0 -and (-not $mapping.IsSystemApplied -or $control.SelectedIndex -ne $mapping.AppliedIndex)
                     $selectedIndex = $control.SelectedIndex
                 }
                 if ($control -and $isSelected) {
@@ -1702,9 +1702,16 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
         foreach ($comboName in $script:UiControlMappings.Keys) {
             $control = $window.FindName($comboName)
             $lblBorder = $window.FindName("$comboName`_LabelBorder")
+            $mapping = $script:UiControlMappings[$comboName]
             if ($control -is [System.Windows.Controls.ComboBox]) {
                 $control.Foreground = $defaultFg
                 $control.Background = [System.Windows.Media.Brushes]::Transparent
+                if ($mapping.DropDownHandler) {
+                    try { $control.Remove_DropDownOpened($mapping.DropDownHandler) } catch {}
+                    $mapping.DropDownHandler = $null
+                }
+                $mapping.IsSystemApplied = $false
+                $mapping.AppliedIndex = $null
             }
             elseif ($control -is [System.Windows.Controls.CheckBox]) {
                 $mapping = $script:UiControlMappings[$comboName]
@@ -1854,6 +1861,26 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                     $control.SelectedIndex = $matchedIndex
                     $control.Foreground = $appliedColor
                     if ($lblBorder -and $lblBorder.Child) { $lblBorder.Child.Foreground = $appliedColor }
+                    $script:UiControlMappings[$comboName].IsSystemApplied = $true
+                    $script:UiControlMappings[$comboName].AppliedIndex = $matchedIndex
+                    $appliedColorRef = $appliedColor
+                    $defaultFgRef = $window.Resources["FgColor"]
+                    $handler = {
+                        $comboCtrl = $args[0]
+                        $comboName = $comboCtrl.Name
+                        $mapping = $script:UiControlMappings[$comboName]
+                        if (-not $mapping -or -not $mapping.IsSystemApplied -or $null -eq $mapping.AppliedIndex) { return }
+                        $appliedBrush = $appliedColorRef
+                        $defaultBrush = $defaultFgRef
+                        for ($i = 0; $i -lt $comboCtrl.Items.Count; $i++) {
+                            $item = $comboCtrl.Items[$i]
+                            if ($item -is [System.Windows.Controls.ComboBoxItem]) {
+                                $item.Foreground = if ($i -eq $mapping.AppliedIndex) { $appliedBrush } else { $defaultBrush }
+                            }
+                        }
+                    }.GetNewClosure()
+                    $control.Add_DropDownOpened($handler)
+                    $script:UiControlMappings[$comboName].DropDownHandler = $handler
                 }
             }
             elseif ($mapping.Type -eq 'feature') {
@@ -1869,6 +1896,26 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                     elseif ($control -is [System.Windows.Controls.ComboBox]) {
                         $control.SelectedIndex = 1
                         $control.Foreground = $appliedColor
+                        $script:UiControlMappings[$comboName].IsSystemApplied = $true
+                        $script:UiControlMappings[$comboName].AppliedIndex = 1
+                        $appliedColorRef = $appliedColor
+                        $defaultFgRef = $window.Resources["FgColor"]
+                        $handler = {
+                            $comboCtrl = $args[0]
+                            $comboName = $comboCtrl.Name
+                            $mapping = $script:UiControlMappings[$comboName]
+                            if (-not $mapping -or -not $mapping.IsSystemApplied -or $null -eq $mapping.AppliedIndex) { return }
+                            $appliedBrush = $appliedColorRef
+                            $defaultBrush = $defaultFgRef
+                            for ($i = 0; $i -lt $comboCtrl.Items.Count; $i++) {
+                                $item = $comboCtrl.Items[$i]
+                                if ($item -is [System.Windows.Controls.ComboBoxItem]) {
+                                    $item.Foreground = if ($i -eq $mapping.AppliedIndex) { $appliedBrush } else { $defaultBrush }
+                                }
+                            }
+                        }.GetNewClosure()
+                        $control.Add_DropDownOpened($handler)
+                        $script:UiControlMappings[$comboName].DropDownHandler = $handler
                     }
                     if ($lblBorder -and $lblBorder.Child) { $lblBorder.Child.Foreground = $appliedColor }
                 }
@@ -1902,8 +1949,10 @@ $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:(-not $onlyInstalledAppsBox.
                 }
             }
             elseif ($control -is [System.Windows.Controls.ComboBox] -and $control.SelectedIndex -gt 0) {
-                $paramName = $mapping.Values[$control.SelectedIndex - 1].FeatureIds[0]
-                $settings += @{ Name = $paramName; Value = $true }
+                if (-not $mapping.IsSystemApplied -or $control.SelectedIndex -ne $mapping.AppliedIndex) {
+                    $paramName = if ($mapping.Type -eq 'feature') { $mapping.FeatureId } else { $mapping.Values[$control.SelectedIndex - 1].FeatureIds[0] }
+                    $settings += @{ Name = $paramName; Value = $true }
+                }
             }
         }
         return @{ Version = "1.0"; Settings = $settings }
