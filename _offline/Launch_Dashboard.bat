@@ -1,6 +1,6 @@
 @echo off
 :: Launcher for VM_Dashboard.ps1 via Windows Terminal (pwsh) or pwsh directly
-set "SCRIPT=%~dp0\src\VM_Dashboard.ps1"
+set "SCRIPT=%~dp0\Imaging_Scripts\VM_Dashboard.ps1"
 set "PWSH=C:\Program Files\PowerShell\7\pwsh.exe"
 where wt >nul 2>&1
 if %errorLevel% equ 0 (
