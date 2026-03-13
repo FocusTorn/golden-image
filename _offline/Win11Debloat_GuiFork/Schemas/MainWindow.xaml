@@ -384,6 +384,7 @@
 
         <!-- CheckBox style for Stages Audit R/P/L - no content, centered box only -->
         <Style x:Key="StagesCheckboxStyle" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="IsThreeState" Value="True"/>
             <Setter Property="Margin" Value="0,0,0,6"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -699,6 +700,11 @@
                                                 <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
                                             </MenuItem.Icon>
                                         </MenuItem>
+                                        <MenuItem x:Name="MenuOptions" Header="Options" AutomationProperties.Name="Options">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
                                         <Separator/>
                                         <MenuItem x:Name="MenuExportSettings" Header="Export settings..." AutomationProperties.Name="Export settings">
                                             <MenuItem.Icon>
@@ -760,14 +766,14 @@
                         <!-- Title at top -->
                         <TextBlock Grid.Row="0" Text="Golden Imager" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" FontFamily="{DynamicResource PageTitleFontFamily}" Foreground="{DynamicResource PageTitleColor}" HorizontalAlignment="Center" Margin="0,24,0,20"/>
                         
-                        <!-- Three columns: Col1 Load Profiles+Connection, Col2 Stages Audit, Col3 Stage Install -->
+                        <!-- Three equal columns: Col1 Load Profiles+Connection, Col2 Stages Audit, Col3 Stage Install -->
                         <Grid Grid.Row="1" Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="1*"/>
                                 <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="1*"/>
                                 <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="1*"/>
                             </Grid.ColumnDefinitions>
                             
                             <!-- Column 1: Load Profiles (first), Connection Settings (second) -->
@@ -835,10 +841,31 @@
                             
                             <!-- Column 2: Stages Audit -->
                             <StackPanel Grid.Column="2" VerticalAlignment="Top">
-                                <Border Style="{StaticResource CategoryCardBorderStyle}">
+                                <Border Style="{StaticResource CategoryCardBorderStyle}" Padding="16,12,16,8">
                                     <StackPanel>
-                                        <TextBlock Text="Stages Audit" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                        <Grid Margin="0,0,0,8">
+                                        <Grid Margin="0,0,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Stages Audit" Style="{StaticResource CategoryHeaderTextBlock}" Margin="0,0,0,0"/>
+                                            <Grid x:Name="HomeStagesAuditSpinner" Grid.Column="1" Width="24" Height="24" Visibility="Collapsed" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                <Grid.RenderTransform>
+                                                    <RotateTransform x:Name="StagesSpinnerRotate" Angle="0"/>
+                                                </Grid.RenderTransform>
+                                                <Grid.Triggers>
+                                                    <EventTrigger RoutedEvent="Loaded">
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetName="StagesSpinnerRotate" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1" RepeatBehavior="Forever"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </EventTrigger>
+                                                </Grid.Triggers>
+                                                <Ellipse Width="24" Height="24" Stroke="{DynamicResource ButtonBg}" StrokeThickness="3" StrokeDashArray="5,3" StrokeDashCap="Round"/>
+                                            </Grid>
+                                        </Grid>
+                                        <Grid Margin="0,8,0,6">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="28"/>
                                                 <ColumnDefinition Width="28"/>

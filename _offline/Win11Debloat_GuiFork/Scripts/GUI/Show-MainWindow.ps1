@@ -1,7 +1,7 @@
 function Show-MainWindow {    
     Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Windows.Forms,System.Drawing | Out-Null
 
-    # Extract icon 252 from imageres.dll for taskbar
+    # Extract icon from imageres.dll for taskbar; AppUserModelID to separate from PowerShell
     $iconCode = @'
 using System;
 using System.Runtime.InteropServices;
@@ -10,8 +10,57 @@ public class Shell32_Extract {
     public static extern int ExtractIconEx(string lpszFile, int iconIndex, out IntPtr phiconLarge, out IntPtr phiconSmall, int nIcons);
 }
 '@
+    $appIdCode = @'
+using System;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+public class PSAppID {
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99")]
+    private interface IPropertyStore {
+        uint GetCount([Out] out uint cProps);
+        uint GetAt([In] uint iProp, out PropertyKey pkey);
+        uint GetValue([In] ref PropertyKey key, [Out] PropVariant pv);
+        uint SetValue([In] ref PropertyKey key, [In] PropVariant pv);
+        uint Commit();
+    }
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct PropertyKey {
+        private Guid formatId;
+        private Int32 propertyId;
+        public PropertyKey(string formatId, Int32 propertyId) { this.formatId = new Guid(formatId); this.propertyId = propertyId; }
+    }
+    [StructLayout(LayoutKind.Explicit)]
+    public class PropVariant : IDisposable {
+        [FieldOffset(0)] ushort valueType;
+        [FieldOffset(8)] IntPtr ptr;
+        public PropVariant(string value) {
+            if (value == null) throw new ArgumentException("Failed to set value.");
+            valueType = (ushort)VarEnum.VT_LPWSTR;
+            ptr = Marshal.StringToCoTaskMemUni(value);
+        }
+        public void Dispose() { PropVariantClear(this); GC.SuppressFinalize(this); }
+    }
+    [DllImport("Ole32.dll", PreserveSig = false)]
+    private static extern void PropVariantClear([In, Out] PropVariant pvar);
+    [DllImport("shell32.dll")]
+    private static extern int SHGetPropertyStoreForWindow(IntPtr hwnd, ref Guid iid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore propertyStore);
+    public static void SetAppIdForWindow(IntPtr hwnd, string appId) {
+        Guid iid = new Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
+        IPropertyStore prop;
+        if (SHGetPropertyStoreForWindow(hwnd, ref iid, out prop) == 0) {
+            PropertyKey key = new PropertyKey("{9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}", 5);
+            PropVariant pv = new PropVariant(appId);
+            prop.SetValue(ref key, pv);
+            Marshal.ReleaseComObject(prop);
+        }
+    }
+}
+'@
     if (-not ([System.Management.Automation.PSTypeName]'Shell32_Extract').Type) {
         Add-Type -TypeDefinition $iconCode -ErrorAction SilentlyContinue
+    }
+    if (-not ([System.Management.Automation.PSTypeName]'PSAppID').Type) {
+        Add-Type -TypeDefinition $appIdCode -ErrorAction SilentlyContinue
     }
 
     # Get current Windows build version
@@ -110,6 +159,7 @@ public class Shell32_Extract {
     $menuReportBug = $window.FindName('MenuReportBug')
     $menuLogs = $window.FindName('MenuLogs')
     $menuAbout = $window.FindName('MenuAbout')
+    $menuOptions = $window.FindName('MenuOptions')
     $menuExportSettings = $window.FindName('MenuExportSettings')
     $menuImportSettings = $window.FindName('MenuImportSettings')
 
@@ -150,6 +200,10 @@ public class Shell32_Extract {
 
     $menuAbout.Add_Click({
         Show-AboutDialog -Owner $window
+    })
+
+    $menuOptions.Add_Click({
+        Show-OptionsDialog -Owner $window
     })
 
     $menuExportSettings.Add_Click({
@@ -949,6 +1003,109 @@ public class Shell32_Extract {
     })
 
     # Simple input dialog (GuiFork)
+    # Options config path and ShowWindow for hiding console
+    $optionsPath = Join-Path $configDir "Options.json"
+    $showWindowCode = @'
+using System;
+using System.Runtime.InteropServices;
+public class User32_ShowWindow {
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetConsoleWindow();
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    public const int SW_HIDE = 0;
+    public const int SW_SHOW = 5;
+}
+'@
+    if (-not ([System.Management.Automation.PSTypeName]'User32_ShowWindow').Type) {
+        Add-Type -TypeDefinition $showWindowCode -ErrorAction SilentlyContinue
+    }
+
+    function Get-Options {
+        if (Test-Path $optionsPath) {
+            try {
+                $o = Get-Content -Path $optionsPath -Raw | ConvertFrom-Json
+                return @{ HideLauncherWindow = [bool]($o.HideLauncherWindow) }
+            } catch { }
+        }
+        return @{ HideLauncherWindow = $false }
+    }
+    function Set-Options {
+        param([hashtable]$opts)
+        try {
+            $opts | ConvertTo-Json | Set-Content -Path $optionsPath -Encoding UTF8 -Force
+        } catch { }
+    }
+    function Apply-OptionHideLauncher {
+        param([bool]$Hide)
+        try {
+            $h = [User32_ShowWindow]::GetConsoleWindow()
+            if ($h -ne [IntPtr]::Zero -and ([System.Management.Automation.PSTypeName]'User32_ShowWindow').Type) {
+                [User32_ShowWindow]::ShowWindow($h, $(if ($Hide) { [User32_ShowWindow]::SW_HIDE } else { [User32_ShowWindow]::SW_SHOW })) | Out-Null
+            }
+        } catch { }
+    }
+
+    function Show-OptionsDialog {
+        param([System.Windows.Window]$Owner)
+        $opts = Get-Options
+        $hideLauncher = $opts.HideLauncherWindow
+
+        # Show overlay if owner has ModalOverlay (same as Show-MessageBox)
+        $overlay = $null
+        $overlayWasAlreadyVisible = $false
+        if ($Owner) {
+            try {
+                $overlay = $Owner.FindName('ModalOverlay')
+                if ($overlay) {
+                    $overlayWasAlreadyVisible = ($overlay.Visibility -eq 'Visible')
+                    if (-not $overlayWasAlreadyVisible) {
+                        $Owner.Dispatcher.Invoke([action]{ $overlay.Visibility = 'Visible' })
+                    }
+                }
+            } catch { }
+        }
+
+        # Load XAML (same structure as MessageBox)
+        $optionsSchema = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "Schemas\OptionsWindow.xaml"
+        $xaml = Get-Content -Path $optionsSchema -Raw
+        $reader = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml))
+        try {
+            $optWindow = [System.Windows.Markup.XamlReader]::Load($reader)
+        }
+        finally {
+            $reader.Close()
+        }
+
+        if ($Owner) { $optWindow.Owner = $Owner }
+        SetWindowThemeResources -window $optWindow -usesDarkMode $usesDarkMode
+
+        $toggle = $optWindow.FindName('OptionsHideLauncherToggle')
+        $okBtn = $optWindow.FindName('OptionsOkButton')
+        $titleBar = $optWindow.FindName('TitleBar')
+        $toggle.IsChecked = $hideLauncher
+
+        $okBtn.Add_Click({
+            $newOpts = @{ HideLauncherWindow = $toggle.IsChecked -eq $true }
+            Set-Options $newOpts
+            Apply-OptionHideLauncher -Hide $newOpts.HideLauncherWindow
+            $optWindow.Close()
+        })
+        $titleBar.Add_MouseLeftButtonDown({ $optWindow.DragMove() })
+        $optWindow.Add_KeyDown({
+            param($s, $e)
+            if ($e.Key -eq 'Escape') { $optWindow.Close() }
+        })
+
+        $optWindow.ShowDialog() | Out-Null
+
+        if ($overlay -and -not $overlayWasAlreadyVisible) {
+            try {
+                $Owner.Dispatcher.Invoke([action]{ $overlay.Visibility = 'Collapsed' })
+            } catch { }
+        }
+    }
+
     function Show-InputDialog {
         param([string]$Prompt = "Enter value:", [string]$Title = "Input", [string]$DefaultText = "")
         $script:inputDialogResult = $null
@@ -2134,7 +2291,7 @@ public class Shell32_Extract {
             $homeTweaksCombo.SelectedIndex = 0
         }
 
-        # Stages Audit - REG/Path/LNK checkboxes per app (from Get-GranularStatus)
+        # Stages Audit - build skeleton immediately, show spinner, run audit sync, update UI
         $regPaths = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
         $lnkDirs = @('C:\ProgramData\Microsoft\Windows\Start Menu', 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs')
         $apps = @(
@@ -2150,22 +2307,10 @@ public class Shell32_Extract {
             @{ N='Rust'; Reg='Rust'; Exe='rustup'; Lnk=$null; NoPath=$true; NoReg=$false; NoLnk=$true; FileCheck="$env:USERPROFILE\.cargo\bin\rustup.exe" }
         )
         $stagesPanel.Children.Clear()
+        $spinner = $window.FindName('HomeStagesAuditSpinner')
+        if ($spinner) { $spinner.Visibility = 'Visible' }
         foreach ($a in $apps) {
-            $regOk = $pathOk = $lnkOk = $false
-            if (-not $a.NoReg -and $a.Reg) {
-                $reg = Get-ItemProperty $regPaths -EA SilentlyContinue | Where-Object { $_.DisplayName -like "*$($a.Reg)*" } | Select-Object -First 1
-                $regOk = [bool]$reg
-            }
-            if (-not $a.NoPath) {
-                if ($a.FileCheck) { $pathOk = Test-Path $a.FileCheck }
-                elseif ($a.Exe) { $pathOk = [bool](Get-Command $a.Exe -EA SilentlyContinue) }
-            } elseif ($a.FileCheck) {
-                $pathOk = Test-Path $a.FileCheck
-            }
-            if (-not $a.NoLnk -and $a.Lnk) {
-                $lnk = Get-ChildItem -Path $lnkDirs -Filter "*$($a.Lnk)*" -Recurse -EA SilentlyContinue | Select-Object -First 1
-                $lnkOk = [bool]$lnk
-            }
+            $hasPathCheck = (-not $a.NoPath) -or $a.FileCheck
             $row = New-Object System.Windows.Controls.Grid
             $row.Margin = [System.Windows.Thickness]::new(0,0,0,6)
             $row.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{Width=[System.Windows.GridLength]::new(28)})) | Out-Null
@@ -2173,22 +2318,21 @@ public class Shell32_Extract {
             $row.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{Width=[System.Windows.GridLength]::new(28)})) | Out-Null
             $row.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{Width=[System.Windows.GridLength]::new(1,[System.Windows.GridUnitType]::Star)})) | Out-Null
             $cbReg = New-Object System.Windows.Controls.CheckBox
-            $cbReg.IsChecked = if ($a.NoReg) { $null } else { $regOk }
+            $cbReg.IsChecked = $null
             $cbReg.IsHitTestVisible = $false
             $cbReg.Style = $window.Resources['StagesCheckboxStyle']
             $cbReg.IsEnabled = -not $a.NoReg
             [System.Windows.Controls.Grid]::SetColumn($cbReg, 0)
             $row.Children.Add($cbReg) | Out-Null
             $cbPath = New-Object System.Windows.Controls.CheckBox
-            $hasPathCheck = (-not $a.NoPath) -or $a.FileCheck
-            $cbPath.IsChecked = if ($hasPathCheck) { $pathOk } else { $null }
+            $cbPath.IsChecked = $null
             $cbPath.IsHitTestVisible = $false
             $cbPath.Style = $window.Resources['StagesCheckboxStyle']
             $cbPath.IsEnabled = $hasPathCheck
             [System.Windows.Controls.Grid]::SetColumn($cbPath, 1)
             $row.Children.Add($cbPath) | Out-Null
             $cbLnk = New-Object System.Windows.Controls.CheckBox
-            $cbLnk.IsChecked = if ($a.NoLnk) { $null } else { $lnkOk }
+            $cbLnk.IsChecked = $null
             $cbLnk.IsHitTestVisible = $false
             $cbLnk.Style = $window.Resources['StagesCheckboxStyle']
             $cbLnk.IsEnabled = -not $a.NoLnk
@@ -2203,11 +2347,37 @@ public class Shell32_Extract {
             $row.Children.Add($tb) | Out-Null
             $stagesPanel.Children.Add($row) | Out-Null
         }
+        $null = [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, [action]{})
+        for ($i = 0; $i -lt $apps.Count; $i++) {
+            $a = $apps[$i]
+            $regOk = $pathOk = $lnkOk = $false
+            if (-not $a.NoReg -and $a.Reg) {
+                $reg = Get-ItemProperty $regPaths -EA SilentlyContinue | Where-Object { $_.DisplayName -like "*$($a.Reg)*" } | Select-Object -First 1
+                $regOk = [bool]$reg
+            }
+            if (-not $a.NoPath) {
+                if ($a.FileCheck) { $pathOk = Test-Path $a.FileCheck }
+                elseif ($a.Exe) { $pathOk = [bool](Get-Command $a.Exe -EA SilentlyContinue) }
+            } elseif ($a.FileCheck) { $pathOk = Test-Path $a.FileCheck }
+            if (-not $a.NoLnk -and $a.Lnk) {
+                $lnk = Get-ChildItem -Path $lnkDirs -Filter "*$($a.Lnk)*" -Recurse -EA SilentlyContinue | Select-Object -First 1
+                $lnkOk = [bool]$lnk
+            }
+            $hasPathCheck = (-not $a.NoPath) -or $a.FileCheck
+            $row = $stagesPanel.Children[$i]
+            $cbReg = $row.Children[0]
+            $cbPath = $row.Children[1]
+            $cbLnk = $row.Children[2]
+            $cbReg.IsChecked = if ($a.NoReg) { $null } else { $regOk }
+            $cbPath.IsChecked = if ($hasPathCheck) { $pathOk } else { $null }
+            $cbLnk.IsChecked = if ($a.NoLnk) { $null } else { $lnkOk }
+        }
+        if ($spinner) { $spinner.Visibility = 'Collapsed' }
     }
 
     # Initialize UI elements on window load
     $window.Add_Loaded({
-        # Set taskbar/window icon from configured DLL and index (must run after window is loaded)
+        # Set taskbar/window icon from configured DLL and index
         try {
             $dllPath = $script:TaskbarIcon.DllPath
             $iconIdx = $script:TaskbarIcon.IconIndex
@@ -2223,6 +2393,19 @@ public class Shell32_Extract {
                     [System.Runtime.InteropServices.Marshal]::DestroyIcon($phiconLarge) | Out-Null
                 }
             }
+        } catch { }
+        # Separate taskbar icon from PowerShell by setting AppUserModelID
+        try {
+            $helper = New-Object System.Windows.Interop.WindowInteropHelper($window)
+            if ($helper.Handle -ne [IntPtr]::Zero -and ([System.Management.Automation.PSTypeName]'PSAppID').Type) {
+                [PSAppID]::SetAppIdForWindow($helper.Handle, "GoldenImager.App")
+            }
+        } catch { }
+
+        # Apply saved Options (e.g. hide launcher window)
+        try {
+            $opts = Get-Options
+            if ($opts.HideLauncherWindow) { Apply-OptionHideLauncher -Hide $true }
         } catch { }
 
         # GuiFork: Hide default settings UI elements
