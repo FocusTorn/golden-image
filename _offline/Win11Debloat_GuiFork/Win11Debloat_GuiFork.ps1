@@ -111,18 +111,111 @@ $script:DefaultSettingsFilePath = "$script:SourceRoot/Config/DefaultSettings.jso
 $script:FeaturesFilePath = "$script:SourceRoot/Config/Features.json"
 $script:SavedSettingsFilePath = "$script:SourceRoot/Config/LastUsedSettings.json"
 $script:CustomAppsListFilePath = "$script:SourceRoot/Config/CustomAppsList"
-$script:DefaultLogPath = "$script:SourceRoot/Logs/Win11Debloat-GuiFork.log"
 $script:RegfilesPath = "$script:SourceRoot/Regfiles"
 $script:AssetsPath = "$script:SourceRoot/Assets"
 $script:AppSelectionSchema = "$script:SourceRoot/Schemas/AppSelectionWindow.xaml"
-# GuiFork: use our MainWindow.xaml with profile UI and default "installed only"
-$script:MainWindowSchema = if (Test-Path (Join-Path $PSScriptRoot "Schemas/MainWindow.xaml")) { Join-Path $PSScriptRoot "Schemas/MainWindow.xaml" } else { "$script:SourceRoot/Schemas/MainWindow.xaml" }
 $script:MessageBoxSchema = "$script:SourceRoot/Schemas/MessageBoxWindow.xaml"
 $script:AboutWindowSchema = "$script:SourceRoot/Schemas/AboutWindow.xaml"
 $script:ApplyChangesWindowSchema = "$script:SourceRoot/Schemas/ApplyChangesWindow.xaml"
 $script:SharedStylesSchema = "$script:SourceRoot/Schemas/SharedStyles.xaml"
-$script:AppProfilesPath = Join-Path $PSScriptRoot "Config\AppProfiles"
-$script:TweakProfilesPath = Join-Path $PSScriptRoot "Config\TweakProfiles"
+
+# GuiFork: use our MainWindow.xaml with profile UI and default "installed only"
+$script:MainWindowSchema = Join-Path $PSScriptRoot "Schemas/MainWindow.xaml"
+$script:AppProfilesPath = Join-Path $PSScriptRoot "Win11Debloat_GuiFork\Config\AppProfiles"
+$script:TweakProfilesPath = Join-Path $PSScriptRoot "Win11Debloat_GuiFork\Config\TweakProfiles"
+
+$script:DefaultLogPath = Join-Path $PSScriptRoot "Win11Debloat_GuiFork\Logs\Win11Debloat-GuiFork.log"
+
+# ------------------------------------------------------------------------------
+# Typography configuration - customize fonts, colors, weights, spacing for UI text
+# Edit these values to change the look of card titles, subtitles, labels, etc.
+# ------------------------------------------------------------------------------
+$script:Typography = @{
+    # Base font family for text (icons use IconFontFamily)
+    FontFamily = "Segoe UI"
+    IconFontFamily = "Segoe Fluent Icons"
+
+    # Page title (e.g. "Golden Imager" on splash)
+    PageTitleFontSize = 28
+    PageTitleFontWeight = "Bold"
+    PageTitleFontFamily = "Segoe UI"
+    PageTitleColor = $null  # null = use FgColor
+
+    # Tab titles (e.g. "App Removal", "System Tweaks")
+    TabTitleFontSize = 20
+    TabTitleFontWeight = "Bold"
+    TabTitleFontFamily = "Segoe UI"
+    TabTitleColor = $null
+
+    # Card titles (e.g. "Connection Settings", "Stages Audit", "Execution Options")
+    CardTitleFontSize = 16
+    CardTitleFontWeight = "Bold"
+    CardTitleFontFamily = "Segoe UI"
+    CardTitleColor = $null
+    CardTitleMargin = "0,0,0,13"
+
+    # Card subtitle / description (e.g. "Select which apps you want to remove...")
+    CardSubtitleFontSize = 13
+    CardSubtitleFontWeight = "Normal"
+    CardSubtitleFontFamily = "Segoe UI"
+    CardSubtitleColor = $null
+
+    # Labels (e.g. "App Profile:", "Tweak Profile:", "R", "P", "L" column headers)
+    LabelFontSize = 12
+    LabelFontWeight = "Normal"
+    LabelFontFamily = "Segoe UI"
+    LabelColor = $null
+
+    # Small labels (e.g. R/P/L column headers)
+    LabelSmallFontSize = 11
+    LabelSmallFontWeight = "Normal"
+
+    # Table headers (e.g. "Name", "Description", "App ID")
+    TableHeaderFontSize = 16
+    TableHeaderFontWeight = "SemiBold"
+    TableHeaderFontFamily = "Segoe UI"
+    TableHeaderColor = $null
+
+    # Body text (descriptions, status messages)
+    BodyFontSize = 12
+    BodyFontWeight = "Normal"
+    BodyFontFamily = "Segoe UI"
+    BodyColor = $null
+
+    # Search box placeholder and input
+    SearchFontSize = 13
+    SearchFontWeight = "Normal"
+    SearchPlaceholderOpacity = 0.5
+
+    # Primary button text (e.g. "Apply Changes", "Custom Setup")
+    ButtonPrimaryFontSize = 18
+    ButtonPrimaryFontWeight = "SemiBold"
+    ButtonSecondaryFontSize = 14
+    ButtonSecondaryFontWeight = "Normal"
+
+    # Nav buttons ("Back", "Next")
+    NavButtonFontSize = 14
+    NavButtonFontWeight = "Normal"
+
+    # Help link text
+    HelpLinkFontSize = 12
+    HelpLinkFontWeight = "Bold"
+
+    # Custom Setup button on splash
+    CustomSetupFontSize = 17
+    CustomSetupFontWeight = "SemiBold"
+
+    # Character spacing (hundredths of em, 0 = default, 100 = 0.1em wider)
+    CharacterSpacing = 0
+}
+
+# ------------------------------------------------------------------------------
+# Taskbar icon - DLL path and icon index for the window/taskbar icon
+# ------------------------------------------------------------------------------
+$script:TaskbarIcon = @{
+    DllPath   = (Join-Path $env:SystemRoot "System32\imageres.dll")  # Full path to DLL containing icons
+    IconIndex = 251                                                   # Icon index within the DLL
+}
 
 $script:ControlParams = 'WhatIf', 'Confirm', 'Verbose', 'Debug', 'LogPath', 'Silent', 'Sysprep', 'User', 'NoRestartExplorer', 'RunDefaults', 'RunDefaultsLite', 'RunSavedSettings', 'RunAppsListGenerator', 'CLI', 'AppRemovalTarget'
 
@@ -257,6 +350,17 @@ if (-not $script:WingetInstalled -and -not $Silent) {
 . "$script:SourceRoot/Scripts/FileIO/ValidateAppslist.ps1"
 . "$script:SourceRoot/Scripts/FileIO/LoadAppsFromFile.ps1"
 . "$script:SourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
+
+# Returns $true if WPF GUI is available (desktop session with display); $false otherwise (Server Core, SSH, remoting, etc.)
+function Test-WpfAvailable {
+    try {
+        Add-Type -AssemblyName PresentationFramework -ErrorAction Stop
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
 
 # Processes all pending WPF window messages (input, render, etc.) to keep the UI responsive
 # during long-running operations on the UI thread. Equivalent to Application.DoEvents().
@@ -839,6 +943,15 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
         if ($CLI) {
             $Mode = ShowCLIMenuOptions 
         }
+        elseif (-not (Test-WpfAvailable)) {
+            Write-Host "WPF GUI is not available in this environment (e.g. Server Core, SSH, remoting). Using CLI mode." -ForegroundColor Yellow
+            if (-not $Silent) {
+                Write-Host ""
+                Write-Host "Press any key to continue..."
+                $null = [System.Console]::ReadKey()
+            }
+            $Mode = ShowCLIMenuOptions
+        }
         else {
             try {
                 $result = Show-MainWindow
@@ -847,7 +960,7 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
                 Exit
             }
             catch {
-                Write-Warning "Unable to load WPF GUI (not supported in this environment), falling back to CLI mode"
+                Write-Warning "Unable to load WPF GUI: $($_.Exception.Message). Falling back to CLI mode."
                 if (-not $Silent) {
                     Write-Host ""
                     Write-Host "Press any key to continue..."

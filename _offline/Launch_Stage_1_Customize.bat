@@ -9,7 +9,7 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
-set "SCRIPT=%~dp0\Imaging_Scripts\1_Customize.ps1"
+set "SCRIPT=%~dp0Imaging_Scripts\1_Customize.ps1"
 set "PWSH=C:\Program Files\PowerShell\7\pwsh.exe"
 
 if exist "%PWSH%" (

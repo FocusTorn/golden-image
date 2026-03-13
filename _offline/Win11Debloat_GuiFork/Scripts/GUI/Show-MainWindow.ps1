@@ -1,5 +1,18 @@
 function Show-MainWindow {    
-    Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Windows.Forms | Out-Null
+    Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Windows.Forms,System.Drawing | Out-Null
+
+    # Extract icon 252 from imageres.dll for taskbar
+    $iconCode = @'
+using System;
+using System.Runtime.InteropServices;
+public class Shell32_Extract {
+    [DllImport("Shell32.dll", EntryPoint="ExtractIconExW", CharSet=CharSet.Unicode, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+    public static extern int ExtractIconEx(string lpszFile, int iconIndex, out IntPtr phiconLarge, out IntPtr phiconSmall, int nIcons);
+}
+'@
+    if (-not ([System.Management.Automation.PSTypeName]'Shell32_Extract').Type) {
+        Add-Type -TypeDefinition $iconCode -ErrorAction SilentlyContinue
+    }
 
     # Get current Windows build version
     $WinVersion = Get-ItemPropertyValue 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' CurrentBuild
@@ -18,10 +31,75 @@ function Show-MainWindow {
 
     SetWindowThemeResources -window $window -usesDarkMode $usesDarkMode
 
+    # Taskbar/window icon will be set in Loaded event (see below)
+
     # GuiFork: Add green color for already-applied tweaks (green border + green check, background unchanged)
     if (-not $window.Resources.Contains("AppliedColor")) {
         $window.Resources.Add("AppliedColor", [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString("#22C55E")))
     }
+
+    # Apply typography config from $script:Typography to window.Resources
+    $tw = $script:Typography
+    $fwMap = @{
+        Normal = [System.Windows.FontWeights]::Normal
+        Light = [System.Windows.FontWeights]::Light
+        SemiBold = [System.Windows.FontWeights]::SemiBold
+        Bold = [System.Windows.FontWeights]::Bold
+        ExtraBold = [System.Windows.FontWeights]::ExtraBold
+    }
+    $getFw = { param($k, $d) if ($fwMap[$k]) { $fwMap[$k] } else { $d } }
+    $fgBrush = $window.Resources["FgColor"]
+    $brush = { param($c) if ($c) { [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString($c)) } else { $fgBrush } }
+    $add = { param($k, $v) if (-not $window.Resources.Contains($k)) { $window.Resources.Add($k, $v) } }
+    & $add "PageTitleFontSize" ([double]$tw.PageTitleFontSize)
+    & $add "PageTitleFontWeight" (& $getFw $tw.PageTitleFontWeight ([System.Windows.FontWeights]::Bold))
+    & $add "PageTitleFontFamily" ([System.Windows.Media.FontFamily]::new($tw.PageTitleFontFamily))
+    & $add "PageTitleColor" (& $brush $tw.PageTitleColor)
+    & $add "TabTitleFontSize" ([double]$tw.TabTitleFontSize)
+    & $add "TabTitleFontWeight" (& $getFw $tw.TabTitleFontWeight ([System.Windows.FontWeights]::Bold))
+    & $add "TabTitleFontFamily" ([System.Windows.Media.FontFamily]::new($tw.TabTitleFontFamily))
+    & $add "TabTitleColor" (& $brush $tw.TabTitleColor)
+    & $add "CardTitleFontSize" ([double]$tw.CardTitleFontSize)
+    & $add "CardTitleFontWeight" (& $getFw $tw.CardTitleFontWeight ([System.Windows.FontWeights]::Bold))
+    & $add "CardTitleFontFamily" ([System.Windows.Media.FontFamily]::new($tw.CardTitleFontFamily))
+    & $add "CardTitleColor" (& $brush $tw.CardTitleColor)
+    $marginParts = $tw.CardTitleMargin -split ','
+    $cardTitleMargin = if ($marginParts.Count -ge 4) { [System.Windows.Thickness]::new([double]$marginParts[0], [double]$marginParts[1], [double]$marginParts[2], [double]$marginParts[3]) } else { [System.Windows.Thickness]::new(0, 0, 0, 13) }
+    & $add "CardTitleMargin" $cardTitleMargin
+    & $add "CardSubtitleFontSize" ([double]$tw.CardSubtitleFontSize)
+    & $add "CardSubtitleFontWeight" (& $getFw $tw.CardSubtitleFontWeight ([System.Windows.FontWeights]::Normal))
+    & $add "CardSubtitleFontFamily" ([System.Windows.Media.FontFamily]::new($tw.CardSubtitleFontFamily))
+    & $add "CardSubtitleColor" (& $brush $tw.CardSubtitleColor)
+    & $add "LabelFontSize" ([double]$tw.LabelFontSize)
+    & $add "LabelFontWeight" (& $getFw $tw.LabelFontWeight ([System.Windows.FontWeights]::Normal))
+    & $add "LabelFontFamily" ([System.Windows.Media.FontFamily]::new($tw.LabelFontFamily))
+    & $add "LabelColor" (& $brush $tw.LabelColor)
+    & $add "LabelSmallFontSize" ([double]$tw.LabelSmallFontSize)
+    & $add "LabelSmallFontWeight" (& $getFw $tw.LabelSmallFontWeight ([System.Windows.FontWeights]::Normal))
+    & $add "TableHeaderFontSize" ([double]$tw.TableHeaderFontSize)
+    & $add "TableHeaderFontWeight" (& $getFw $tw.TableHeaderFontWeight ([System.Windows.FontWeights]::SemiBold))
+    & $add "TableHeaderFontFamily" ([System.Windows.Media.FontFamily]::new($tw.TableHeaderFontFamily))
+    & $add "TableHeaderColor" (& $brush $tw.TableHeaderColor)
+    & $add "BodyFontSize" ([double]$tw.BodyFontSize)
+    & $add "BodyFontWeight" (& $getFw $tw.BodyFontWeight ([System.Windows.FontWeights]::Normal))
+    & $add "BodyFontFamily" ([System.Windows.Media.FontFamily]::new($tw.BodyFontFamily))
+    & $add "BodyColor" (& $brush $tw.BodyColor)
+    & $add "SearchFontSize" ([double]$tw.SearchFontSize)
+    & $add "SearchFontWeight" (& $getFw $tw.SearchFontWeight ([System.Windows.FontWeights]::Normal))
+    & $add "SearchPlaceholderOpacity" ([double]$tw.SearchPlaceholderOpacity)
+    & $add "ButtonPrimaryFontSize" ([double]$tw.ButtonPrimaryFontSize)
+    & $add "ButtonPrimaryFontWeight" (& $getFw $tw.ButtonPrimaryFontWeight ([System.Windows.FontWeights]::SemiBold))
+    & $add "ButtonSecondaryFontSize" ([double]$tw.ButtonSecondaryFontSize)
+    & $add "ButtonSecondaryFontWeight" (& $getFw $tw.ButtonSecondaryFontWeight ([System.Windows.FontWeights]::Normal))
+    & $add "NavButtonFontSize" ([double]$tw.NavButtonFontSize)
+    & $add "NavButtonFontWeight" (& $getFw $tw.NavButtonFontWeight ([System.Windows.FontWeights]::Normal))
+    & $add "HelpLinkFontSize" ([double]$tw.HelpLinkFontSize)
+    & $add "HelpLinkFontWeight" (& $getFw $tw.HelpLinkFontWeight ([System.Windows.FontWeights]::Bold))
+    & $add "CustomSetupFontSize" ([double]$tw.CustomSetupFontSize)
+    & $add "CustomSetupFontWeight" (& $getFw $tw.CustomSetupFontWeight ([System.Windows.FontWeights]::SemiBold))
+    & $add "IconFontFamily" ([System.Windows.Media.FontFamily]::new($tw.IconFontFamily))
+    & $add "BaseFontFamily" ([System.Windows.Media.FontFamily]::new($tw.FontFamily))
+    & $add "TypographyCharacterSpacing" ([int]$tw.CharacterSpacing)
 
     # Get named elements
     $titleBar = $window.FindName('TitleBar')
@@ -178,9 +256,22 @@ function Show-MainWindow {
         $window.Close()
     })
 
-    # Ensure closing the main window stops all execution
+    # Window bounds persistence (x, y, width, height)
+    $guiForkRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    $configDir = Join-Path $guiForkRoot "Config"
+    $windowBoundsPath = Join-Path $configDir "WindowBounds.json"
+    if (-not (Test-Path $configDir)) { New-Item -ItemType Directory -Path $configDir -Force | Out-Null }
+
+    # Ensure closing the main window stops all execution and save bounds
     $window.Add_Closing({
         $script:CancelRequested = $true
+        try {
+            $w = $window
+            if ($w.WindowState -eq 'Normal') {
+                $bounds = @{ Left = $w.Left; Top = $w.Top; Width = $w.Width; Height = $w.Height }
+                $bounds | ConvertTo-Json | Set-Content -Path $windowBoundsPath -Encoding UTF8 -Force
+            }
+        } catch { }
     })
 
     # Implement window resize functionality
@@ -1284,13 +1375,13 @@ function Show-MainWindow {
         $currentIndex = $tabControl.SelectedIndex
         $totalTabs = $tabControl.Items.Count
         
-        # GuiFork: No home tab - start on App Removal (index 0)
-        $homeIndex = -1
+        # Home tab is index 0; hide Back button on splash
+        $homeIndex = 0
         $overviewIndex = $totalTabs - 1
 
-        # Navigation button visibility
+        # Navigation button visibility (Home shows Next in corner like other panes)
         if ($currentIndex -eq $homeIndex) {
-            $nextBtn.Visibility = 'Collapsed'
+            $nextBtn.Visibility = 'Visible'
             $previousBtn.Visibility = 'Collapsed'
         } elseif ($currentIndex -eq $overviewIndex) {
             $nextBtn.Visibility = 'Collapsed'
@@ -1544,34 +1635,224 @@ function Show-MainWindow {
         }
     })
 
-    # Handle Home Start button
-    $homeStartBtn = $window.FindName('HomeStartBtn')
-    $homeStartBtn.Add_Click({
-        # Navigate to first tab after home (App Removal)
-        $tabControl.SelectedIndex = 1
-        UpdateNavigationButtons
-    })
+    # Handle Home Update Connections button (same as C command in VM_Dashboard.ps1)
+    $homeConnUpdateBtn = $window.FindName('HomeConnUpdateBtn')
+    if ($homeConnUpdateBtn) {
+        $homeConnUpdateBtn.Add_Click({
+            $homeConnUpdateBtn.IsEnabled = $false
+            $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [action]{
+                $errs = @()
+                try {
+                    $admin = Get-LocalUser | Where-Object { $_.SID -like '*-500' }
+                    if ($admin) {
+                        Enable-LocalUser -Name $admin.Name -ErrorAction Stop
+                    }
+                } catch { $errs += "Admin: $_" }
+                try {
+                    reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "LimitBlankPasswordUse" /t REG_DWORD /d 0 /f 2>$null | Out-Null
+                } catch { $errs += "LimitBlankPasswordUse: $_" }
+                try {
+                    Set-Service KeyIso -StartupType Automatic -ErrorAction Stop
+                    Start-Service KeyIso -ErrorAction SilentlyContinue
+                } catch { $errs += "KeyIso: $_" }
+                try {
+                    Set-Service WinRM -StartupType Automatic -ErrorAction Stop
+                    & winrm quickconfig -quiet 2>$null | Out-Null
+                } catch { $errs += "WinRM: $_" }
+                $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{
+                    $homeConnUpdateBtn.IsEnabled = $true
+                    Refresh-HomeDashboard
+                    if ($errs.Count -gt 0) {
+                        Show-MessageBox -Message "Update Connections completed with errors:`n`n$($errs -join "`n")" -Title "Update Connections" -Button 'OK' -Icon 'Warning' | Out-Null
+                    } else {
+                        Show-MessageBox -Message "Connections updated successfully." -Title "Update Connections" -Button 'OK' -Icon 'Information' | Out-Null
+                    }
+                })
+            }) | Out-Null
+        })
+    }
 
-    # Handle Home Default Mode button - apply defaults and navigate directly to overview
-    $homeDefaultModeBtn = $window.FindName('HomeDefaultModeBtn')
-    $homeDefaultModeBtn.Add_Click({
-        # Load and apply default settings
-        $defaultsJson = LoadJsonFile -filePath $script:DefaultSettingsFilePath -expectedVersion "1.0"
-        if ($defaultsJson) {
-            ApplySettingsToUiControls -window $window -settingsJson $defaultsJson -uiControlMappings $script:UiControlMappings
+    # Handle Home Execute button - run checked installation options in series
+    $script:ImagingScriptsPath = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "Imaging_Scripts"
+    $homeExecRunBtn = $window.FindName('HomeExecRunBtn')
+    $runHomeExecute = {
+        $off = $script:ImagingScriptsPath
+        if (-not (Test-Path $off)) {
+            Show-MessageBox -Message "Imaging scripts path not found: $off" -Title "Error" -Button 'OK' -Icon 'Warning' | Out-Null
+            return
         }
-
-        # Select default apps
-        foreach ($child in $appsPanel.Children) {
-            if ($child -is [System.Windows.Controls.CheckBox]) {
-                $child.IsChecked = ($child.SelectedByDefault -eq $true)
+        $tasks = @()
+        if (($window.FindName('HomeExec1')).IsChecked) { $tasks += @{ N='Customize'; C={ $bat = "$off\1_Customize.bat"; if (Test-Path $bat) { cmd /c "`"$bat`"" } else { & "$off\1_Customize.ps1" } } } }
+        if (($window.FindName('HomeExec2')).IsChecked) { $tasks += @{ N='Scoop'; C={ & "$off\2_Scoop.ps1" } } }
+        if (($window.FindName('HomeExec3')).IsChecked) { $tasks += @{ N='MSVC Build Tools'; C={ & "$off\3_MSVC.ps1" } } }
+        if (($window.FindName('HomeExec4')).IsChecked) { $tasks += @{ N='ALL System Apps'; C={ & "$off\4_System_Apps.ps1" -App "All" } } }
+        if (($window.FindName('HomeExec41')).IsChecked) { $tasks += @{ N='Chrome'; C={ & "$off\4_System_Apps.ps1" -App "Chrome" } } }
+        if (($window.FindName('HomeExec42')).IsChecked) { $tasks += @{ N='VS Code'; C={ & "$off\4_System_Apps.ps1" -App "VSCode" } } }
+        if (($window.FindName('HomeExec43')).IsChecked) { $tasks += @{ N='Go'; C={ & "$off\4_System_Apps.ps1" -App "Go" } } }
+        if (($window.FindName('HomeExec44')).IsChecked) { $tasks += @{ N='Git'; C={ & "$off\4_System_Apps.ps1" -App "Git" } } }
+        if (($window.FindName('HomeExec45')).IsChecked) { $tasks += @{ N='GitHub CLI'; C={ & "$off\4_System_Apps.ps1" -App "GitHubCLI" } } }
+        if (($window.FindName('HomeExec46')).IsChecked) { $tasks += @{ N='UniGetUI'; C={ & "$off\4_System_Apps.ps1" -App "UniGetUI" } } }
+        if (($window.FindName('HomeExec5')).IsChecked) { $tasks += @{ N='Rust'; C={ & "$off\5_Rust_Finish.ps1" } } }
+        if (($window.FindName('HomeExec6')).IsChecked) { $tasks += @{ N='Optimization Suite'; C={ & "$off\6_Optimization.ps1" } } }
+        if ($tasks.Count -eq 0) {
+            Show-MessageBox -Message "Select at least one execution option." -Title "Execute" -Button 'OK' -Icon 'Information' | Out-Null
+            return
+        }
+        $homeExecRunBtn.IsEnabled = $false
+        $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [action]{
+            foreach ($t in $tasks) {
+                try {
+                    & $t.C
+                } catch {
+                    Show-MessageBox -Message "$($t.N) failed: $_" -Title "Error" -Button 'OK' -Icon 'Warning' | Out-Null
+                }
             }
-        }
+            $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{ $homeExecRunBtn.IsEnabled = $true })
+            $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{ Refresh-HomeDashboard })
+        }) | Out-Null
+    }
+    if ($homeExecRunBtn) { $homeExecRunBtn.Add_Click($runHomeExecute) }
 
-        # Navigate directly to the Deployment Settings tab
-        $tabControl.SelectedIndex = 3
-        UpdateNavigationButtons
-    })
+    # ALL System Apps sync: HomeExec4 <-> HomeExec41..46
+    $homeExec4 = $window.FindName('HomeExec4')
+    $homeExec41 = $window.FindName('HomeExec41')
+    $homeExec42 = $window.FindName('HomeExec42')
+    $homeExec43 = $window.FindName('HomeExec43')
+    $homeExec44 = $window.FindName('HomeExec44')
+    $homeExec45 = $window.FindName('HomeExec45')
+    $homeExec46 = $window.FindName('HomeExec46')
+    $systemAppChecks = @($homeExec41, $homeExec42, $homeExec43, $homeExec44, $homeExec45, $homeExec46)
+    $script:HomeExec4Updating = $false
+    if ($homeExec4 -and ($systemAppChecks | Where-Object { $_ } | Measure-Object).Count -eq 6) {
+        $homeExec4.Add_Checked({
+            if ($script:HomeExec4Updating) { return }
+            $script:HomeExec4Updating = $true
+            try {
+                foreach ($c in $systemAppChecks) { $c.IsChecked = $true }
+            } finally { $script:HomeExec4Updating = $false }
+        })
+        $homeExec4.Add_Unchecked({
+            if ($script:HomeExec4Updating) { return }
+            $script:HomeExec4Updating = $true
+            try {
+                foreach ($c in $systemAppChecks) { $c.IsChecked = $false }
+            } finally { $script:HomeExec4Updating = $false }
+        })
+        $updateHomeExec4FromChildren = {
+            if ($script:HomeExec4Updating) { return }
+            $allChecked = ($systemAppChecks | Where-Object { $_.IsChecked -eq $true } | Measure-Object).Count -eq 6
+            $script:HomeExec4Updating = $true
+            try { $homeExec4.IsChecked = $allChecked } finally { $script:HomeExec4Updating = $false }
+        }
+        foreach ($c in $systemAppChecks) { $c.Add_Checked($updateHomeExec4FromChildren); $c.Add_Unchecked($updateHomeExec4FromChildren) }
+    }
+
+    # Handle Home Load Profiles card
+    $homeImportJsonPath = $window.FindName('HomeImportJsonPath')
+    $homeImportJsonBrowseBtn = $window.FindName('HomeImportJsonBrowseBtn')
+    $homeImportJsonLoadBtn = $window.FindName('HomeImportJsonLoadBtn')
+    $homeAppsProfileCombo = $window.FindName('HomeAppsProfileCombo')
+    $homeAppsProfileLoadBtn = $window.FindName('HomeAppsProfileLoadBtn')
+    $homeTweaksProfileCombo = $window.FindName('HomeTweaksProfileCombo')
+    $homeTweaksProfileLoadBtn = $window.FindName('HomeTweaksProfileLoadBtn')
+    if ($homeImportJsonBrowseBtn) {
+        $homeImportJsonBrowseBtn.Add_Click({
+            $dlg = New-Object Microsoft.Win32.OpenFileDialog
+            $dlg.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'
+            if ($dlg.ShowDialog() -eq $true) {
+                $homeImportJsonPath.Text = $dlg.FileName
+            }
+        })
+    }
+    if ($homeImportJsonLoadBtn -and $homeImportJsonPath) {
+        $homeImportJsonLoadBtn.Add_Click({
+            $path = $homeImportJsonPath.Text.Trim()
+            if ([string]::IsNullOrWhiteSpace($path) -or $path -eq '(No file selected)') {
+                Show-MessageBox -Message "Select a JSON file first (Browse)." -Title "Import" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            if (-not (Test-Path $path)) {
+                Show-MessageBox -Message "File not found: $path" -Title "Import" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            try {
+                $imported = Get-Content -Path $path -Raw | ConvertFrom-Json
+                if (-not $imported.Settings) {
+                    Show-MessageBox -Message "Invalid settings file format." -Title "Import" -Button 'OK' -Icon 'Warning' | Out-Null
+                    return
+                }
+                $settingsObj = @{ Version = $imported.Version; Settings = @() }
+                foreach ($s in $imported.Settings) {
+                    $settingsObj.Settings += @{ Name = $s.Name; Value = $s.Value }
+                }
+                ApplySettingsToUiControls -window $window -settingsJson $settingsObj -uiControlMappings $script:UiControlMappings
+                if ($settingsObj.Settings | Where-Object { $_.Name -eq 'Apps' }) {
+                    $appsSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'Apps' } | Select-Object -First 1
+                    $appIds = $appsSetting.Value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+                    $appsPanelRef = $window.FindName('AppSelectionPanel')
+                    foreach ($child in $appsPanelRef.Children) {
+                        if ($child -is [System.Windows.Controls.CheckBox] -and $child.Tag) {
+                            $child.IsChecked = $appIds -contains $child.Tag
+                        }
+                    }
+                }
+                $restorePointCheckBox = $window.FindName('RestorePointCheckBox')
+                if ($restorePointCheckBox -and ($settingsObj.Settings | Where-Object { $_.Name -eq 'CreateRestorePoint' })) {
+                    $restorePointCheckBox.IsChecked = $true
+                }
+                $userSelectionCombo = $window.FindName('UserSelectionCombo')
+                $otherUsernameTextBox = $window.FindName('OtherUsernameTextBox')
+                $userSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'User' } | Select-Object -First 1
+                $sysprepSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'Sysprep' } | Select-Object -First 1
+                if ($sysprepSetting) { $userSelectionCombo.SelectedIndex = 2 }
+                elseif ($userSetting) { $userSelectionCombo.SelectedIndex = 1; if ($otherUsernameTextBox) { $otherUsernameTextBox.Text = $userSetting.Value } }
+                else { $userSelectionCombo.SelectedIndex = 0 }
+                $scopeSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'AppRemovalTarget' } | Select-Object -First 1
+                $appRemovalScopeCombo = $window.FindName('AppRemovalScopeCombo')
+                if ($appRemovalScopeCombo -and $scopeSetting) {
+                    switch ($scopeSetting.Value) {
+                        'CurrentUser' { $appRemovalScopeCombo.SelectedIndex = 1 }
+                        'AllUsers' { $appRemovalScopeCombo.SelectedIndex = 0 }
+                        default { $appRemovalScopeCombo.SelectedIndex = 2; if ($otherUsernameTextBox -and $scopeSetting.Value) { $otherUsernameTextBox.Text = $scopeSetting.Value } }
+                    }
+                }
+                Show-MessageBox -Message "Settings imported from:`n$path" -Title "Import" -Button 'OK' -Icon 'Information' | Out-Null
+            } catch {
+                Show-MessageBox -Message "Failed to import: $_" -Title "Import Error" -Button 'OK' -Icon 'Warning' | Out-Null
+            }
+        })
+    }
+    if ($homeAppsProfileLoadBtn -and $homeAppsProfileCombo) {
+        $homeAppsProfileLoadBtn.Add_Click({
+            $item = $homeAppsProfileCombo.SelectedItem
+            if (-not $item -or $homeAppsProfileCombo.SelectedIndex -eq 0) {
+                Show-MessageBox -Message "Select a profile first." -Title "App Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileName = $item.Content
+            $appIds = Load-AppProfile -ProfileName $profileName
+            if ($appIds.Count -eq 0) {
+                Show-MessageBox -Message "Profile '$profileName' is empty or could not be loaded." -Title "App Profile" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            Apply-AppProfileToUi -AppIds $appIds -Replace
+        })
+    }
+    if ($homeTweaksProfileLoadBtn -and $homeTweaksProfileCombo) {
+        $homeTweaksProfileLoadBtn.Add_Click({
+            $item = $homeTweaksProfileCombo.SelectedItem
+            if (-not $item -or $homeTweaksProfileCombo.SelectedIndex -eq 0) {
+                Show-MessageBox -Message "Select a profile first." -Title "Tweak Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileJson = Load-TweakProfile -ProfileName $item.Content
+            if (-not $profileJson -or -not $profileJson.Settings) {
+                Show-MessageBox -Message "Profile could not be loaded or is empty." -Title "Tweak Profile" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            ApplySettingsToUiControls -window $window -settingsJson $profileJson -uiControlMappings $script:UiControlMappings
+        })
+    }
 
     # Handle Review Changes link button
     $reviewChangesBtn = $window.FindName('ReviewChangesBtn')
@@ -1804,11 +2085,145 @@ function Show-MainWindow {
         }
     })
 
+    # Populate Home dashboard (Connection Settings + Stages Audit) from VM_Dashboard logic
+    function Refresh-HomeDashboard {
+        $connLimit = $window.FindName('HomeConnLimitBlank')
+        $connWinRM = $window.FindName('HomeConnWinRM')
+        $connKeyIso = $window.FindName('HomeConnKeyIso')
+        $connAdmin = $window.FindName('HomeConnAdmin')
+        $stagesPanel = $window.FindName('HomeStagesAuditPanel')
+        if (-not $connLimit -or -not $stagesPanel) { return }
+
+        # Connection Settings - checkboxes checked when OK
+        try {
+            $val = (Get-ItemPropertyValue -Path 'HKLM:\System\CurrentControlSet\Control\Lsa' -Name 'LimitBlankPasswordUse' -ErrorAction Stop).ToString()
+            $connLimit.IsChecked = ($val -eq '0')
+        } catch { $connLimit.IsChecked = $false }
+        try {
+            $svc = Get-Service -Name WinRM -ErrorAction Stop
+            $val = "$($svc.Status) ($($svc.StartType))"
+            $connWinRM.IsChecked = ($val -like 'Running*Auto*')
+        } catch { $connWinRM.IsChecked = $false }
+        try {
+            $svc = Get-Service -Name KeyIso -ErrorAction Stop
+            $val = "$($svc.Status) ($($svc.StartType))"
+            $connKeyIso.IsChecked = ($val -like 'Running*Auto*')
+        } catch { $connKeyIso.IsChecked = $false }
+        try {
+            $admin = Get-LocalUser | Where-Object { $_.SID -like '*-500' }
+            $connAdmin.IsChecked = ($admin -and $admin.Enabled)
+        } catch { $connAdmin.IsChecked = $false }
+
+        # Load Profiles - refresh combos
+        $homeAppsCombo = $window.FindName('HomeAppsProfileCombo')
+        if ($homeAppsCombo) {
+            $homeAppsCombo.Items.Clear()
+            $homeAppsCombo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = "(No profile selected)" })) | Out-Null
+            foreach ($name in Get-AppProfileList) {
+                $homeAppsCombo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = $name })) | Out-Null
+            }
+            $homeAppsCombo.SelectedIndex = 0
+        }
+        $homeTweaksCombo = $window.FindName('HomeTweaksProfileCombo')
+        if ($homeTweaksCombo) {
+            $homeTweaksCombo.Items.Clear()
+            $homeTweaksCombo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = "(No profile selected)" })) | Out-Null
+            foreach ($name in Get-TweakProfileList) {
+                $homeTweaksCombo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = $name })) | Out-Null
+            }
+            $homeTweaksCombo.SelectedIndex = 0
+        }
+
+        # Stages Audit - REG/Path/LNK checkboxes per app (from Get-GranularStatus)
+        $regPaths = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+        $lnkDirs = @('C:\ProgramData\Microsoft\Windows\Start Menu', 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs')
+        $apps = @(
+            @{ N='PowerShell 7'; Reg='PowerShell 7'; Exe='pwsh'; Lnk='PowerShell 7'; NoPath=$false; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\PowerShell\7\pwsh.exe' },
+            @{ N='Scoop'; Reg=$null; Exe='scoop'; Lnk=$null; NoPath=$false; NoReg=$true; NoLnk=$true; FileCheck='C:\Scoop\shims\scoop.ps1' },
+            @{ N='MSVC Build Tools'; Reg='Visual Studio Build Tools'; Exe=$null; Lnk=$null; NoPath=$true; NoReg=$false; NoLnk=$true; FileCheck="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" },
+            @{ N='Chrome'; Reg='Google Chrome'; Exe=$null; Lnk='Chrome'; NoPath=$true; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\Google\Chrome\Application\chrome.exe' },
+            @{ N='VS Code'; Reg='Visual Studio Code'; Exe='code'; Lnk='Visual Studio Code'; NoPath=$false; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\Microsoft VS Code\bin\code.cmd' },
+            @{ N='Go'; Reg='Go Programming Language'; Exe='go'; Lnk=$null; NoPath=$false; NoReg=$false; NoLnk=$true; FileCheck=$null },
+            @{ N='Git'; Reg='Git'; Exe='git'; Lnk='Git'; NoPath=$false; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\Git\bin\git.exe' },
+            @{ N='GitHub CLI'; Reg='GitHub CLI'; Exe='gh'; Lnk=$null; NoPath=$false; NoReg=$false; NoLnk=$true; FileCheck='C:\Program Files\GitHub CLI\gh.exe' },
+            @{ N='UniGetUI'; Reg='UniGetUI'; Exe='unigetui'; Lnk='UniGetUI'; NoPath=$false; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\UniGetUI\unigetui.exe' },
+            @{ N='Rust'; Reg='Rust'; Exe='rustup'; Lnk=$null; NoPath=$true; NoReg=$false; NoLnk=$true; FileCheck="$env:USERPROFILE\.cargo\bin\rustup.exe" }
+        )
+        $stagesPanel.Children.Clear()
+        foreach ($a in $apps) {
+            $regOk = $pathOk = $lnkOk = $false
+            if (-not $a.NoReg -and $a.Reg) {
+                $reg = Get-ItemProperty $regPaths -EA SilentlyContinue | Where-Object { $_.DisplayName -like "*$($a.Reg)*" } | Select-Object -First 1
+                $regOk = [bool]$reg
+            }
+            if (-not $a.NoPath) {
+                if ($a.FileCheck) { $pathOk = Test-Path $a.FileCheck }
+                elseif ($a.Exe) { $pathOk = [bool](Get-Command $a.Exe -EA SilentlyContinue) }
+            } elseif ($a.FileCheck) {
+                $pathOk = Test-Path $a.FileCheck
+            }
+            if (-not $a.NoLnk -and $a.Lnk) {
+                $lnk = Get-ChildItem -Path $lnkDirs -Filter "*$($a.Lnk)*" -Recurse -EA SilentlyContinue | Select-Object -First 1
+                $lnkOk = [bool]$lnk
+            }
+            $row = New-Object System.Windows.Controls.Grid
+            $row.Margin = [System.Windows.Thickness]::new(0,0,0,6)
+            $row.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{Width=[System.Windows.GridLength]::new(28)})) | Out-Null
+            $row.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{Width=[System.Windows.GridLength]::new(28)})) | Out-Null
+            $row.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{Width=[System.Windows.GridLength]::new(28)})) | Out-Null
+            $row.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{Width=[System.Windows.GridLength]::new(1,[System.Windows.GridUnitType]::Star)})) | Out-Null
+            $cbReg = New-Object System.Windows.Controls.CheckBox
+            $cbReg.IsChecked = if ($a.NoReg) { $null } else { $regOk }
+            $cbReg.IsHitTestVisible = $false
+            $cbReg.Style = $window.Resources['StagesCheckboxStyle']
+            $cbReg.IsEnabled = -not $a.NoReg
+            [System.Windows.Controls.Grid]::SetColumn($cbReg, 0)
+            $row.Children.Add($cbReg) | Out-Null
+            $cbPath = New-Object System.Windows.Controls.CheckBox
+            $hasPathCheck = (-not $a.NoPath) -or $a.FileCheck
+            $cbPath.IsChecked = if ($hasPathCheck) { $pathOk } else { $null }
+            $cbPath.IsHitTestVisible = $false
+            $cbPath.Style = $window.Resources['StagesCheckboxStyle']
+            $cbPath.IsEnabled = $hasPathCheck
+            [System.Windows.Controls.Grid]::SetColumn($cbPath, 1)
+            $row.Children.Add($cbPath) | Out-Null
+            $cbLnk = New-Object System.Windows.Controls.CheckBox
+            $cbLnk.IsChecked = if ($a.NoLnk) { $null } else { $lnkOk }
+            $cbLnk.IsHitTestVisible = $false
+            $cbLnk.Style = $window.Resources['StagesCheckboxStyle']
+            $cbLnk.IsEnabled = -not $a.NoLnk
+            [System.Windows.Controls.Grid]::SetColumn($cbLnk, 2)
+            $row.Children.Add($cbLnk) | Out-Null
+            $tb = New-Object System.Windows.Controls.TextBlock
+            $tb.Text = $a.N
+            $tb.FontSize = 12
+            $tb.Foreground = $window.Resources['FgColor']
+            $tb.Margin = [System.Windows.Thickness]::new(8, 0, 0, 0)
+            [System.Windows.Controls.Grid]::SetColumn($tb, 3)
+            $row.Children.Add($tb) | Out-Null
+            $stagesPanel.Children.Add($row) | Out-Null
+        }
+    }
+
     # Initialize UI elements on window load
     $window.Add_Loaded({
-        # GuiFork: Remove splash screen (Home tab) and go directly to Custom Setup (App Removal)
-        $tabControl.Items.RemoveAt(0)
-        $tabControl.SelectedIndex = 0
+        # Set taskbar/window icon from configured DLL and index (must run after window is loaded)
+        try {
+            $dllPath = $script:TaskbarIcon.DllPath
+            $iconIdx = $script:TaskbarIcon.IconIndex
+            if ($dllPath -and (Test-Path $dllPath)) {
+                $phiconLarge = [IntPtr]::Zero
+                $phiconSmall = [IntPtr]::Zero
+                $null = [Shell32_Extract]::ExtractIconEx($dllPath, $iconIdx, [ref]$phiconLarge, [ref]$phiconSmall, 1)
+                if ($phiconLarge -ne [IntPtr]::Zero) {
+                    $rect = [System.Windows.Int32Rect]::Empty
+                    $opts = [System.Windows.Media.Imaging.BitmapSizeOptions]::FromEmptyOptions()
+                    $bmp = [System.Windows.Interop.Imaging]::CreateBitmapSourceFromHIcon($phiconLarge, $rect, $opts)
+                    $window.Icon = [System.Windows.Media.Imaging.BitmapFrame]::Create($bmp)
+                    [System.Runtime.InteropServices.Marshal]::DestroyIcon($phiconLarge) | Out-Null
+                }
+            }
+        } catch { }
 
         # GuiFork: Hide default settings UI elements
         $defaultAppsBtn = $window.FindName('DefaultAppsBtn')
@@ -1819,6 +2234,9 @@ function Show-MainWindow {
         BuildDynamicTweaks
 
         LoadAppsIntoMainUI
+
+        # Populate Home dashboard (run async to avoid blocking)
+        $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [action]{ Refresh-HomeDashboard }) | Out-Null
 
         # Update Current User label with username
         if ($userSelectionCombo -and $userSelectionCombo.Items.Count -gt 0) {
@@ -2367,6 +2785,26 @@ function Show-MainWindow {
             Refresh-TweakProfileCombo
             Show-MessageBox -Message "Profile '$profileName' saved with $($settingsJson.Settings.Count) setting(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
         })
+    }
+
+    # Restore window position/size before showing
+    if (Test-Path $windowBoundsPath) {
+        try {
+            $bounds = Get-Content -Path $windowBoundsPath -Raw | ConvertFrom-Json
+            $left = [double]$bounds.Left
+            $top = [double]$bounds.Top
+            $width = [double]$bounds.Width
+            $height = [double]$bounds.Height
+            $minW = [double]$window.MinWidth
+            $minH = [double]$window.MinHeight
+            if ($width -ge $minW -and $height -ge $minH) {
+                $window.WindowStartupLocation = [System.Windows.WindowStartupLocation]::Manual
+                $window.Left = $left
+                $window.Top = $top
+                $window.Width = $width
+                $window.Height = $height
+            }
+        } catch { }
     }
 
     # Show the window
