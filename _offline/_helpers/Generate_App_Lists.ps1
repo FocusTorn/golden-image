@@ -7,7 +7,11 @@ Param(
 )
 
 # --- CONFIGURATION ---
-$OutputDir = "Z:\output\golden-master"
+# Use same drive as script (hardcoded Z: may not exist on guest VM)
+$scriptRoot = (Resolve-Path $PSScriptRoot).Path
+$driveLetter = [System.IO.Path]::GetPathRoot($scriptRoot).TrimEnd('\:')
+if (-not $driveLetter) { $driveLetter = 'C' }
+$OutputDir = "${driveLetter}:\output\golden-master"
 # $SystemName = "Golden_Master"
 # $IncludeVersion = $true  
 $BloatPatterns = @("*Bing*", "*Xbox*", "*Teams*", "*News*", "*Weather*", "*GetHelp*", "*Feedback*", "*Clipchamp*", "*Solitaire*", "*Zune*", "*Outlook*", "*YourPhone*", "*CrossDevice*", "*DevHome*")

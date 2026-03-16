@@ -865,12 +865,15 @@ public class PSAppID {
                     $p = Start-Process -FilePath $wingetExe -ArgumentList "list --accept-source-agreements --disable-interactivity" -NoNewWindow -PassThru -RedirectStandardOutput $tempFile -ErrorAction SilentlyContinue
                     if ($p) {
                         $p | Wait-Process -Timeout 5 -ErrorAction SilentlyContinue
-                        if ($p.HasExited) {
-                            $result = Get-Content $tempFile -Raw
-                            if ($result -and $result.Length -gt 100) { $installedList = $result }
+                        if (-not $p.HasExited) {
+                            $p | Stop-Process -Force -ErrorAction SilentlyContinue
+                        } else {
+                            if (($raw = Get-Content $tempFile -Raw) -and $raw.Length -gt 100) { $installedList = $raw }
                         }
                     }
-                } finally { if (Test-Path $tempFile) { Remove-Item $tempFile -Force -ErrorAction SilentlyContinue } }
+                } finally {
+                    if (Test-Path $tempFile) { Remove-Item $tempFile -Force -ErrorAction SilentlyContinue }
+                }
             }
 
             . "$sourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"

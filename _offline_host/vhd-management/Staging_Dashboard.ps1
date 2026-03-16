@@ -354,14 +354,12 @@ function Invoke-MasterSwoop {
         Write-Host "[ERROR] Sync Failed: $($_.Exception.Message)" -ForegroundColor Red
         Restore-VhdState -VhdPath $VhdPath -VMName $VMName -State $State
     }
-    if (-not $NoPause) { Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
+    if (-not $NoPause) { Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
 }
 
 function Invoke-ReverseSwoop {
     Param([string]$TargetHostDir, [string]$VhdPath, [string]$VMName, [switch]$NoPause)
     
-    $Cfg = Get-Config
-    $Creds = Get-VMCreds $Cfg.VMUser
     $State = Get-VhdState -VhdPath $VhdPath -VMName $VMName
 
     try {
@@ -399,7 +397,7 @@ function Invoke-ReverseSwoop {
         Write-Host "[ERROR] Action 6 Failed: $($_.Exception.Message)" -ForegroundColor Red 
         Restore-VhdState -VhdPath $VhdPath -VMName $VMName -State $State
     }
-    if (-not $NoPause) { Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
+    if (-not $NoPause) { Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
 }
 #< === END BLOCK 3 ===
 
@@ -520,13 +518,13 @@ if ($Action -eq 'ConnectVM') {
                         Write-Host "[!] File not found: $path" -ForegroundColor Yellow
                     }
                 }
-                Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer()
+                Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer()
             }
-            "7" { & $logScript -Category all -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
-            "71" { & $logScript -Category scoop -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
-            "72" { & $logScript -Category msvc -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
-            "73" { & $logScript -Category apps -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
-            "74" { & $logScript -Category rust -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
+            "7" { & $logScript -Category all -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
+            "71" { & $logScript -Category scoop -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
+            "72" { & $logScript -Category msvc -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
+            "73" { & $logScript -Category apps -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
+            "74" { & $logScript -Category rust -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
             { $_ -in 'd','D' } { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; Start-Sleep 1 }
             { $_ -in 'h','H' } { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; $null = Mount-VhdWithRetry -Path $Cfg.VhdPath; Start-Sleep 1 }
             { $_ -in 'v','V' } { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; Add-VMHardDiskDriveWithRetry -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; Start-Sleep 1 }
@@ -544,8 +542,8 @@ if ($Action -eq 'ConnectVM') {
                 Write-Host "[OK] VDS restarted. Try sync again." -ForegroundColor Green
                 Start-Sleep 1
             }
-            "z" { & (Join-Path $PSScriptRoot "scripts\Get-VhdLockDiagnostics.ps1") -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
-            "Z" { & (Join-Path $PSScriptRoot "scripts\Get-VhdLockDiagnostics.ps1") -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; Write-Host "`nPress any key..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer() }
+            "z" { & (Join-Path $PSScriptRoot "scripts\Get-VhdLockDiagnostics.ps1") -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
+            "Z" { & (Join-Path $PSScriptRoot "scripts\Get-VhdLockDiagnostics.ps1") -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
             "r" {
                 if (!(Test-Path $hostReturnDir)) { New-Item $hostReturnDir -ItemType Directory | Out-Null }
                 Invoke-ReverseSwoop $hostReturnDir $Cfg.VhdPath $Cfg.VMName 

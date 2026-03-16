@@ -6,4 +6,5 @@ return/genersate-apps.txt
 *.ahk
 *.ah2
 logs/
+.tmp/
 
