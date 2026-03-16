@@ -564,7 +564,7 @@ if ($Action -eq 'ConnectVM') {
         }
     } catch {
         Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "`nPress any key to continue..."; $null = [System.Console]::ReadKey($true); $host.UI.RawUI.FlushInputBuffer()
+        Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer()
     }
 }
 #< === END BLOCK 4 ===

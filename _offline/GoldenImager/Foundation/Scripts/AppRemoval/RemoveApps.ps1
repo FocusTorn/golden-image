@@ -41,8 +41,8 @@ function RemoveApps {
                 ImportRegistryFile "Adding scheduled task to uninstall $app after for new users..." "Uninstall_$($appName).reg"
             }
             else {
-                # Uninstall app via WinGet
-                $wingetOutput = Invoke-NonBlocking -ScriptBlock {
+                # Uninstall app via WinGet (timeout to avoid indefinite hang)
+                $wingetOutput = Invoke-NonBlocking -TimeoutSeconds 90 -ScriptBlock {
                     param($appId)
                     winget uninstall --accept-source-agreements --disable-interactivity --id $appId
                 } -ArgumentList $app
@@ -74,23 +74,23 @@ function RemoveApps {
         try {
             switch ($targetUser) {
                 "AllUsers" {
-                    # Remove installed app for all existing users, and from OS image
-                    Invoke-NonBlocking -ScriptBlock {
+                    # Remove installed app for all existing users, and from OS image (timeout to avoid indefinite hang e.g. BingSearch)
+                    Invoke-NonBlocking -TimeoutSeconds 120 -ScriptBlock {
                         param($pattern)
                         Get-AppxPackage -Name $pattern -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction Continue
                         Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like $pattern } | ForEach-Object { Remove-ProvisionedAppxPackage -Online -AllUsers -PackageName $_.PackageName }
                     } -ArgumentList $appPattern
                 }
                 "CurrentUser" {
-                    # Remove installed app for current user only
-                    Invoke-NonBlocking -ScriptBlock {
+                    # Remove installed app for current user only (timeout to avoid indefinite hang)
+                    Invoke-NonBlocking -TimeoutSeconds 120 -ScriptBlock {
                         param($pattern)
                         Get-AppxPackage -Name $pattern | Remove-AppxPackage -ErrorAction Continue
                     } -ArgumentList $appPattern
                 }
                 default {
-                    # Target is a specific username - remove app for that user only
-                    Invoke-NonBlocking -ScriptBlock {
+                    # Target is a specific username - remove app for that user only (timeout to avoid indefinite hang)
+                    Invoke-NonBlocking -TimeoutSeconds 120 -ScriptBlock {
                         param($pattern, $user)
                         $userAccount = New-Object System.Security.Principal.NTAccount($user)
                         $userSid = $userAccount.Translate([System.Security.Principal.SecurityIdentifier]).Value

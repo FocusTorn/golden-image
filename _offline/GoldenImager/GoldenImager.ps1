@@ -300,8 +300,8 @@ catch {
     $script:WingetPath = $null
 }
 
-# Show WinGet warning that requires user confirmation, Suppress confirmation if Silent parameter was passed
-if (-not $script:WingetInstalled -and -not $Silent) {
+# Show WinGet warning only when using Foundation RemoveApps (overlay = offline-only, no WinGet)
+if (-not $script:WingetInstalled -and -not $Silent -and -not (Test-Path "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1")) {
     Write-Warning "WinGet is not installed or outdated, this may prevent Golden Imager from removing certain apps"
     Write-Output ""
     Write-Output "Press any key to continue anyway..."
@@ -316,9 +316,10 @@ if (-not $script:WingetInstalled -and -not $Silent) {
 #                                                                                                                #
 ##################################################################################################################
 
-# Load app removal functions
+# Load app removal functions (overlay RemoveApps = offline-only, no WinGet)
 . "$script:SourceRoot/Scripts/AppRemoval/ForceRemoveEdge.ps1"
-. "$script:SourceRoot/Scripts/AppRemoval/RemoveApps.ps1"
+$removeAppsPath = if (Test-Path "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1") { "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1" } else { "$script:SourceRoot/Scripts/AppRemoval/RemoveApps.ps1" }
+. $removeAppsPath
 
 # Load CLI functions
 . "$script:SourceRoot/Scripts/CLI/AwaitKeyToExit.ps1"

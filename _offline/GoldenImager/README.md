@@ -93,6 +93,14 @@ When Foundation is updated:
 - PowerShell 5.1 or later
 - Administrator rights
 
+## Offline / Sysprep
+
+Golden Imager is designed for **offline audit mode** and **Sysprep** deployment. It does not rely on WinGet or any network:
+
+- **App removal** — The overlay `Scripts/AppRemoval/RemoveApps.ps1` uses `Remove-AppxPackage` and `Remove-ProvisionedAppxPackage` only. Edge and OneDrive are removed the same way as other apps (no WinGet, no RunOnce tasks that require network).
+- **Installed apps list** — Falls back to `Get-AppxPackage` when WinGet is unavailable.
+- **Do not use** `Get.ps1` (GitHub download) in offline environments.
+
 ## Installation
 
 1. Ensure `Foundation` is present (e.g. from `Prepare_Debloat_Tools.ps1` or manual extraction).
