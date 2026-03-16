@@ -105,7 +105,16 @@ param (
 # Define script-level variables & paths
 # GuiFork: use original Win11Debloat-Source for Config, Scripts, Regfiles, Assets, Schemas
 $script:SourceRoot = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'installers\Win11Debloat-Source'
+if (-not $script:SourceRoot -or -not (Test-Path $script:SourceRoot)) {
+    $displayPath = if ($script:SourceRoot) { $script:SourceRoot } else { "(empty - check script path)" }
+    Write-Host "[ERROR] Win11Debloat-Source not found at: $displayPath" -ForegroundColor Red
+    Write-Host "        Run 'Sync' (1) or 'Sync installers' (12) from the Staging Dashboard to copy installers to the VHD." -ForegroundColor Yellow
+    Read-Host "Press Enter to exit"
+    exit 1
+}
 $script:Version = "2026.03.09"
+$script:AuditDelaySeconds = 10
+$script:SpinnerStyle = "OldWinBars1" # Options: WinDots1, OldWinBars1
 $script:AppsListFilePath = "$script:SourceRoot/Config/Apps.json"
 $script:DefaultSettingsFilePath = "$script:SourceRoot/Config/DefaultSettings.json"
 $script:FeaturesFilePath = "$script:SourceRoot/Config/Features.json"
@@ -436,6 +445,38 @@ function AddParameter {
 }
 
 
+# Returns a list of installed apps by scanning Appx and Registry (Fast, 100% Offline)
+function Get-OfflineInstalledApps {
+    $apps = @()
+    # 1. Get all Appx Packages (system-wide)
+    try {
+        $apps += Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+    } catch { 
+        # Fallback to current user if AllUsers fails in Audit Mode
+        try { $apps += Get-AppxPackage | Select-Object -ExpandProperty Name } catch { }
+    }
+
+    # 2. Get Registry-based installs (64-bit and 32-bit)
+    $regPaths = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )
+    foreach ($path in $regPaths) {
+        try {
+            $items = Get-ItemProperty $path -ErrorAction SilentlyContinue
+            if ($items) {
+                foreach ($item in $items) {
+                    if ($item.DisplayName) { $apps += $item.DisplayName }
+                    elseif ($item.PSChildName) { $apps += $item.PSChildName }
+                }
+            }
+        } catch { }
+    }
+
+    return $apps | Where-Object { $_ } | Sort-Object -Unique
+}
+
 # Run winget list and return installed apps (sync or async)
 # Uses full path to winget because Start-Job runs in a separate process that may not have winget in PATH
 function GetInstalledAppsViaWinget {
@@ -444,25 +485,44 @@ function GetInstalledAppsViaWinget {
         [switch]$Async
     )
 
-    if (-not $script:WingetInstalled -or -not $script:WingetPath) { return $null }
+    # Fast offline scan first
+    $offlineApps = Get-OfflineInstalledApps
+    $offlineResult = $offlineApps -join "`n"
+
+    if (-not $script:WingetInstalled -or -not $script:WingetPath) { 
+        return $offlineResult 
+    }
 
     $wingetExe = $script:WingetPath
-    $scriptBlock = { param($exe) & $exe list --accept-source-agreements --disable-interactivity }
+    $scriptBlock = { 
+        param($exe, $offlineResult) 
+        $w = & $exe list --accept-source-agreements --disable-interactivity 2>$null
+        if ($w) { return $w }
+        return $offlineResult
+    }
 
     if ($Async) {
-        $wingetListJob = Start-Job -ArgumentList $wingetExe -ScriptBlock $scriptBlock
+        $wingetListJob = Start-Job -ArgumentList $wingetExe, $offlineResult -ScriptBlock $scriptBlock
         return @{ Job = $wingetListJob; StartTime = Get-Date }
     }
     else {
-        $wingetListJob = Start-Job -ArgumentList $wingetExe -ScriptBlock $scriptBlock
-        $jobDone = $wingetListJob | Wait-Job -TimeOut $TimeOut
-        if (-not $jobDone) {
-            Remove-Job -Job $wingetListJob -Force -ErrorAction SilentlyContinue
-            return $null
+        # Use Start-Process for more reliable timeout than Start-Job in Audit Mode
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        try {
+            $p = Start-Process -FilePath $wingetExe -ArgumentList "list --accept-source-agreements --disable-interactivity" -NoNewWindow -PassThru -RedirectStandardOutput $tempFile -ErrorAction SilentlyContinue
+            if ($p) {
+                $p | Wait-Process -Timeout $TimeOut -ErrorAction SilentlyContinue
+                if (-not $p.HasExited) {
+                    $p | Stop-Process -Force -ErrorAction SilentlyContinue
+                } else {
+                    $result = Get-Content $tempFile -Raw
+                    if ($result -and $result.Length -gt 100) { return $result }
+                }
+            }
+        } finally {
+            if (Test-Path $tempFile) { Remove-Item $tempFile -Force -ErrorAction SilentlyContinue }
         }
-        $result = Receive-Job -Job $wingetListJob
-        Remove-Job -Job $wingetListJob -ErrorAction SilentlyContinue
-        return $result
+        return $offlineResult
     }
 }
 

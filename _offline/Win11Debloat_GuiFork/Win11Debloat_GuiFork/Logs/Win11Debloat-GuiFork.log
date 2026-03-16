@@ -312,3 +312,389 @@ SerializationVersion: 1.1.0.1
 Windows PowerShell transcript end
 End time: 20260313084933
 **********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260313085411
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 48084
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+﻿**********************
+PowerShell transcript start
+Start time: 20260314053741
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll
+Process ID: 12828
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+**********************
+PowerShell transcript end
+End time: 20260314053756
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260314054840
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 11772
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260314054922
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260314220740
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 15268
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260314220745
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260315020320
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 35916
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260315020339
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260315035302
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 40116
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+At P:\Projects\golden-image\_offline\Win11Debloat_GuiFork\Scripts\GUI\Show-MainWindow.ps1:3000 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParseException
+    + FullyQualifiedErrorId : UnexpectedToken
+At P:\Projects\golden-image\_offline\Win11Debloat_GuiFork\Scripts\GUI\Show-MainWindow.ps1:3000 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParseException
+    + FullyQualifiedErrorId : UnexpectedToken
+
+WARNING: Unable to load WPF GUI: The term 'Show-MainWindow' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.. Falling back to CLI mode.
+
+Press any key to continue...
+**********************
+Windows PowerShell transcript start
+Start time: 20260315035442
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 36036
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260315035452
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260315040259
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 41096
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260315040330
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260315041436
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 39272
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Command start time: 20260315041437
+**********************
+PS>TerminatingError(): "Exception calling "Load" with "1" argument(s): "'Provide value on 'System.Windows.StaticResourceExtension' threw an exception.' Line number '932' and line position '75'.""
+WARNING: Unable to load WPF GUI: Exception calling "Load" with "1" argument(s): "'Provide value on 'System.Windows.StaticResourceExtension' threw an exception.' Line number '932' and line position '75'.". Falling back to CLI mode.
+
+Press any key to continue...
+**********************
+Windows PowerShell transcript start
+Start time: 20260315041636
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 41800
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260315041745
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260315043415
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 42316
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260315043433
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260315050308
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 42776
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260315050324
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260315051244
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 42904
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260315051302
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260316045620
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 62908
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260316045643
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260316051508
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 30592
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260316051537
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260316051724
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 61444
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260316051737
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260316051917
+Username: HELIX\slett
+RunAs User: HELIX\slett
+Configuration Name: 
+Machine: HELIX (Microsoft Windows NT 10.0.26200.0)
+Host Application: PowerShell -NoProfile -ExecutionPolicy Bypass -File P:\Projects\golden-image\_offline\\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1 
+Process ID: 63492
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20260316051932
+**********************

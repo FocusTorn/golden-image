@@ -3,15 +3,24 @@
 
 $ErrorActionPreference = "Stop"
 
-# --- SECTION 0: DRIVE DETECTION ---
-$VhdDrive = (Get-PSDrive | Where-Object { Test-Path "$($_.Root)installers\VS_Offline" } | Select-Object -First 1).Root
-if (-not $VhdDrive) {
-    $StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Staging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
-    if ($StagingVolume) { $VhdDrive = "$($StagingVolume.DriveLetter):\" }
+# --- SECTION 0: STAGING DRIVE DETECTION ---
+# 1) Label "Golden Imaging" 2) Fallback: Z..A reverse search for installers or _offline
+$StagingDrive = $null
+$StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Golden Imaging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
+if ($StagingVolume) { $StagingDrive = $StagingVolume.DriveLetter }
+if (-not $StagingDrive) {
+    foreach ($d in [char[]](90..65)) {
+        $root = "${d}:\"
+        if ((Test-Path (Join-Path $root "installers")) -or (Test-Path (Join-Path $root "_offline"))) {
+            $StagingDrive = $d
+            break
+        }
+    }
 }
+$VhdDrive = if ($StagingDrive) { "${StagingDrive}:\" } else { $null }
 
 if (-not $VhdDrive) {
-    Write-Host "[ERROR] VHD storage not found." -ForegroundColor Red
+    Write-Host "[ERROR] Staging drive not found (label 'Golden Imaging' or drive with installers/_offline)." -ForegroundColor Red
     return
 }
 

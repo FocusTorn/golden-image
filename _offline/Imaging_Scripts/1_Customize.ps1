@@ -6,9 +6,36 @@ $ErrorActionPreference = "SilentlyContinue"
 $OfflineDir = Split-Path $PSScriptRoot -Parent
 $LogFile = Join-Path $OfflineDir "stage0_deploy.log"
 $Ps7Path = "C:\Program Files\PowerShell\7\pwsh.exe"
-$InstallersDir = Join-Path (Split-Path $OfflineDir -Parent) "installers"
 
+# --- STAGING DRIVE: 1) Label "Golden Imaging" 2) Fallback: Z..A reverse search for installers or _offline ---
+$StagingDrive = $null
+$StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Golden Imaging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
+if ($StagingVolume) { $StagingDrive = $StagingVolume.DriveLetter }
+if (-not $StagingDrive) {
+    foreach ($d in [char[]](90..65)) {
+        $root = "${d}:\"
+        if ((Test-Path (Join-Path $root "installers")) -or (Test-Path (Join-Path $root "_offline"))) {
+            $StagingDrive = $d
+            break
+        }
+    }
+}
+if (-not $StagingDrive) {
+    Write-Host "[FAIL] Staging drive not found (label 'Golden Imaging' or drive with installers/_offline)." -ForegroundColor Red
+    Read-Host "Press Enter to exit"
+    exit 1
+}
 
+# Set label; drive letter change happens at end (script uses current letter throughout)
+$vol = Get-Volume -DriveLetter $StagingDrive -ErrorAction SilentlyContinue
+if ($vol) { Set-Volume -DriveLetter $StagingDrive -NewFileSystemLabel "Golden Imaging" -ErrorAction SilentlyContinue }
+
+$VhdDrive = "${StagingDrive}:\"
+$OfflineDir = Join-Path $VhdDrive "_offline"
+$LogFile = Join-Path $OfflineDir "stage0_deploy.log"
+$InstallersDir = Join-Path $VhdDrive "installers"
+
+ 
 #> 0. Header
 Clear-Host
 Write-Host "================================================================" -ForegroundColor Cyan
@@ -63,8 +90,8 @@ Set-ItemProperty -Path "HKCU:\Control Panel\Colors" -Name Background -Value "0 0
 # [Wallpaper]::SystemParametersInfo(20, 0, "", 3) | Out-Null
 
 # Set Display Resolution
-if (Test-Path "F:\installers\DisplayConfig\5.2.1\DisplayConfig.psd1") {
-    Import-Module "F:\installers\DisplayConfig\5.2.1\DisplayConfig.psd1" -ErrorAction SilentlyContinue
+if (Test-Path (Join-Path $InstallersDir "DisplayConfig\5.2.1\DisplayConfig.psd1")) {
+    Import-Module (Join-Path $InstallersDir "DisplayConfig\5.2.1\DisplayConfig.psd1") -ErrorAction SilentlyContinue
     Set-DisplayResolution -DisplayId 1 -Width 1920 -Height 1080 -ErrorAction SilentlyContinue
 }
 
@@ -240,7 +267,32 @@ Write-Host "================================================================" -F
 
 #<
 
-#> 11. Launch GUI
+#> 10b. Share F: for host pull (CopyFileFromHyperVGuest uses \\VM\F_DRIVE)
+$shareName = "F_DRIVE"
+$sharePath = "F:\"
+net share $shareName /delete 2>$null
+net share $shareName=$sharePath /GRANT:Everyone,FULL 2>$null
+if ($LASTEXITCODE -eq 0) { Write-Host "[*] Shared F: as $shareName for host pull" -ForegroundColor Green }
+
+#<
+
+#> 11. PERSIST F: FOR GOLDEN IMAGING (must be last - script uses current drive throughout)
+if ($StagingDrive -ne 'F') {
+    $part = Get-Partition -DriveLetter $StagingDrive -ErrorAction SilentlyContinue
+    if ($part) {
+        $fVol = Get-Volume -DriveLetter F -ErrorAction SilentlyContinue
+        if ($fVol -and $fVol.DriveLetter -ne $StagingDrive) {
+            $fPart = Get-Partition -DriveLetter F -ErrorAction SilentlyContinue
+            if ($fPart) { $fPart | Remove-PartitionAccessPath -AccessPath "F:\" -ErrorAction SilentlyContinue }
+        }
+        $part | Set-Partition -NewDriveLetter F -ErrorAction SilentlyContinue
+        Write-Host "[*] Assigned F: to Golden Imaging (persists for future mounts)" -ForegroundColor Green
+    }
+}
+
+#<
+
+#> 12. Launch GUI
 # Start-Sleep -Seconds 3
 
 # Launch dashboard

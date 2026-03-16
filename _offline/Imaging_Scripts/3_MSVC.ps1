@@ -6,17 +6,24 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 Write-Host "`n>>> [1/5] DETECTING VHD STORAGE" -ForegroundColor Cyan
-# Robust drive detection: find the FIRST drive containing the VS Layout
-$VhdDrive = (Get-PSDrive | Where-Object { Test-Path "$($_.Root)installers\VS_Offline" } | Select-Object -First 1).Root
-if (-not $VhdDrive) {
-    # Fallback to label search if folder search fails
-    $StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Staging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
-    if ($StagingVolume) { $VhdDrive = "$($StagingVolume.DriveLetter):\" }
+# 1) Label "Golden Imaging" 2) Fallback: Z..A reverse search for installers or _offline
+$StagingDrive = $null
+$StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Golden Imaging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
+if ($StagingVolume) { $StagingDrive = $StagingVolume.DriveLetter }
+if (-not $StagingDrive) {
+    foreach ($d in [char[]](90..65)) {
+        $root = "${d}:\"
+        if ((Test-Path (Join-Path $root "installers")) -or (Test-Path (Join-Path $root "_offline"))) {
+            $StagingDrive = $d
+            break
+        }
+    }
 }
+$VhdDrive = if ($StagingDrive) { "${StagingDrive}:\" } else { $null }
 
-if (-not $VhdDrive) { 
-    Write-Host "[ERROR] Could not find VHD drive containing 'installers\VS_Offline'." -ForegroundColor Red
-    return 
+if (-not $VhdDrive) {
+    Write-Host "[ERROR] Staging drive not found (label 'Golden Imaging' or drive with installers/_offline)." -ForegroundColor Red
+    return
 }
 
 $LayoutSource = Join-Path $VhdDrive "installers\VS_Offline"

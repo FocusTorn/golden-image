@@ -11,6 +11,117 @@
         Background="Transparent"
         Foreground="{DynamicResource FgColor}">
     <Window.Resources>
+        <!-- WinDots1 (Windows-style dotted preloader) -->
+        <Style x:Key="WinDots1Style" TargetType="Control">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Control">
+                        <Grid x:Name="Ring" Background="Transparent" Width="{TemplateBinding Width}" Height="{TemplateBinding Height}" RenderTransformOrigin="0.5,0.5">
+                            <Grid.Resources>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{DynamicResource ButtonBg}"/>
+                                    <Setter Property="Width" Value="6"/>
+                                    <Setter Property="Height" Value="6"/>
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="VerticalAlignment" Value="Top"/>
+                                    <Setter Property="RenderTransformOrigin" Value="0.5,4"/> <!-- Pivot around center of 48x48 -->
+                                </Style>
+                            </Grid.Resources>
+                            <Ellipse x:Name="dot1"><Ellipse.RenderTransform><RotateTransform x:Name="rot1" Angle="0"/></Ellipse.RenderTransform></Ellipse>
+                            <Ellipse x:Name="dot2"><Ellipse.RenderTransform><RotateTransform x:Name="rot2" Angle="0"/></Ellipse.RenderTransform></Ellipse>
+                            <Ellipse x:Name="dot3"><Ellipse.RenderTransform><RotateTransform x:Name="rot3" Angle="0"/></Ellipse.RenderTransform></Ellipse>
+                            <Ellipse x:Name="dot4"><Ellipse.RenderTransform><RotateTransform x:Name="rot4" Angle="0"/></Ellipse.RenderTransform></Ellipse>
+                            <Ellipse x:Name="dot5"><Ellipse.RenderTransform><RotateTransform x:Name="rot5" Angle="0"/></Ellipse.RenderTransform></Ellipse>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="rot1" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:2"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="rot2" Storyboard.TargetProperty="Angle" From="0" To="360" BeginTime="0:0:0.15" Duration="0:0:2"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="rot3" Storyboard.TargetProperty="Angle" From="0" To="360" BeginTime="0:0:0.3" Duration="0:0:2"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="rot4" Storyboard.TargetProperty="Angle" From="0" To="360" BeginTime="0:0:0.45" Duration="0:0:2"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="rot5" Storyboard.TargetProperty="Angle" From="0" To="360" BeginTime="0:0:0.6" Duration="0:0:2"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- OldWinBars1 (Classic rectangular spinning bars) -->
+        <Style x:Key="OldWinBars1Style" TargetType="Control">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Control">
+                        <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                            <Grid.Resources>
+                                <Style TargetType="Rectangle">
+                                    <Setter Property="Fill" Value="{DynamicResource ButtonBg}"/>
+                                    <Setter Property="Width" Value="3"/>
+                                    <Setter Property="Height" Value="10"/>
+                                    <Setter Property="RadiusX" Value="1.5"/>
+                                    <Setter Property="RadiusY" Value="1.5"/>
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="VerticalAlignment" Value="Top"/>
+                                    <Setter Property="RenderTransformOrigin" Value="0.5,2.4"/> <!-- Pivot around center -->
+                                </Style>
+                            </Grid.Resources>
+                            <Rectangle Opacity="1.00"><Rectangle.RenderTransform><RotateTransform Angle="0"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.91"><Rectangle.RenderTransform><RotateTransform Angle="30"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.82"><Rectangle.RenderTransform><RotateTransform Angle="60"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.73"><Rectangle.RenderTransform><RotateTransform Angle="90"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.64"><Rectangle.RenderTransform><RotateTransform Angle="120"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.55"><Rectangle.RenderTransform><RotateTransform Angle="150"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.46"><Rectangle.RenderTransform><RotateTransform Angle="180"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.37"><Rectangle.RenderTransform><RotateTransform Angle="210"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.28"><Rectangle.RenderTransform><RotateTransform Angle="240"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.19"><Rectangle.RenderTransform><RotateTransform Angle="270"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.10"><Rectangle.RenderTransform><RotateTransform Angle="300"/></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Opacity="0.05"><Rectangle.RenderTransform><RotateTransform Angle="330"/></Rectangle.RenderTransform></Rectangle>
+                            
+                            <Grid.RenderTransform>
+                                <RotateTransform x:Name="GlobalRot" Angle="0" CenterX="24" CenterY="24"/>
+                            </Grid.RenderTransform>
+                            <Grid.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation Storyboard.TargetName="GlobalRot" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Grid.Triggers>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Up/Down RepeatButton Style -->
+        <Style x:Key="UpDownButtonStyle" TargetType="RepeatButton">
+            <Setter Property="Background" Value="{DynamicResource ButtonBg}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="15"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ButtonHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ComboBox Style -->
         <Style TargetType="ComboBox">
             <Setter Property="Background" Value="{DynamicResource ComboBgColor}"/>
@@ -812,29 +923,67 @@
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource CategoryCardBorderStyle}">
+                                    <Grid MinHeight="120">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Connection Settings" Style="{StaticResource CategoryHeaderTextBlock}" Margin="0,0,0,0"/>
+                                        <Control x:Name="HomeConnSpinner" Style="{StaticResource OldWinBars1Style}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="48" Height="48" Visibility="Visible" Panel.ZIndex="10"/>
+                                        <StackPanel x:Name="HomeConnContent" Grid.Row="1" Visibility="Collapsed">
+                                            <Grid Margin="0,0,0,0">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="HomeConnLimitBlank" Grid.Row="0" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" IsHitTestVisible="False" AutomationProperties.Name="LimitBlankPasswordUse"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="LimitBlankPasswordUse = 0" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
+                                                <CheckBox x:Name="HomeConnWinRM" Grid.Row="1" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" IsHitTestVisible="False" AutomationProperties.Name="WinRM Service"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="WinRM Service (Running, Automatic)" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
+                                                <CheckBox x:Name="HomeConnKeyIso" Grid.Row="2" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" IsHitTestVisible="False" AutomationProperties.Name="KeyIso"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="KeyIso (Running, Automatic)" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
+                                                <CheckBox x:Name="HomeConnAdmin" Grid.Row="3" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" IsHitTestVisible="False" AutomationProperties.Name="Built-in Admin"/>
+                                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Built-in Admin Account enabled" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
+                                            </Grid>
+                                            <Button x:Name="HomeConnUpdateBtn" Content="Update Connections" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Margin="0,8,0,0" HorizontalAlignment="Stretch" ToolTip="Enable Admin, LimitBlankPasswordUse=0, KeyIso, WinRM" AutomationProperties.Name="Update Connections"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Audit Debug Card -->
+                                <Border x:Name="HomeAuditDebugCard" Style="{StaticResource CategoryCardBorderStyle}" Visibility="Collapsed">
                                     <StackPanel>
-                                        <TextBlock Text="Connection Settings" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                        <Grid Margin="0,0,0,0">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
+                                        <TextBlock Text="Audit Debug" Style="{StaticResource CategoryHeaderTextBlock}" Margin="0,0,0,8"/>
+                                        <Grid Margin="0,0,0,8">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <CheckBox x:Name="HomeConnLimitBlank" Grid.Row="0" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" IsHitTestVisible="False" AutomationProperties.Name="LimitBlankPasswordUse"/>
-                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="LimitBlankPasswordUse = 0" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
-                                            <CheckBox x:Name="HomeConnWinRM" Grid.Row="1" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" IsHitTestVisible="False" AutomationProperties.Name="WinRM Service"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="WinRM Service (Running, Automatic)" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
-                                            <CheckBox x:Name="HomeConnKeyIso" Grid.Row="2" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" IsHitTestVisible="False" AutomationProperties.Name="KeyIso"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="KeyIso (Running, Automatic)" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
-                                            <CheckBox x:Name="HomeConnAdmin" Grid.Row="3" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" IsHitTestVisible="False" AutomationProperties.Name="Built-in Admin"/>
-                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="Built-in Admin Account enabled" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Spinner:" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}"/>
+                                            <ComboBox x:Name="HomeSpinnerSelector" Grid.Column="1" Height="32" Margin="0" SelectedIndex="1">
+                                                <ComboBoxItem Content="WinDots1"/>
+                                                <ComboBoxItem Content="OldWinBars1"/>
+                                            </ComboBox>
                                         </Grid>
-                                        <Button x:Name="HomeConnUpdateBtn" Content="Update Connections" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Margin="0,8,0,0" HorizontalAlignment="Stretch" ToolTip="Enable Admin, LimitBlankPasswordUse=0, KeyIso, WinRM" AutomationProperties.Name="Update Connections"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Delay (sec):" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}"/>
+                                            <TextBox x:Name="HomeAuditDelayText" Grid.Column="1" Text="10" Style="{StaticResource UserTextBoxStyle}" IsReadOnly="True" HorizontalContentAlignment="Center"/>
+                                            <StackPanel Grid.Column="2" Margin="4,0,0,0">
+                                                <RepeatButton x:Name="HomeAuditDelayUp" Style="{StaticResource UpDownButtonStyle}" Content="&#xE70E;" FontFamily="Segoe Fluent Icons" FontSize="8"/>
+                                                <RepeatButton x:Name="HomeAuditDelayDown" Style="{StaticResource UpDownButtonStyle}" Content="&#xE70D;" FontFamily="Segoe Fluent Icons" FontSize="8" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -842,44 +991,30 @@
                             <!-- Column 2: Stages Audit -->
                             <StackPanel Grid.Column="2" VerticalAlignment="Top">
                                 <Border Style="{StaticResource CategoryCardBorderStyle}" Padding="16,12,16,8">
-                                    <StackPanel>
-                                        <Grid Margin="0,0,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Stages Audit" Style="{StaticResource CategoryHeaderTextBlock}" Margin="0,0,0,0"/>
-                                            <Grid x:Name="HomeStagesAuditSpinner" Grid.Column="1" Width="24" Height="24" Visibility="Collapsed" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                                                <Grid.RenderTransform>
-                                                    <RotateTransform x:Name="StagesSpinnerRotate" Angle="0"/>
-                                                </Grid.RenderTransform>
-                                                <Grid.Triggers>
-                                                    <EventTrigger RoutedEvent="Loaded">
-                                                        <BeginStoryboard>
-                                                            <Storyboard>
-                                                                <DoubleAnimation Storyboard.TargetName="StagesSpinnerRotate" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1" RepeatBehavior="Forever"/>
-                                                            </Storyboard>
-                                                        </BeginStoryboard>
-                                                    </EventTrigger>
-                                                </Grid.Triggers>
-                                                <Ellipse Width="24" Height="24" Stroke="{DynamicResource ButtonBg}" StrokeThickness="3" StrokeDashArray="5,3" StrokeDashCap="Round"/>
+                                    <Grid MinHeight="120">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Stages Audit" Style="{StaticResource CategoryHeaderTextBlock}" Margin="0,0,0,0"/>
+                                        <Control x:Name="HomeStagesAuditSpinner" Style="{StaticResource OldWinBars1Style}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="48" Height="48" Visibility="Visible" Panel.ZIndex="10"/>
+                                        <StackPanel x:Name="HomeStagesAuditContent" Grid.Row="1" Visibility="Collapsed">
+                                            <Grid Margin="0,8,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28"/>
+                                                    <ColumnDefinition Width="28"/>
+                                                    <ColumnDefinition Width="28"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="R" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Registry"/>
+                                                <TextBlock Grid.Column="1" Text="P" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Path"/>
+                                                <TextBlock Grid.Column="2" Text="L" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Shortcut"/>
                                             </Grid>
-                                        </Grid>
-                                        <Grid Margin="0,8,0,6">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="28"/>
-                                                <ColumnDefinition Width="28"/>
-                                                <ColumnDefinition Width="28"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="R" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Registry"/>
-                                            <TextBlock Grid.Column="1" Text="P" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Path"/>
-                                            <TextBlock Grid.Column="2" Text="L" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Shortcut"/>
-                                        </Grid>
-                                        <ScrollViewer VerticalScrollBarVisibility="Disabled">
-                                            <StackPanel x:Name="HomeStagesAuditPanel"/>
-                                        </ScrollViewer>
-                                    </StackPanel>
+                                            <ScrollViewer VerticalScrollBarVisibility="Disabled">
+                                                <StackPanel x:Name="HomeStagesAuditPanel"/>
+                                            </ScrollViewer>
+                                        </StackPanel>
+                                    </Grid>
                                 </Border>
                             </StackPanel>
                             
@@ -899,7 +1034,7 @@
                                         <CheckBox x:Name="HomeExec45" Style="{StaticResource FeatureCheckboxStyle}" Content="    45. Git CLI" Margin="8,-2,-4,10" AutomationProperties.Name="Git CLI"/>
                                         <CheckBox x:Name="HomeExec46" Style="{StaticResource FeatureCheckboxStyle}" Content="    46. UniGetUI" Margin="8,-2,-4,10" AutomationProperties.Name="UniGetUI"/>
                                         <CheckBox x:Name="HomeExec5" Style="{StaticResource FeatureCheckboxStyle}" Content="5. Rust (w/ Cargo Helpers)" AutomationProperties.Name="Rust"/>
-                                        <CheckBox x:Name="HomeExec6" Style="{StaticResource FeatureCheckboxStyle}" Content="6. Run Optimization Suite" AutomationProperties.Name="Optimization Suite"/>
+                                        <CheckBox x:Name="HomeExec6" Style="{StaticResource FeatureCheckboxStyle}" Content="6. Finalize" AutomationProperties.Name="Finalize"/>
                                         <Button x:Name="HomeExecRunBtn" Content="Execute" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Margin="0,16,0,0" HorizontalAlignment="Stretch" AutomationProperties.Name="Execute selected"/>
                                     </StackPanel>
                                 </Border>
@@ -1001,8 +1136,25 @@
                                         <ScrollViewer VerticalScrollBarVisibility="Visible">
                                             <StackPanel x:Name="AppSelectionPanel" Margin="10,4,0,4"/>
                                         </ScrollViewer>
-                                        <Border x:Name="LoadingAppsIndicator" CornerRadius="0,0,4,4" Background="{DynamicResource CardBgColor}" Opacity="0.8" Visibility="Collapsed">
-                                            <TextBlock Text="Loading apps..." FontSize="{DynamicResource TableHeaderFontSize}" FontWeight="{DynamicResource TableHeaderFontWeight}" Foreground="{DynamicResource BodyColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Border x:Name="LoadingAppsIndicator" CornerRadius="0,0,4,4" Background="{DynamicResource CardBgColor}" Opacity="0.9" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Grid Width="48" Height="48" Margin="0,0,0,8" RenderTransformOrigin="0.5,0.5">
+                                                    <Grid.RenderTransform>
+                                                        <RotateTransform x:Name="LoadingAppsSpinnerRotate" Angle="0"/>
+                                                    </Grid.RenderTransform>
+                                                    <Grid.Triggers>
+                                                        <EventTrigger RoutedEvent="Loaded">
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetName="LoadingAppsSpinnerRotate" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1" RepeatBehavior="Forever"/>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </EventTrigger>
+                                                    </Grid.Triggers>
+                                                    <Ellipse Width="48" Height="48" Stroke="{DynamicResource ButtonBg}" StrokeThickness="4" StrokeDashArray="6,4" StrokeDashCap="Round"/>
+                                                </Grid>
+                                                <TextBlock Text="Loading apps..." FontSize="{DynamicResource TableHeaderFontSize}" Foreground="{DynamicResource BodyColor}" HorizontalAlignment="Center"/>
+                                            </StackPanel>
                                         </Border>
                                     </Grid>
                                 </Border>

@@ -1,6 +1,6 @@
 
 $vhdPath = "N:\VHD\MasterInstallers.vhdx"
-$fileSystemLabel = "Staging"
+$fileSystemLabel = "Golden Imaging"
 
 
 

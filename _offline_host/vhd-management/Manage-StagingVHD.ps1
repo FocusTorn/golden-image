@@ -69,21 +69,44 @@ if ($existing) {
         
         
         # Inside the Attach Logic, add a Step 7 (The Guest Handshake)
-Invoke-Command -VMName $VMName -ScriptBlock {
+        $volLabel = "Golden Imaging"
+        $cfgPath = Join-Path $PSScriptRoot "config.json"
+        if (Test-Path $cfgPath) {
+            $cfg = Get-Content $cfgPath | ConvertFrom-Json
+            if ($cfg.StagingVolumeLabel) { $volLabel = $cfg.StagingVolumeLabel }
+        }
+$res = Invoke-Command -VMName $VMName -ScriptBlock {
+    param($label)
     # 1. Rescan to see the new hardware
     Write-Output rescan | diskpart
-    
-    # 2. Find the disk by its label or unique size
-    # We look for the partition on the VHDX and force it to S:
-    $partition = Get-Partition | Where-Object { $_.DriveLetter -ne 'C' -and $_.Type -eq 'Basic' } | Sort-Object Size -Descending | Select-Object -First 1
-    
-    if ($partition) {
-        # Remove any existing letter and force S:
-        Get-Partition -DriveLetter $partition.DriveLetter | Remove-PartitionAccessPath -AccessPath "$($partition.DriveLetter):" -ErrorAction SilentlyContinue
-        Set-Partition -NewDriveLetter S -InputObject $partition -ErrorAction SilentlyContinue
-        Write-Host "Successfully mounted as S:" -ForegroundColor Green
+    Start-Sleep -Seconds 2
+    # 2. Find by volume label first, else by size (non-C, Basic)
+    $vol = Get-Volume -FileSystemLabel $label -ErrorAction SilentlyContinue
+    $partition = $null
+    if ($vol -and $vol.DriveLetter) {
+        $partition = Get-Partition -DriveLetter $vol.DriveLetter -ErrorAction SilentlyContinue
     }
-} -ErrorAction SilentlyContinue
+    if (-not $partition) {
+        $partition = Get-Partition | Where-Object { $_.DriveLetter -ne 'C' -and $_.Type -eq 'Basic' } | Sort-Object Size -Descending | Select-Object -First 1
+    }
+    if ($partition) {
+        # Remove any existing letter and force F:
+        Get-Partition -DriveLetter $partition.DriveLetter | Remove-PartitionAccessPath -AccessPath "$($partition.DriveLetter):" -ErrorAction SilentlyContinue
+        Set-Partition -NewDriveLetter F -InputObject $partition -ErrorAction SilentlyContinue
+        Write-Output "F"
+    } else {
+        Write-Output "NONE"
+    }
+} -ArgumentList $volLabel -ErrorAction SilentlyContinue
+
+# Update config.json with the resolved letter if possible
+if ($res -and $res -match "^[a-zA-Z]$") {
+    $cfg.GuestStagingDrive = $res
+    $cfg | ConvertTo-Json | Set-Content $cfgPath
+    Write-Host "[CONFIG] Updated GuestStagingDrive to $res in config.json" -ForegroundColor Cyan
+} elseif ($res -eq "NONE") {
+    Write-Warning "Could not find partition with label '$volLabel' or any secondary Basic partition."
+}
         
         
         

@@ -2,17 +2,30 @@
 # Location: _offline\Install_Stage_1_Scoop.ps1
 
 $ErrorActionPreference = "Stop"
-$ScriptDir = $PSScriptRoot
-$InstallersDir = Join-Path (Split-Path $ScriptDir -Parent) "installers"
-$BundleRoot = Join-Path $InstallersDir "Scoop_Offline_Bundle"
+$OfflineDir = Split-Path $PSScriptRoot -Parent
 $TargetScoopRoot = "C:\Scoop"
 
-# --- SECTION 0: LOGGING & DRIVE DETECTION ---
-$VhdDrive = (Get-PSDrive | Where-Object { Test-Path "$($_.Root)installers\VS_Offline" } | Select-Object -First 1).Root
-if (-not $VhdDrive) {
-    $StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Staging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
-    if ($StagingVolume) { $VhdDrive = "$($StagingVolume.DriveLetter):\" }
+# --- SECTION 0: STAGING DRIVE & LOGGING ---
+# 1) Label "Golden Imaging" 2) Fallback: Z..A reverse search for installers or _offline
+$StagingDrive = $null
+$StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Golden Imaging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
+if ($StagingVolume) { $StagingDrive = $StagingVolume.DriveLetter }
+if (-not $StagingDrive) {
+    foreach ($d in [char[]](90..65)) {
+        $root = "${d}:\"
+        if ((Test-Path (Join-Path $root "installers")) -or (Test-Path (Join-Path $root "_offline"))) {
+            $StagingDrive = $d
+            break
+        }
+    }
 }
+$VhdDrive = if ($StagingDrive) { "${StagingDrive}:\" } else { $null }
+if (-not $VhdDrive) {
+    Write-Host "[ERROR] Staging drive not found (label 'Golden Imaging' or drive with installers/_offline)." -ForegroundColor Red
+    exit 1
+}
+$InstallersDir = Join-Path $VhdDrive "installers"
+$BundleRoot = Join-Path $InstallersDir "Scoop_Offline_Bundle"
 
 if ($VhdDrive) {
     $ReturnPath = Join-Path $VhdDrive "return"

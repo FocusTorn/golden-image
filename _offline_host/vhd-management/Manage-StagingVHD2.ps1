@@ -73,14 +73,14 @@ Invoke-Command -VMName $VMName -ScriptBlock {
     Write-Output rescan | diskpart
     
     # 2. Find the disk by its label or unique size
-    # We look for the partition on the VHDX and force it to S:
+    # We look for the partition on the VHDX and force it to F: (Staging drive)
     $partition = Get-Partition | Where-Object { $_.DriveLetter -ne 'C' -and $_.Type -eq 'Basic' } | Sort-Object Size -Descending | Select-Object -First 1
     
     if ($partition) {
-        # Remove any existing letter and force S:
+        # Remove any existing letter and force F:
         Get-Partition -DriveLetter $partition.DriveLetter | Remove-PartitionAccessPath -AccessPath "$($partition.DriveLetter):" -ErrorAction SilentlyContinue
-        Set-Partition -NewDriveLetter S -InputObject $partition -ErrorAction SilentlyContinue
-        Write-Host "Successfully mounted as S:" -ForegroundColor Green
+        Set-Partition -NewDriveLetter F -InputObject $partition -ErrorAction SilentlyContinue
+        Write-Host "Successfully mounted as F:" -ForegroundColor Green
     }
 } -ErrorAction SilentlyContinue
         

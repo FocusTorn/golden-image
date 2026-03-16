@@ -1,6 +1,9 @@
 {
     "VhdPath": "N:\\VHD\\MasterInstallers.vhdx",
     "VMName": "Windows 11 Master",
-    "OfflinePath": "S:\\_offline",
-    "InstallersPath": "S:\\installers"
+    "VMHostname": "DESKTOP-GOLDEN-IMAGE",
+    "StagingVolumeLabel": "Golden Imaging",
+    "GuestStagingDrive": "F",
+    "OfflinePath": "F:\\_offline",
+    "InstallersPath": "F:\\installers"
 }

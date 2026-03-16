@@ -154,9 +154,6 @@ function Show-GranularStatus { #>
         return ($list -and $list -notlike "*(none)*" -and $version)
     }
 
-    # Optimizations
-    Get-GranularStatus "Optimization Suite" -ExeName "powershell" -NoReg -NoLnk -FileCheck "$off\Install_Stage_5_Optimization.ps1"
-    
     Write-Host ""
     Write-Host "================================================================" -ForegroundColor Cyan
 } #<
@@ -228,10 +225,18 @@ function Invoke-Step { #>
     Write-Host "     45. Git CLI"
     Write-Host "     46. UniGetUI"
     Write-Host "  5. Rust (w/ Cargo Helpers)"
-    Write-Host "  6. Run Optimization Suite (Titus, O&O)"
+    Write-Host "  6. Finalize"
     Write-Host ""
     Write-Host "  C. Update Connections"
-    Write-Host "  O. Open F:\_offline"
+    # 1) Label "Golden Imaging" 2) Fallback: Z..A reverse search for _offline
+    $stagingRoot = (Get-Volume | Where-Object { $_.FileSystemLabel -eq "Golden Imaging" -and $_.DriveLetter } | Select-Object -First 1).DriveLetter
+    if (-not $stagingRoot) {
+        foreach ($d in [char[]](90..65)) {
+            if (Test-Path "${d}:\_offline") { $stagingRoot = $d; break }
+        }
+    }
+    $offlinePath = if ($stagingRoot) { "${stagingRoot}:\_offline" } else { $null }
+    Write-Host "  O. Open $(if ($offlinePath) { $offlinePath } else { '_offline (staging not found)' })"
     Write-Host "  R. Refresh Status"
     Write-Host "  X. Exit Dashboard"
     Write-Host ""
@@ -250,7 +255,7 @@ function Invoke-Step { #>
         "45" { Invoke-DashboardTask "GitHub CLI" { & "$off\4_System_Apps.ps1" -App "GitHubCLI" } }
         "46" { Invoke-DashboardTask "UniGetUI" { & "$off\4_System_Apps.ps1" -App "UniGetUI" } }
         "5" { Invoke-DashboardTask "Rust" { & "$off\5_Rust_Finish.ps1" } }
-        "6" { Invoke-DashboardTask "Optimization Suite" { & "$off\6_Optimization.ps1" } }
+        "6" { Invoke-DashboardTask "Finalize" { & "$off\7_Finalize.ps1" } }
         
         "c"{ 
             Invoke-DashboardTask "Update Connections" {
@@ -279,7 +284,7 @@ function Invoke-Step { #>
                 }
             }
         }
-        "o" { Invoke-Item "F:\_offline"; Read-Host "`nPress Enter to return to menu" }
+        "o" { if ($offlinePath) { Invoke-Item $offlinePath } else { Write-Host "[!] Staging drive not found." -ForegroundColor Red }; Read-Host "`nPress Enter to return to menu" }
         "r" { continue }
         "x" { break MainLoop }
         
