@@ -113,7 +113,7 @@ if (-not $script:SourceRoot -or -not (Test-Path $script:SourceRoot)) {
     exit 1
 }
 $script:Version = "2026.03.09"
-$script:AuditDelaySeconds = 10
+$script:AuditDelaySeconds = 2
 $script:SpinnerStyle = "OldWinBars1" # Options: WinDots1, OldWinBars1
 $script:AppsListFilePath = "$script:SourceRoot/Config/Apps.json"
 $script:DefaultSettingsFilePath = "$script:SourceRoot/Config/DefaultSettings.json"

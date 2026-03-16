@@ -1098,7 +1098,7 @@
                                     <StackPanel Grid.Row="1" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,12,0,0">
                                         <TextBlock Text="App Profile:" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" FontWeight="{DynamicResource LabelFontWeight}" Foreground="{DynamicResource LabelColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <ComboBox x:Name="AppProfileCombo" MinWidth="180" Height="32" Margin="0,0,8,0" AutomationProperties.Name="App Profile"/>
-                                        <Button x:Name="AppProfileReplaceBtn" Content="Replace" ToolTip="Clear selection and load profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Replace with profile"/>
+                                        <Button x:Name="AppProfileReplaceBtn" Content="Load" ToolTip="Clear selection and load profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Load profile"/>
                                         <Button x:Name="AppProfileMergeBtn" Content="Merge" ToolTip="Add profile selections to current selection" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Merge profile"/>
                                         <Button x:Name="AppProfileSaveBtn" Content="Save to profile..." ToolTip="Save current selection to a profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" AutomationProperties.Name="Save to profile"/>
                                     </StackPanel>
@@ -1138,21 +1138,7 @@
                                         </ScrollViewer>
                                         <Border x:Name="LoadingAppsIndicator" CornerRadius="0,0,4,4" Background="{DynamicResource CardBgColor}" Opacity="0.9" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <Grid Width="48" Height="48" Margin="0,0,0,8" RenderTransformOrigin="0.5,0.5">
-                                                    <Grid.RenderTransform>
-                                                        <RotateTransform x:Name="LoadingAppsSpinnerRotate" Angle="0"/>
-                                                    </Grid.RenderTransform>
-                                                    <Grid.Triggers>
-                                                        <EventTrigger RoutedEvent="Loaded">
-                                                            <BeginStoryboard>
-                                                                <Storyboard>
-                                                                    <DoubleAnimation Storyboard.TargetName="LoadingAppsSpinnerRotate" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1" RepeatBehavior="Forever"/>
-                                                                </Storyboard>
-                                                            </BeginStoryboard>
-                                                        </EventTrigger>
-                                                    </Grid.Triggers>
-                                                    <Ellipse Width="48" Height="48" Stroke="{DynamicResource ButtonBg}" StrokeThickness="4" StrokeDashArray="6,4" StrokeDashCap="Round"/>
-                                                </Grid>
+                                                <Control x:Name="LoadingAppsSpinner" Style="{StaticResource OldWinBars1Style}" Width="48" Height="48" Margin="0,0,0,8"/>
                                                 <TextBlock Text="Loading apps..." FontSize="{DynamicResource TableHeaderFontSize}" Foreground="{DynamicResource BodyColor}" HorizontalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
@@ -1223,7 +1209,7 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,12,0,8">
                                     <TextBlock Text="Tweak Profile:" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" FontWeight="{DynamicResource LabelFontWeight}" Foreground="{DynamicResource LabelColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     <ComboBox x:Name="TweakProfileCombo" MinWidth="180" Height="32" Margin="0,0,8,0" AutomationProperties.Name="Tweak Profile"/>
-                                    <Button x:Name="TweakProfileReplaceBtn" Content="Replace" ToolTip="Clear selection and load profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Replace with profile"/>
+                                    <Button x:Name="TweakProfileReplaceBtn" Content="Load" ToolTip="Clear selection and load profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Load profile"/>
                                     <Button x:Name="TweakProfileMergeBtn" Content="Merge" ToolTip="Add profile selections to current selection" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Merge profile"/>
                                     <Button x:Name="TweakProfileSaveBtn" Content="Save to profile..." ToolTip="Save current tweak selection to a profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" AutomationProperties.Name="Save to profile"/>
                                 </StackPanel>
@@ -1357,7 +1343,7 @@
                                                 
                                                 <!-- Restart Explorer Option -->
                                                 <StackPanel>
-                                                    <CheckBox x:Name="RestartExplorerCheckBox" Style="{StaticResource FeatureCheckboxStyle}" Content="Restart the Windows Explorer process to apply all changes immediately" AutomationProperties.Name="Restart the Windows Explorer process to apply all changes immediately"/>
+                                                    <CheckBox x:Name="RestartExplorerCheckBox" Style="{StaticResource FeatureCheckboxStyle}" IsChecked="True" Content="Restart the Windows Explorer process to apply all changes immediately" AutomationProperties.Name="Restart the Windows Explorer process to apply all changes immediately"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Border>

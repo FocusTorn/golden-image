@@ -842,18 +842,40 @@ public class PSAppID {
         UpdateAppSelectionStatus
     }
 
-    # Starts LoadAppsDetailsFromJson in a background job; timer will poll and call AddAppsToPanel when done
-    function script:LoadAppsWithList($listOfApps) {
-        # Offline audit mode fix: Default to showing all apps if no list provided
-        $onlyInstalledVal = if ($listOfApps) { $true } else { $false }
+    # Starts app loading in a background job (winget + LoadAppsDetailsFromJson); timer polls and calls AddAppsToPanel when done
+    function script:LoadAppsWithList {
+        $onlyInstalledVal = $false
         if ($onlyInstalledAppsBox) { $onlyInstalledVal = $onlyInstalledAppsBox.IsChecked }
-        
+        $wingetPath = if ($script:WingetInstalled -and $script:WingetPath) { $script:WingetPath } else { $null }
+
         $script:CurrentAppDetailsJob = Start-Job -ScriptBlock {
-            param($appsListFilePath, $sourceRoot, $onlyInstalled, $installedList)
+            param($appsListFilePath, $sourceRoot, $onlyInstalled, $wingetExe)
             $script:AppsListFilePath = $appsListFilePath
+
+            # Get installed list - fast offline first (runs in job, does not block UI)
+            $offlineApps = @()
+            try {
+                $offlineApps += Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+            } catch { try { $offlineApps += Get-AppxPackage | Select-Object -ExpandProperty Name } catch { } }
+            $installedList = ($offlineApps | Where-Object { $_ } | Sort-Object -Unique) -join "`n"
+
+            if ($wingetExe) {
+                $tempFile = [System.IO.Path]::GetTempFileName()
+                try {
+                    $p = Start-Process -FilePath $wingetExe -ArgumentList "list --accept-source-agreements --disable-interactivity" -NoNewWindow -PassThru -RedirectStandardOutput $tempFile -ErrorAction SilentlyContinue
+                    if ($p) {
+                        $p | Wait-Process -Timeout 5 -ErrorAction SilentlyContinue
+                        if ($p.HasExited) {
+                            $result = Get-Content $tempFile -Raw
+                            if ($result -and $result.Length -gt 100) { $installedList = $result }
+                        }
+                    }
+                } finally { if (Test-Path $tempFile) { Remove-Item $tempFile -Force -ErrorAction SilentlyContinue } }
+            }
+
             . "$sourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
             LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalled -InstalledList $installedList -InitialCheckedFromJson:$false
-        } -ArgumentList $script:AppsListFilePath, $script:SourceRoot, $onlyInstalledVal, $listOfApps
+        } -ArgumentList $script:AppsListFilePath, $script:SourceRoot, $onlyInstalledVal, $wingetPath
         $script:CurrentAppDetailsJobStartTime = Get-Date
 
         if (-not $script:CurrentAppLoadTimer -or -not $script:CurrentAppLoadTimer.IsEnabled) {
@@ -915,12 +937,8 @@ public class PSAppID {
         # Force UI to update and render all changes (loading indicator, blocker, disabled buttons)
         $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Render, [action]{})
         
-        # Schedule the actual loading work to run after UI has updated
-        $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [action]{
-            # Get list of installed apps (fast offline scan + optional winget)
-            $installedList = GetInstalledAppsViaWinget -TimeOut 5
-            LoadAppsWithList $installedList
-        }) | Out-Null
+        # Start loading job immediately - all work runs in background, UI stays responsive
+        LoadAppsWithList
     }
 
     # Event handlers for app selection
@@ -1110,6 +1128,12 @@ public class User32_ShowWindow {
     }
     function Import-AppProfile {
         param([string]$ProfileName)
+        if ($ProfileName -eq 'Default') {
+            try {
+                $appsJson = Get-Content -Path $script:AppsListFilePath -Raw | ConvertFrom-Json
+                return @($appsJson.Apps | Where-Object { $_.SelectedByDefault } | ForEach-Object { $_.AppId.Trim() })
+            } catch { return @() }
+        }
         $profilesPath = Get-AppProfilesPath
         $filePath = Join-Path $profilesPath "$ProfileName.json"
         if (-not (Test-Path $filePath)) { return @() }
@@ -1131,6 +1155,7 @@ public class User32_ShowWindow {
         if (-not $combo) { return }
         $combo.Items.Clear()
         $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = "(No profile selected)" })) | Out-Null
+        $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = "Default" })) | Out-Null
         foreach ($name in Get-AppProfileList) {
             $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = $name })) | Out-Null
         }
@@ -1203,6 +1228,10 @@ public class User32_ShowWindow {
             $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save App Profile" -DefaultText "New Profile"
             if ([string]::IsNullOrWhiteSpace($profileName)) { return }
             $profileName = $profileName.Trim()
+            if ($profileName -eq 'Default') {
+                Show-MessageBox -Message "'Default' is reserved for the built-in preset." -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
             $invalidPattern = '[<>:' + [char]34 + '/\\|?*]'
             if ($profileName -match $invalidPattern) {
                 Show-MessageBox -Message 'Profile name cannot contain: < > : " / \ | ? *' -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
@@ -2429,11 +2458,8 @@ public class User32_ShowWindow {
             if ($opts.HideLauncherWindow) { Set-OptionHideLauncher -Hide $true }
         } catch { }
 
-        # GuiFork: Hide default settings UI elements
-        $defaultAppsBtn = $window.FindName('DefaultAppsBtn')
-        if ($defaultAppsBtn) { $defaultAppsBtn.Visibility = 'Collapsed' }
-        $loadDefaultsBtn = $window.FindName('LoadDefaultsBtn')
-        if ($loadDefaultsBtn) { $loadDefaultsBtn.Visibility = 'Collapsed' }
+        # GuiFork: Hide default apps button (we use profile-based app selection)
+        # DefaultAppsBtn stays visible - use it or the Default app profile
 
         BuildDynamicTweaks
 
@@ -2824,6 +2850,9 @@ public class User32_ShowWindow {
     }
     function Import-TweakProfile {
         param([string]$ProfileName)
+        if ($ProfileName -eq 'Default') {
+            return LoadJsonFile -filePath $script:DefaultSettingsFilePath -expectedVersion "1.0"
+        }
         $path = Get-TweakProfilesPath
         $filePath = Join-Path $path "$ProfileName.json"
         if (-not (Test-Path $filePath)) { return $null }
@@ -2843,6 +2872,7 @@ public class User32_ShowWindow {
         if (-not $combo) { return }
         $combo.Items.Clear()
         $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = "(No profile selected)" })) | Out-Null
+        $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = "Default" })) | Out-Null
         foreach ($name in Get-TweakProfileList) {
             $combo.Items.Add((New-Object System.Windows.Controls.ComboBoxItem -Property @{ Content = $name })) | Out-Null
         }
@@ -2957,6 +2987,10 @@ public class User32_ShowWindow {
             $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save Tweak Profile" -DefaultText "New Profile"
             if ([string]::IsNullOrWhiteSpace($profileName)) { return }
             $profileName = $profileName.Trim()
+            if ($profileName -eq 'Default') {
+                Show-MessageBox -Message "'Default' is reserved for the built-in preset." -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
             $invalidPattern = '[<>:' + [char]34 + '/\\|?*]'
             if ($profileName -match $invalidPattern) {
                 Show-MessageBox -Message 'Profile name cannot contain: < > : " / \ | ? *' -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
