@@ -103,12 +103,12 @@ param (
 
 
 # Define script-level variables & paths
-# GuiFork: use original Win11Debloat-Source for Config, Scripts, Regfiles, Assets, Schemas
-$script:SourceRoot = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'installers\Win11Debloat-Source'
+# GuiFork: use Foundation (Config, Scripts, Regfiles, Assets, Schemas) from Win11Debloat-Source
+$script:SourceRoot = Join-Path $PSScriptRoot 'Foundation'
 if (-not $script:SourceRoot -or -not (Test-Path $script:SourceRoot)) {
     $displayPath = if ($script:SourceRoot) { $script:SourceRoot } else { "(empty - check script path)" }
-    Write-Host "[ERROR] Win11Debloat-Source not found at: $displayPath" -ForegroundColor Red
-    Write-Host "        Run 'Sync' (1) or 'Sync installers' (12) from the Staging Dashboard to copy installers to the VHD." -ForegroundColor Yellow
+    Write-Host "[ERROR] Foundation not found at: $displayPath" -ForegroundColor Red
+    Write-Host "        Run 'Sync _offline' (11) from the Staging Dashboard to copy Foundation to the VHD." -ForegroundColor Yellow
     Read-Host "Press Enter to exit"
     exit 1
 }

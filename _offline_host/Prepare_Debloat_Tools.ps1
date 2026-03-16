@@ -41,10 +41,8 @@ if (Test-Path $raphireZipDest) {
     Write-Host "[*] Extracting Win11Debloat..." -ForegroundColor Yellow
     if (Test-Path $raphireExtractDir) { Remove-Item $raphireExtractDir -Recurse -Force }
     Expand-Archive -Path $raphireZipDest -DestinationPath $InstallersDir -Force
-    # Rename to a cleaner folder name
     $extractedFolder = Join-Path $InstallersDir "Win11Debloat-master"
     if (Test-Path $extractedFolder) { Rename-Item $extractedFolder $raphireExtractDir -Force }
-    # Also copy the main script to the root of installers for easy dashboard access
     Copy-Item (Join-Path $raphireExtractDir "Win11Debloat.ps1") (Join-Path $InstallersDir "Win11Debloat.ps1") -Force
     Write-Host "    [OK] Win11Debloat extracted and ready." -ForegroundColor Green
 }

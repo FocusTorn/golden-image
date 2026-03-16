@@ -29,7 +29,7 @@ $ConfigDir = $PSScriptRoot
 
 # Define Tool Paths
 $WinUtilScript = Join-Path $InstallersDir "WinUtil.ps1"
-$Win11Debloat  = Join-Path $InstallersDir "Win11Debloat.ps1"
+$Win11Debloat  = Join-Path $VhdDrive "_offline\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1"
 $OOSU10Exe     = Join-Path $InstallersDir "OOSU10.exe"
 $OOAPBExe      = Join-Path $InstallersDir "OOAppBuster.exe"
 $OOSU10Cfg     = Join-Path $ConfigDir "ooshutup10.cfg"
@@ -52,13 +52,11 @@ function Run-Titus {
 }
 
 function Run-Win11Debloat {
-    Write-Host "`n[*] Launching Raphire Win11Debloat (Offline Mode)..." -ForegroundColor Yellow
+    Write-Host "`n[*] Launching Win11Debloat GuiFork (Offline Mode)..." -ForegroundColor Yellow
     if (Test-Path $Win11Debloat) {
-        # Win11Debloat.ps1 usually supports parameters, but launching it interactively
-        # is the most common use case for a dashboard.
         powershell -ExecutionPolicy Bypass -File $Win11Debloat
     } else {
-        Write-Host "[ERROR] Win11Debloat.ps1 not found in installers." -ForegroundColor Red
+        Write-Host "[ERROR] Win11Debloat_GuiFork.ps1 not found in _offline." -ForegroundColor Red
     }
 }
 
