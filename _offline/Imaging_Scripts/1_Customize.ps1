@@ -226,7 +226,7 @@ $profileContent = @"
 # --- GOLDEN MASTER RAPID COMMANDS ---
 `$off = "$OfflineDir"
 
-function db { & "`$off\Win11Debloat_GuiFork.bat" }
+function db { & "`$off\GoldenImager.bat" }
 
 if (Test-Path "`$off") { Set-Location "`$off" }
 Write-Host "Golden Master Ready: menu | s0=Customize" -ForegroundColor Cyan

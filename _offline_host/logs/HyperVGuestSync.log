@@ -1,233 +1,233 @@
-﻿2026-03-16 04:57:09.fff [Base] VM Push START
-2026-03-16 04:57:09.fff [Base] Stage 1: Searching Host drives for label 'Golden Imaging'...
-2026-03-16 04:57:09.fff [Base] Stage 2: Searching Guest VM 'Windows 11 Master' via PowerShell Direct (Blank Password)...
-2026-03-16 04:57:14.fff [Base] RESOLVED: 'Golden Imaging' -> F
+﻿2026-03-16 06:11:51.fff [Base] VM Push START
+2026-03-16 06:11:51.fff [Base] Stage 1: Searching Host drives for label 'Golden Imaging'...
+2026-03-16 06:11:51.fff [Base] Stage 2: Searching Guest VM 'Windows 11 Master' via PowerShell Direct (Blank Password)...
+2026-03-16 06:12:08.fff [Base] RESOLVED: 'Golden Imaging' -> F
 :\ (Method: Guest VM Label)
-2026-03-16 04:57:14.fff [Base] Syncing 33 files to F
+2026-03-16 06:12:08.fff [Base] Syncing 333 files to F
 :\_offline...
-2026-03-16 04:57:14.fff CopyFilesToHyperVGuest: START vmName=Windows 11 Master fileCount=33
-2026-03-16 04:57:14.fff   WMI connected: root\virtualization\v2
-2026-03-16 04:57:14.fff   VM found: Windows 11 Master GUID=873FC5A4-A521-4723-A844-59B8F9F98AB6
-2026-03-16 04:57:14.fff   Service: Msvm_GuestFileService (new)
-2026-03-16 04:57:14.fff     [1] P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1 -> F
+2026-03-16 06:12:08.fff CopyFilesToHyperVGuest: START vmName=Windows 11 Master fileCount=333
+2026-03-16 06:12:08.fff   WMI connected: root\virtualization\v2
+2026-03-16 06:12:08.fff   VM found: Windows 11 Master GUID=873FC5A4-A521-4723-A844-59B8F9F98AB6
+2026-03-16 06:12:08.fff   Service: Msvm_GuestFileService (new)
+2026-03-16 06:12:08.fff     [1] P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1 -> F
 :\_offline\Create-LauncherShortcut.ps1
-2026-03-16 04:57:14.fff     [2] P:\Projects\golden-image\_offline\Imaging_Scripts\1_Customize.ps1 -> F
-:\_offline\Imaging_Scripts\1_Customize.ps1
-2026-03-16 04:57:14.fff     [3] P:\Projects\golden-image\_offline\Imaging_Scripts\2_Scoop.ps1 -> F
-:\_offline\Imaging_Scripts\2_Scoop.ps1
-2026-03-16 04:57:14.fff     [4] P:\Projects\golden-image\_offline\Imaging_Scripts\3_MSVC.ps1 -> F
-:\_offline\Imaging_Scripts\3_MSVC.ps1
-2026-03-16 04:57:14.fff     [5] P:\Projects\golden-image\_offline\Imaging_Scripts\4_System_Apps.ps1 -> F
-:\_offline\Imaging_Scripts\4_System_Apps.ps1
-2026-03-16 04:57:14.fff     ... and 28 more files
-2026-03-16 04:57:15.fff   ExecMethod CopyFilesToGuest returned
-2026-03-16 04:57:15.fff   ReturnValue=4096 (0=OK 4096=JobStarted)
-2026-03-16 04:57:15.fff   Job started, polling...
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:08.fff     [2] P:\Projects\golden-image\_offline\GoldenImager.bat -> F
+:\_offline\GoldenImager.bat
+2026-03-16 06:12:08.fff     [3] P:\Projects\golden-image\_offline\GoldenImager\Config\Options.json -> F
+:\_offline\GoldenImager\Config\Options.json
+2026-03-16 06:12:08.fff     [4] P:\Projects\golden-image\_offline\GoldenImager\Config\WindowBounds.json -> F
+:\_offline\GoldenImager\Config\WindowBounds.json
+2026-03-16 06:12:08.fff     [5] P:\Projects\golden-image\_offline\GoldenImager\Foundation\.github\CONTRIBUTING.md -> F
+:\_offline\GoldenImager\Foundation\.github\CONTRIBUTING.md
+2026-03-16 06:12:08.fff     ... and 328 more files
+2026-03-16 06:12:09.fff   ExecMethod CopyFilesToGuest returned
+2026-03-16 06:12:10.fff   ReturnValue=4096 (0=OK 4096=JobStarted)
+2026-03-16 06:12:10.fff   Job started, polling...
+2026-03-16 06:12:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:12.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:12.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:12.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:12.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:13.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:13.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:13.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:13.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:13.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:14.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:14.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:14.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:14.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:14.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:14.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:14.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:15.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:16.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:17.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:18.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:19.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-16 04:57:20.fff [Base] FAILED: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-16 06:12:19.fff [Base] FAILED: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
 
 'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\Create-LauncherShortcut.ps1' to the destination 'F
 :\_offline\Create-LauncherShortcut.ps1' in the guest: The specified path is invalid. (0x800700A1). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)

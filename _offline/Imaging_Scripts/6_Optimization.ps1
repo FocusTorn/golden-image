@@ -29,7 +29,7 @@ $ConfigDir = $PSScriptRoot
 
 # Define Tool Paths
 $WinUtilScript = Join-Path $InstallersDir "WinUtil.ps1"
-$Win11Debloat  = Join-Path $VhdDrive "_offline\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1"
+$GoldenImager   = Join-Path $VhdDrive "_offline\GoldenImager\GoldenImager.ps1"
 $OOSU10Exe     = Join-Path $InstallersDir "OOSU10.exe"
 $OOAPBExe      = Join-Path $InstallersDir "OOAppBuster.exe"
 $OOSU10Cfg     = Join-Path $ConfigDir "ooshutup10.cfg"
@@ -37,7 +37,7 @@ $CTTCfg        = Join-Path $ConfigDir "CTT.json"
 
 Write-Host "--- STAGE 5: WINDOWS OPTIMIZATION (OFFLINE) ---" -ForegroundColor Cyan
 
-function Run-Titus {
+function Invoke-Titus {
     Write-Host "`n[*] Launching Titus WinUtil (Offline Mode)..." -ForegroundColor Yellow
     if (Test-Path $WinUtilScript) {
         if (Test-Path $CTTCfg) {
@@ -51,16 +51,16 @@ function Run-Titus {
     }
 }
 
-function Run-Win11Debloat {
-    Write-Host "`n[*] Launching Win11Debloat GuiFork (Offline Mode)..." -ForegroundColor Yellow
-    if (Test-Path $Win11Debloat) {
-        powershell -ExecutionPolicy Bypass -File $Win11Debloat
+function Invoke-GoldenImager {
+    Write-Host "`n[*] Launching Golden Imager (Offline Mode)..." -ForegroundColor Yellow
+    if (Test-Path $GoldenImager) {
+        powershell -ExecutionPolicy Bypass -File $GoldenImager
     } else {
-        Write-Host "[ERROR] Win11Debloat_GuiFork.ps1 not found in _offline." -ForegroundColor Red
+        Write-Host "[ERROR] GoldenImager.ps1 not found in _offline." -ForegroundColor Red
     }
 }
 
-function Run-ShutUp10 {
+function Invoke-ShutUp10 {
     Write-Host "`n[*] Launching O&O ShutUp10++..." -ForegroundColor Yellow
     if (Test-Path $OOSU10Exe) {
         if (Test-Path $OOSU10Cfg) {
@@ -75,7 +75,7 @@ function Run-ShutUp10 {
     }
 }
 
-function Run-AppBuster {
+function Invoke-AppBuster {
     Write-Host "`n[*] Launching O&O AppBuster..." -ForegroundColor Yellow
     if (Test-Path $OOAPBExe) {
         Start-Process $OOAPBExe -Wait
@@ -87,7 +87,7 @@ function Run-AppBuster {
 :OptLoop while ($true) {
     Write-Host "`nSELECT OPTIMIZATION TOOL:" -ForegroundColor Cyan
     Write-Host "  1. Titus WinUtil (Tweaks & Updates)"
-    Write-Host "  2. Raphire Win11Debloat (Bloatware & UI)"
+    Write-Host "  2. Golden Imager (Bloatware & UI)"
     Write-Host "  3. O&O ShutUp10++ (Privacy & Telemetry)"
     Write-Host "  4. O&O AppBuster (Hidden App Removal)"
     Write-Host "  A. Run ALL (Sequential)"
@@ -96,11 +96,11 @@ function Run-AppBuster {
     
     $choice = Read-Host "Choice"
     switch ($choice) {
-        "1" { Run-Titus }
-        "2" { Run-Win11Debloat }
-        "3" { Run-ShutUp10 }
-        "4" { Run-AppBuster }
-        "a" { Run-Titus; Run-Win11Debloat; Run-ShutUp10; Run-AppBuster }
+        "1" { Invoke-Titus }
+        "2" { Invoke-GoldenImager }
+        "3" { Invoke-ShutUp10 }
+        "4" { Invoke-AppBuster }
+        "a" { Invoke-Titus; Invoke-GoldenImager; Invoke-ShutUp10; Invoke-AppBuster }
         "x" { break OptLoop }
     }
 }

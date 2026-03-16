@@ -5,7 +5,7 @@ setlocal EnableDelayedExpansion
 
 set "wtDefaultPath=%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe"
 set "wtScoopPath=%USERPROFILE%\scoop\apps\windows-terminal\current\wt.exe"
-set "logFile=%~dp0Logs\Win11Debloat-GuiFork-Run.log"
+set "logFile=%~dp0Logs\GoldenImager-Run.log"
 
 :: Ensure Logs folder exists
 if not exist "%~dp0Logs" mkdir "%~dp0Logs"
@@ -20,14 +20,14 @@ if exist "%wtDefaultPath%" (
 
 :: Launch script
 if defined wtPath (
-    call :Log Launching Win11Debloat GUI Fork with Windows Terminal...
-    PowerShell -Command "Start-Process -FilePath '%wtPath%' -ArgumentList 'PowerShell -NoProfile -ExecutionPolicy Bypass -File ""%~dp0\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1""' -Verb RunAs" >> "%logFile%" || call :Error "PowerShell command failed"
-    call :Log Script execution passed successfully to Win11Debloat GUI Fork
+    call :Log Launching Golden Imager with Windows Terminal...
+    PowerShell -Command "Start-Process -FilePath '%wtPath%' -ArgumentList 'PowerShell -NoProfile -ExecutionPolicy Bypass -File ""%~dp0\GoldenImager\GoldenImager.ps1""' -Verb RunAs" >> "%logFile%" || call :Error "PowerShell command failed"
+    call :Log Script execution passed successfully to Golden Imager
 ) else (
     echo Windows Terminal not found. Using default PowerShell instead...
-    call :Log Windows Terminal not found. Using default PowerShell to launch Win11Debloat GUI Fork...
-    PowerShell -ExecutionPolicy Bypass -Command "& {Start-Process PowerShell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File ""%~dp0\Win11Debloat_GuiFork\Win11Debloat_GuiFork.ps1""' -Verb RunAs}" >> "%logFile%" || call :Error "PowerShell command failed"
-    call :Log Script execution passed successfully to Win11Debloat GUI Fork
+    call :Log Windows Terminal not found. Using default PowerShell to launch Golden Imager...
+    PowerShell -ExecutionPolicy Bypass -Command "& {Start-Process PowerShell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File ""%~dp0\GoldenImager\GoldenImager.ps1""' -Verb RunAs}" >> "%logFile%" || call :Error "PowerShell command failed"
+    call :Log Script execution passed successfully to Golden Imager
 )
 
 echo.

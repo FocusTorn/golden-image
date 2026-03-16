@@ -5,3 +5,5 @@ _offline/Win11_Debloater/Main copy.ps1
 return/genersate-apps.txt
 *.ahk
 *.ah2
+logs/
+

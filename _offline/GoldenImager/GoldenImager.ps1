@@ -103,7 +103,7 @@ param (
 
 
 # Define script-level variables & paths
-# GuiFork: use Foundation (Config, Scripts, Regfiles, Assets, Schemas) from Win11Debloat-Source
+# Golden Imager: use Foundation (Config, Scripts, Regfiles, Assets, Schemas) from upstream
 $script:SourceRoot = Join-Path $PSScriptRoot 'Foundation'
 if (-not $script:SourceRoot -or -not (Test-Path $script:SourceRoot)) {
     $displayPath = if ($script:SourceRoot) { $script:SourceRoot } else { "(empty - check script path)" }
@@ -130,10 +130,10 @@ $script:SharedStylesSchema = "$script:SourceRoot/Schemas/SharedStyles.xaml"
 
 # GuiFork: use our MainWindow.xaml with profile UI and default "installed only"
 $script:MainWindowSchema = Join-Path $PSScriptRoot "Schemas/MainWindow.xaml"
-$script:AppProfilesPath = Join-Path $PSScriptRoot "Win11Debloat_GuiFork\Config\AppProfiles"
-$script:TweakProfilesPath = Join-Path $PSScriptRoot "Win11Debloat_GuiFork\Config\TweakProfiles"
+$script:AppProfilesPath = Join-Path $PSScriptRoot "Config\AppProfiles"
+$script:TweakProfilesPath = Join-Path $PSScriptRoot "Config\TweakProfiles"
 
-$script:DefaultLogPath = Join-Path $PSScriptRoot "Win11Debloat_GuiFork\Logs\Win11Debloat-GuiFork.log"
+$script:DefaultLogPath = Join-Path $PSScriptRoot "Logs\GoldenImager.log"
 
 # ------------------------------------------------------------------------------
 # Typography configuration - customize fonts, colors, weights, spacing for UI text
@@ -236,7 +236,7 @@ $script:ApplySubStepCallback = $null
 
 # Check if current powershell environment is limited by security policies
 if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
-    Write-Error "Win11Debloat GUI Fork is unable to run on your system, powershell execution is restricted by security policies"
+    Write-Error "Golden Imager is unable to run on your system, powershell execution is restricted by security policies"
     Write-Output "Press any key to exit..."
     $null = [System.Console]::ReadKey()
     Exit
@@ -244,13 +244,13 @@ if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 
 Clear-Host
 Write-Host ""
-Write-Host "             Win11Debloat GUI Fork is launching..." -ForegroundColor White
+Write-Host "             Golden Imager is launching..." -ForegroundColor White
 Write-Host "               Leave this window open" -ForegroundColor DarkGray
 Write-Host ""
 
-# Log script output to 'Win11Debloat-GuiFork.log' at the specified path
+# Log script output to GoldenImager.log at the specified path
 if ($LogPath -and (Test-Path $LogPath)) {
-    Start-Transcript -Path "$LogPath/Win11Debloat-GuiFork.log" -Append -IncludeInvocationHeader -Force | Out-Null
+    Start-Transcript -Path (Join-Path $LogPath "GoldenImager.log") -Append -IncludeInvocationHeader -Force | Out-Null
 }
 else {
     Start-Transcript -Path $script:DefaultLogPath -Append -IncludeInvocationHeader -Force | Out-Null
@@ -259,7 +259,7 @@ else {
 # Check if script has all required files
 # GuiFork: Skip DefaultSettings.json check - we go directly to Custom Setup
 if (-not ((Test-Path $script:AppsListFilePath) -and (Test-Path $script:RegfilesPath) -and (Test-Path $script:AssetsPath) -and (Test-Path $script:AppSelectionSchema) -and (Test-Path $script:ApplyChangesWindowSchema) -and (Test-Path $script:SharedStylesSchema) -and (Test-Path $script:FeaturesFilePath))) {
-    Write-Error "Win11Debloat GUI Fork is unable to find required files, please ensure all script files are present"
+    Write-Error "Golden Imager is unable to find required files, please ensure all script files are present"
     Write-Output ""
     Write-Output "Press any key to exit..."
     $null = [System.Console]::ReadKey()
@@ -302,7 +302,7 @@ catch {
 
 # Show WinGet warning that requires user confirmation, Suppress confirmation if Silent parameter was passed
 if (-not $script:WingetInstalled -and -not $Silent) {
-    Write-Warning "WinGet is not installed or outdated, this may prevent Win11Debloat GUI Fork from removing certain apps"
+    Write-Warning "WinGet is not installed or outdated, this may prevent Golden Imager from removing certain apps"
     Write-Output ""
     Write-Output "Press any key to continue anyway..."
     $null = [System.Console]::ReadKey()
@@ -931,7 +931,7 @@ foreach ($Param in $script:ControlParams) {
     }
 }
 
-# Hide progress bars for app removal, as they block Win11Debloat GUI Fork's output
+# Hide progress bars for app removal, as they block Golden Imager's output
 if (-not ($script:Params.ContainsKey("Verbose"))) {
     $ProgressPreference = 'SilentlyContinue'
 }
@@ -949,7 +949,7 @@ if ($script:Params.ContainsKey("Sysprep")) {
 
     # Exit script if run in Sysprep mode on Windows 10
     if ($WinVersion -lt 22000) {
-        Write-Error "Win11Debloat GUI Fork Sysprep mode is not supported on Windows 10"
+        Write-Error "Golden Imager Sysprep mode is not supported on Windows 10"
         AwaitKeyToExit
     }
 }

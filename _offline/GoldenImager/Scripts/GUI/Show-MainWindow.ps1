@@ -243,7 +243,7 @@ public class PSAppID {
         $dlg = New-Object Microsoft.Win32.SaveFileDialog
         $dlg.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'
         $dlg.DefaultExt = 'json'
-        $dlg.FileName = "Win11Debloat-Settings-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"
+        $dlg.FileName = "GoldenImager-Settings-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"
         if ($dlg.ShowDialog() -eq $true) {
             try {
                 $settingsJson | ConvertTo-Json -Depth 10 | Set-Content -Path $dlg.FileName -Encoding UTF8
@@ -345,10 +345,10 @@ public class PSAppID {
     $script:resizeElement = $null
 
     $resizeHandler = {
-        param($sender, $e)
+        param($evtSender, $e)
         
         $script:resizing = $true
-        $script:resizeElement = $sender
+        $script:resizeElement = $evtSender
         $script:resizeStart = [System.Windows.Forms.Cursor]::Position
         $script:windowStart = @{
             Left = $window.Left
@@ -358,7 +358,7 @@ public class PSAppID {
         }
         
         # Parse direction tag into edge flags for cleaner resize logic
-        $direction = $sender.Tag
+        $direction = $evtSender.Tag
         $script:resizeEdges = @{
             Left = $direction -match 'Left'
             Right = $direction -match 'Right'
@@ -366,12 +366,12 @@ public class PSAppID {
             Bottom = $direction -match 'Bottom'
         }
         
-        $sender.CaptureMouse()
+        $evtSender.CaptureMouse()
         $e.Handled = $true
     }
 
     $moveHandler = {
-        param($sender, $e)
+        param($evtSender, $e)
         if (-not $script:resizing) { return }
         
         $current = [System.Windows.Forms.Cursor]::Position
@@ -406,7 +406,7 @@ public class PSAppID {
     }
 
     $releaseHandler = {
-        param($sender, $e)
+        param($evtSender, $e)
         if ($script:resizing -and $script:resizeElement) {
             $script:resizing = $false
             $script:resizeEdges = $null
@@ -648,8 +648,8 @@ public class PSAppID {
             $helpBtn.Tag = (GetWikiUrlForCategory -category $categoryName)
             $helpBtn.Style = $window.Resources['CategoryHelpLinkButtonStyle']
             $helpBtn.Add_Click({
-                param($sender, $e)
-                if ($sender.Tag) { Start-Process $sender.Tag }
+                param($evtSender, $e)
+                if ($evtSender.Tag) { Start-Process $evtSender.Tag }
             })
             $headerRow.Children.Add($helpBtn) | Out-Null
 
@@ -986,7 +986,7 @@ public class User32_ShowWindow {
             $opts | ConvertTo-Json | Set-Content -Path $optionsPath -Encoding UTF8 -Force
         } catch { }
     }
-    function Apply-OptionHideLauncher {
+    function Set-OptionHideLauncher {
         param([bool]$Hide)
         try {
             $h = [User32_ShowWindow]::GetConsoleWindow()
@@ -1038,7 +1038,7 @@ public class User32_ShowWindow {
         $okBtn.Add_Click({
             $newOpts = @{ HideLauncherWindow = $toggle.IsChecked -eq $true }
             Set-Options $newOpts
-            Apply-OptionHideLauncher -Hide $newOpts.HideLauncherWindow
+            Set-OptionHideLauncher -Hide $newOpts.HideLauncherWindow
             $optWindow.Close()
         })
         $titleBar.Add_MouseLeftButtonDown({ $optWindow.DragMove() })
@@ -1108,7 +1108,7 @@ public class User32_ShowWindow {
         if (-not (Test-Path $profilesPath)) { return @() }
         Get-ChildItem -Path $profilesPath -Filter "*.json" -File | ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Name) } | Sort-Object
     }
-    function Load-AppProfile {
+    function Import-AppProfile {
         param([string]$ProfileName)
         $profilesPath = Get-AppProfilesPath
         $filePath = Join-Path $profilesPath "$ProfileName.json"
@@ -1126,7 +1126,7 @@ public class User32_ShowWindow {
         $filePath = Join-Path $profilesPath "$ProfileName.json"
         @{ Apps = @($AppIds) } | ConvertTo-Json | Set-Content -Path $filePath -Encoding UTF8
     }
-    function Refresh-AppProfileCombo {
+    function Update-AppProfileCombo {
         $combo = $window.FindName('AppProfileCombo')
         if (-not $combo) { return }
         $combo.Items.Clear()
@@ -1136,7 +1136,7 @@ public class User32_ShowWindow {
         }
         $combo.SelectedIndex = 0
     }
-    function Apply-AppProfileToUi {
+    function Set-AppProfileToUi {
         param([string[]]$AppIds, [switch]$Replace)
         if ($Replace) {
             foreach ($child in $appsPanel.Children) {
@@ -1160,7 +1160,7 @@ public class User32_ShowWindow {
     $appProfileMergeBtn = $window.FindName('AppProfileMergeBtn')
     $appProfileSaveBtn = $window.FindName('AppProfileSaveBtn')
     if ($appProfileCombo -and $appProfileReplaceBtn -and $appProfileMergeBtn -and $appProfileSaveBtn) {
-        Refresh-AppProfileCombo
+        Update-AppProfileCombo
         $appProfileReplaceBtn.Add_Click({
             $item = $appProfileCombo.SelectedItem
             if (-not $item -or $appProfileCombo.SelectedIndex -eq 0) {
@@ -1168,12 +1168,12 @@ public class User32_ShowWindow {
                 return
             }
             $profileName = $item.Content
-            $appIds = Load-AppProfile -ProfileName $profileName
+            $appIds = Import-AppProfile -ProfileName $profileName
             if ($appIds.Count -eq 0) {
                 Show-MessageBox -Message "Profile '$profileName' is empty or could not be loaded." -Title "App Profile" -Button 'OK' -Icon 'Warning' | Out-Null
                 return
             }
-            Apply-AppProfileToUi -AppIds $appIds -Replace
+            Set-AppProfileToUi -AppIds $appIds -Replace
         })
         $appProfileMergeBtn.Add_Click({
             $item = $appProfileCombo.SelectedItem
@@ -1182,12 +1182,12 @@ public class User32_ShowWindow {
                 return
             }
             $profileName = $item.Content
-            $appIds = Load-AppProfile -ProfileName $profileName
+            $appIds = Import-AppProfile -ProfileName $profileName
             if ($appIds.Count -eq 0) {
                 Show-MessageBox -Message "Profile '$profileName' is empty or could not be loaded." -Title "App Profile" -Button 'OK' -Icon 'Warning' | Out-Null
                 return
             }
-            Apply-AppProfileToUi -AppIds $appIds -Replace:$false
+            Set-AppProfileToUi -AppIds $appIds -Replace:$false
         })
         $appProfileSaveBtn.Add_Click({
             $selectedApps = @()
@@ -1209,7 +1209,7 @@ public class User32_ShowWindow {
                 return
             }
             Save-AppProfile -ProfileName $profileName -AppIds $selectedApps
-            Refresh-AppProfileCombo
+            Update-AppProfileCombo
             Show-MessageBox -Message "Profile '$profileName' saved with $($selectedApps.Count) app(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
         })
     }
@@ -1317,7 +1317,7 @@ public class User32_ShowWindow {
     })
     
     $appSearchBox.Add_KeyDown({
-        param($sender, $e)
+        param($evtSender, $e)
         if ($e.Key -eq [System.Windows.Input.Key]::Enter -and $script:AppSearchMatches.Count -gt 0) {
             # Reset background of current active match
             $script:AppSearchMatches[$script:AppSearchMatchIndex].Background = $window.Resources["SearchHighlightColor"]
@@ -1440,7 +1440,7 @@ public class User32_ShowWindow {
 
     # Add Ctrl+F keyboard shortcut to focus search box on current tab
     $window.Add_KeyDown({
-        param($sender, $e)
+        param($evtSender, $e)
         
         # Check if Ctrl+F was pressed
         if ($e.Key -eq [System.Windows.Input.Key]::F -and 
@@ -1771,7 +1771,7 @@ public class User32_ShowWindow {
                 } catch { $errs += "WinRM: $_" }
                 $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{
                     $homeConnUpdateBtn.IsEnabled = $true
-                    Refresh-HomeDashboard
+                    Update-HomeDashboard
                     if ($errs.Count -gt 0) {
                         Show-MessageBox -Message "Update Connections completed with errors:`n`n$($errs -join "`n")" -Title "Update Connections" -Button 'OK' -Icon 'Warning' | Out-Null
                     } else {
@@ -1818,7 +1818,7 @@ public class User32_ShowWindow {
                 }
             }
             $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{ $homeExecRunBtn.IsEnabled = $true })
-            $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{ Refresh-HomeDashboard })
+            $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{ Update-HomeDashboard })
         }) | Out-Null
     }
     if ($homeExecRunBtn) { $homeExecRunBtn.Add_Click($runHomeExecute) }
@@ -1940,12 +1940,12 @@ public class User32_ShowWindow {
                 return
             }
             $profileName = $item.Content
-            $appIds = Load-AppProfile -ProfileName $profileName
+            $appIds = Import-AppProfile -ProfileName $profileName
             if ($appIds.Count -eq 0) {
                 Show-MessageBox -Message "Profile '$profileName' is empty or could not be loaded." -Title "App Profile" -Button 'OK' -Icon 'Warning' | Out-Null
                 return
             }
-            Apply-AppProfileToUi -AppIds $appIds -Replace
+            Set-AppProfileToUi -AppIds $appIds -Replace
         })
     }
     if ($homeTweaksProfileLoadBtn -and $homeTweaksProfileCombo) {
@@ -1955,7 +1955,7 @@ public class User32_ShowWindow {
                 Show-MessageBox -Message "Select a profile first." -Title "Tweak Profile" -Button 'OK' -Icon 'Information' | Out-Null
                 return
             }
-            $profileJson = Load-TweakProfile -ProfileName $item.Content
+            $profileJson = Import-TweakProfile -ProfileName $item.Content
             if (-not $profileJson -or -not $profileJson.Settings) {
                 Show-MessageBox -Message "Profile could not be loaded or is empty." -Title "Tweak Profile" -Button 'OK' -Icon 'Warning' | Out-Null
                 return
@@ -2176,7 +2176,7 @@ public class User32_ShowWindow {
             Show-MessageBox -Message 'No changes have been selected. Select at least one option to export.' -Title 'No Changes Selected' -Button 'OK' -Icon 'Information' | Out-Null
             return
         }
-        $scriptPath = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "Win11Debloat_GuiFork.ps1"
+        $scriptPath = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "GoldenImager.ps1"
         $argList = @()
         foreach ($key in $exportParams.Keys) {
             if ($script:ControlParams -contains $key) { continue }
@@ -2196,10 +2196,10 @@ public class User32_ShowWindow {
     })
 
     # Populate Home dashboard (Connection Settings + Stages Audit) from VM_Dashboard logic
-    function Refresh-HomeDashboard {
+    function Update-HomeDashboard {
         # #region agent log
         $dbgLog = Join-Path $env:TEMP 'debug-ba5e25.log'
-        try { Add-Content -Path $dbgLog -Value (@{sessionId='ba5e25';location='Refresh-HomeDashboard:entry';message='Refresh-HomeDashboard called';data=@{};timestamp=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()} | ConvertTo-Json -Compress) -Encoding UTF8 -ErrorAction SilentlyContinue } catch { }
+        try { Add-Content -Path $dbgLog -Value (@{sessionId='ba5e25';location='Update-HomeDashboard:entry';message='Update-HomeDashboard called';data=@{};timestamp=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()} | ConvertTo-Json -Compress) -Encoding UTF8 -ErrorAction SilentlyContinue } catch { }
         # #endregion
         $connLimit = $window.FindName('HomeConnLimitBlank')
         $connWinRM = $window.FindName('HomeConnWinRM')
@@ -2401,7 +2401,7 @@ public class User32_ShowWindow {
         if ($spinnerSelector) {
             $spinnerSelector.Add_SelectionChanged({
                 # Reload audit when spinner changed
-                Refresh-HomeDashboard
+                Update-HomeDashboard
             })
         }
 
@@ -2426,7 +2426,7 @@ public class User32_ShowWindow {
         # Apply saved Options (e.g. hide launcher window)
         try {
             $opts = Get-Options
-            if ($opts.HideLauncherWindow) { Apply-OptionHideLauncher -Hide $true }
+            if ($opts.HideLauncherWindow) { Set-OptionHideLauncher -Hide $true }
         } catch { }
 
         # GuiFork: Hide default settings UI elements
@@ -2438,7 +2438,7 @@ public class User32_ShowWindow {
         BuildDynamicTweaks
 
         # Populate Home dashboard (run async to avoid blocking)
-        $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [action]{ Refresh-HomeDashboard }) | Out-Null
+        $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [action]{ Update-HomeDashboard }) | Out-Null
 
         # ... (rest of load logic) ...
     })
@@ -2822,7 +2822,7 @@ public class User32_ShowWindow {
         if (-not (Test-Path $path)) { return @() }
         Get-ChildItem -Path $path -Filter "*.json" -File | ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Name) } | Sort-Object
     }
-    function Load-TweakProfile {
+    function Import-TweakProfile {
         param([string]$ProfileName)
         $path = Get-TweakProfilesPath
         $filePath = Join-Path $path "$ProfileName.json"
@@ -2838,7 +2838,7 @@ public class User32_ShowWindow {
         $filePath = Join-Path $path "$ProfileName.json"
         $SettingsJson | ConvertTo-Json -Depth 10 | Set-Content -Path $filePath -Encoding UTF8
     }
-    function Refresh-TweakProfileCombo {
+    function Update-TweakProfileCombo {
         $combo = $window.FindName('TweakProfileCombo')
         if (-not $combo) { return }
         $combo.Items.Clear()
@@ -2878,14 +2878,14 @@ public class User32_ShowWindow {
         })
     }
     if ($tweakProfileCombo -and $tweakProfileReplaceBtn -and $tweakProfileMergeBtn -and $tweakProfileSaveBtn) {
-        Refresh-TweakProfileCombo
+        Update-TweakProfileCombo
         $tweakProfileReplaceBtn.Add_Click({
             $item = $tweakProfileCombo.SelectedItem
             if (-not $item -or $tweakProfileCombo.SelectedIndex -eq 0) {
                 Show-MessageBox -Message "Select a profile first." -Title "Tweak Profile" -Button 'OK' -Icon 'Information' | Out-Null
                 return
             }
-            $profileJson = Load-TweakProfile -ProfileName $item.Content
+            $profileJson = Import-TweakProfile -ProfileName $item.Content
             if (-not $profileJson -or -not $profileJson.Settings) {
                 Show-MessageBox -Message "Profile could not be loaded or is empty." -Title "Tweak Profile" -Button 'OK' -Icon 'Warning' | Out-Null
                 return
@@ -2898,7 +2898,7 @@ public class User32_ShowWindow {
                 Show-MessageBox -Message "Select a profile first." -Title "Tweak Profile" -Button 'OK' -Icon 'Information' | Out-Null
                 return
             }
-            $profileJson = Load-TweakProfile -ProfileName $item.Content
+            $profileJson = Import-TweakProfile -ProfileName $item.Content
             if (-not $profileJson -or -not $profileJson.Settings) {
                 Show-MessageBox -Message "Profile could not be loaded or is empty." -Title "Tweak Profile" -Button 'OK' -Icon 'Warning' | Out-Null
                 return
@@ -2963,7 +2963,7 @@ public class User32_ShowWindow {
                 return
             }
             Save-TweakProfile -ProfileName $profileName -SettingsJson $settingsJson
-            Refresh-TweakProfileCombo
+            Update-TweakProfileCombo
             Show-MessageBox -Message "Profile '$profileName' saved with $($settingsJson.Settings.Count) setting(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
         })
     }
