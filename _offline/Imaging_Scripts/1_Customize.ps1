@@ -267,28 +267,38 @@ Write-Host "================================================================" -F
 
 #<
 
-#> 10b. Share F: for host pull (CopyFileFromHyperVGuest uses \\VM\F_DRIVE)
-$shareName = "F_DRIVE"
-$sharePath = "F:\"
-net share $shareName /delete 2>$null
-net share $shareName=$sharePath /GRANT:Everyone,FULL 2>$null
-if ($LASTEXITCODE -eq 0) { Write-Host "[*] Shared F: as $shareName for host pull" -ForegroundColor Green }
+#> 10b. PERSIST drive from config (GuestStagingDrive in _offline_config.json)
+$configPath = Join-Path $OfflineDir "_offline_config.json"
+$TargetDrive = 'E'
+if (Test-Path $configPath) {
+    try {
+        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+        if ($cfg.PSObject.Properties['GuestStagingDrive'] -and $cfg.GuestStagingDrive) {
+            $TargetDrive = $cfg.GuestStagingDrive.ToString().Trim().TrimEnd(':')[0]
+        }
+    } catch {}
+}
 
-#<
-
-#> 11. PERSIST F: FOR GOLDEN IMAGING (must be last - script uses current drive throughout)
-if ($StagingDrive -ne 'F') {
+if ($StagingDrive -ne $TargetDrive) {
     $part = Get-Partition -DriveLetter $StagingDrive -ErrorAction SilentlyContinue
     if ($part) {
-        $fVol = Get-Volume -DriveLetter F -ErrorAction SilentlyContinue
-        if ($fVol -and $fVol.DriveLetter -ne $StagingDrive) {
-            $fPart = Get-Partition -DriveLetter F -ErrorAction SilentlyContinue
-            if ($fPart) { $fPart | Remove-PartitionAccessPath -AccessPath "F:\" -ErrorAction SilentlyContinue }
+        $targetVol = Get-Volume -DriveLetter $TargetDrive -ErrorAction SilentlyContinue
+        if ($targetVol -and $targetVol.DriveLetter -ne $StagingDrive) {
+            $targetPart = Get-Partition -DriveLetter $TargetDrive -ErrorAction SilentlyContinue
+            if ($targetPart) { $targetPart | Remove-PartitionAccessPath -AccessPath "${TargetDrive}:\" -ErrorAction SilentlyContinue }
         }
-        $part | Set-Partition -NewDriveLetter F -ErrorAction SilentlyContinue
-        Write-Host "[*] Assigned F: to Golden Imaging (persists for future mounts)" -ForegroundColor Green
+        $part | Set-Partition -NewDriveLetter $TargetDrive -ErrorAction SilentlyContinue
+        Write-Host "[*] Assigned ${TargetDrive}: to Golden Imaging (persists for future mounts)" -ForegroundColor Green
     }
 }
+
+#> 10c. Share staging drive for host pull (HyperVGuestFileCopy.Pull uses \\VM\{drive}_DRIVE)
+$shareDrive = $TargetDrive
+$shareName = "${shareDrive}_DRIVE"
+$sharePath = "${shareDrive}:\"
+net share $shareName /delete 2>$null
+net share $shareName=$sharePath /GRANT:Everyone,FULL 2>$null
+if ($LASTEXITCODE -eq 0) { Write-Host "[*] Shared ${shareDrive}: as $shareName for host pull" -ForegroundColor Green }
 
 #<
 

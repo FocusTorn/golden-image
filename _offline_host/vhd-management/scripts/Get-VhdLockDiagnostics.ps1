@@ -25,7 +25,12 @@ param(
     [switch]$CheckGuest
 )
 
-$ConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "config.json"
+
+# $ConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "config.json" #
+$ConfigPath = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "_offline_host_config.json"
+
+
+
 if (Test-Path $ConfigPath) {
     $cfg = Get-Content $ConfigPath | ConvertFrom-Json
     if (-not $VhdPath) { $VhdPath = $cfg.VhdPath }

@@ -4,19 +4,41 @@ Even after a reboot,  ps5 is still default and Settings and File explorer are st
 
 
 
+```ps1
+
+
+
+    # ./dir/file.exe
+    $noParent     = Join-Path $PSScriptRoot "dir/file.exe"
+
+    # ../dir/file.exe
+    $singleParent = Join-Path (Split-Path $PSScriptRoot -Parent) "dir/file.exe"
+    
+    # ../../dir/file.exe
+    $doubleParent = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "dir/file.exe"
+    
+
+```
 
 
 
 
+Enable-VMIntegrationService -VMName "Windows 11 Master" -Name "Guest Service Interface"
+
+Set-VMHost -EnableEnhancedSessionMode $true 
 
 
 
 
+Get-Service -Name TermService, vmicguestinterface | Select-Object Name, DisplayName, Status
 
+# Start Remote Desktop Services
+Set-Service -Name TermService -StartupType Automatic
+Start-Service -Name TermService
 
-
-
-
+# Start Hyper-V Guest Service Interface
+Set-Service -Name vmicguestinterface -StartupType Automatic
+Start-Service -Name vmicguestinterface
 
 
 

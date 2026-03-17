@@ -18,13 +18,19 @@ param(
     [PSCredential]$Credential
 )
 
-$ConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "config.json"
+# $ConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "config.json" #
+$ConfigPath = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "_offline_host_config.json"
+
 if (Test-Path $ConfigPath) {
     $cfg = Get-Content $ConfigPath | ConvertFrom-Json
     if (-not $VMName) { $VMName = $cfg.VMName }
     if (-not $VolumeLabel -and $cfg.StagingVolumeLabel) { $VolumeLabel = $cfg.StagingVolumeLabel }
     if (-not $VolumeLabel) { $VolumeLabel = "Golden Imaging" }
-    if (-not $FallbackLetter -and $cfg.GuestStagingDrive) { $FallbackLetter = $cfg.GuestStagingDrive.Trim().TrimEnd(':')[0] }
+    if (-not $FallbackLetter -and $cfg.GuestStagingDrive) {
+        $raw = $cfg.GuestStagingDrive
+        $s = if ($raw -is [string]) { $raw } elseif ($raw.value) { $raw.value } else { $raw.ToString() }
+        if ($s) { $FallbackLetter = $s.ToString().Trim().TrimEnd(':')[0] }
+    }
 }
 if (-not $FallbackLetter) { $FallbackLetter = "F" }
 
@@ -46,5 +52,6 @@ try {
     } -ArgumentList $VolumeLabel -ErrorAction Stop
     if ($letter) { Write-Output $letter; exit }
 } catch { }
+Write-Output $FallbackLetter
 
 

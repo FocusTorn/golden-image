@@ -2,28 +2,29 @@
 # Run this on Host (Admin PowerShell) to push the _offline folder INSTANTLY to resolved guest drive
 # Uses Guest Services (no VM shutdown required).
 
-$ConfigPath = Join-Path $PSScriptRoot "vhd-management\config.json"
+
+
+
+$ConfigPath = Join-Path $PSScriptRoot "_offline_host_config.json"
+
 $cfg = if (Test-Path $ConfigPath) { Get-Content $ConfigPath | ConvertFrom-Json } else { @{} }
 
 $vmName = if ($cfg.VMName) { $cfg.VMName } else { "Windows 11 Master" }
 $projectRoot = "P:\Projects\golden-image"
-$volLabel = if ($cfg.StagingVolumeLabel) { $cfg.StagingVolumeLabel } else { "Golden Imaging" }
-$fallback = if ($cfg.GuestStagingDrive) { $cfg.GuestStagingDrive.Trim().TrimEnd(':')[0] } else { 'F' }
+$guestDrive = if ($cfg.GuestStagingDrive) { $cfg.GuestStagingDrive.Trim().TrimEnd(':')[0] } else { 'F' }
+$offlineFolder = if ($cfg.OfflinePath) { $cfg.OfflinePath } else { "_offline" }
 
 Write-Host "--- FAST PUSH: _OFFLINE FOLDER to [$vmName] ---" -ForegroundColor Cyan
+Write-Host "[*] Target Guest Drive: $($guestDrive):\$offlineFolder" -ForegroundColor Gray
 
-# Resolve guest drive letter
-$guestDrive = & (Join-Path $PSScriptRoot "vhd-management\scripts\Get-GuestStagingDrive.ps1") -VMName $vmName -VolumeLabel $volLabel -FallbackLetter $fallback
-Write-Host "[*] Target Guest Drive: $($guestDrive):" -ForegroundColor Gray
-
-$offlinePath = Join-Path $projectRoot "_offline"
+$offlinePath = Join-Path $projectRoot $offlineFolder
 if (-not (Test-Path $offlinePath)) {
     Write-Error "Source folder not found: $offlinePath"
     exit 1
 }
 
 Get-ChildItem -Path $offlinePath -File | ForEach-Object {
-    $dest = "$($guestDrive):\_offline\$($_.Name)"
+    $dest = "$($guestDrive):\$offlineFolder\$($_.Name)"
     # Note: Copy-VMFile requires Guest Services enabled in VM Settings
     try {
         Copy-VMFile -Name $vmName -SourcePath $_.FullName -DestinationPath $dest -FileSource Host -Force -ErrorAction Stop
@@ -33,4 +34,4 @@ Get-ChildItem -Path $offlinePath -File | ForEach-Object {
     }
 }
 
-Write-Host "[SUCCESS] _offline folder synced to $($guestDrive):\_offline" -ForegroundColor Green
+Write-Host "[SUCCESS] _offline folder synced to $($guestDrive):\$offlineFolder" -ForegroundColor Green

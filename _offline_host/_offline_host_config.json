@@ -1,0 +1,11 @@
+{
+  "VhdPath": "N:/VHD/MasterInstallers.vhdx",
+  "VMName": "Windows 11 Master",
+  "VMHostname": "DESKTOP-GOLDEN-IMAGE",
+  
+  "GuestStagingDrive": "E",
+  "StagingVolumeLabel": "Golden Imaging",
+  "OfflinePath": "_offline",
+  "InstallersPath": "installers",
+  "VMUser": "Administrator"
+}

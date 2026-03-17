@@ -11,7 +11,11 @@ function Debug-Log { param($msg,$data,$hyp) $j = @{sessionId="ba5e25";location="
 # #endregion
 
 #> === BLOCK 1: CONFIGURATION & PERSISTENCE ===
-$ConfigPath = Join-Path $PSScriptRoot "config.json"
+
+
+# $ConfigPath = Join-Path $PSScriptRoot "config.json" #
+$ConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "_offline_host_config.json"
+
 
 function Get-Config {
     $default = @{ 
@@ -19,7 +23,11 @@ function Get-Config {
         VMName  = "Windows 11 Master";
         VMUser  = "Administrator";
         GuestStagingDrive = "F";
-        StagingVolumeLabel = "Golden Imaging"
+        StagingVolumeLabel = "Golden Imaging";
+        OfflinePath = "_offline";
+        InstallersPath = "installers";
+        UsePasswordCreds = $false;
+        VMPassword = ""
     }
     if (Test-Path $ConfigPath) { 
         $current = Get-Content $ConfigPath | ConvertFrom-Json 
@@ -35,11 +43,32 @@ function Get-Config {
 
 function Save-Config($Cfg) { $Cfg | ConvertTo-Json | Set-Content $ConfigPath }
 
-# Helper to get credentials (empty password for Audit-mode VM Administrator)
+# Extract drive letter from GuestStagingDrive (handles string or Invoke-Command result object)
+function Get-GuestDriveLetter {
+    param($val)
+    if (-not $val) { return 'F' }
+    $s = if ($val -is [string]) { $val } elseif ($val.value) { $val.value } else { $val.ToString() }
+    if (-not $s) { return 'F' }
+    return $s.ToString().Trim().TrimEnd(':')[0]
+}
+
+# Helper to get credentials. When UsePasswordCreds is true, uses VMPassword from config (PowerShell Direct).
+# When false, uses empty password (original: Audit-mode VM Administrator, no password).
 function Get-VMCreds {
-    Param([string]$User)
+    Param([string]$User, [object]$Config)
     if (-not $User) { $User = "Administrator" }
-    $pass = New-Object System.Security.SecureString
+    $usePass = $false
+    $plainPass = ""
+    if ($Config) {
+        $usePass = $Config.UsePasswordCreds -eq $true -or $Config.UsePasswordCreds -eq "true"
+        if ($Config.VMPassword) { $plainPass = $Config.VMPassword.ToString() }
+    }
+    $pass = if ($usePass -and $plainPass) {
+        $sec = ConvertTo-SecureString $plainPass -AsPlainText -Force
+        $sec
+    } else {
+        New-Object System.Security.SecureString
+    }
     return New-Object System.Management.Automation.PSCredential($User, $pass)
 }
 
@@ -60,6 +89,26 @@ function Test-IsVhdLockError {
     return ($combined -like "*used by another process*" -or $combined -like "*in use*" -or $combined -like "*0x80070020*" -or $combined -like "*cannot access the file*")
 }
 
+# Poll until condition returns truthy, or max wait exceeded. Returns condition result or $null.
+function Invoke-PollUntil {
+    Param(
+        [scriptblock]$Condition,
+        [int]$MaxWaitSeconds = 5,
+        [int]$IntervalMs = 300
+    )
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $maxWait = [TimeSpan]::FromSeconds($MaxWaitSeconds)
+    $interval = [TimeSpan]::FromMilliseconds($IntervalMs)
+    do {
+        try {
+            $result = & $Condition
+            if ($null -ne $result -and $result -ne $false) { return $result }
+        } catch {}
+        Start-Sleep -Milliseconds $interval.TotalMilliseconds
+    } while ($stopwatch.Elapsed -lt $maxWait)
+    return $null
+}
+
 # Helper to mount VHD with retry logic (handles 0x80070020 file-in-use errors)
 function Mount-VhdWithRetry {
     Param([string]$Path)
@@ -78,7 +127,7 @@ function Mount-VhdWithRetry {
                 Write-Host "    [*] Running force escalation (Set-Disk offline, Dismount-VHD)..." -ForegroundColor DarkGray
                 Get-Disk | Where-Object { $_.FriendlyName -like "*Virtual*" } | Set-Disk -IsOffline $true -ErrorAction SilentlyContinue
                 Dismount-VHD -Path $Path -ErrorAction SilentlyContinue
-                Start-Sleep -Seconds 3
+                $null = Invoke-PollUntil -Condition { Get-VhdInfoSafe -VhdPath $Path -TimeoutSeconds 1 } -MaxWaitSeconds 5 -IntervalMs 300
             } else {
                 throw $_
             }
@@ -88,7 +137,7 @@ function Mount-VhdWithRetry {
     Write-Host "    [!!!] Restarting Virtual Disk Service (VDS)..." -ForegroundColor Red
     try {
         Restart-Service -Name "vds" -Force -ErrorAction Stop
-        Start-Sleep -Seconds 4
+        $null = Invoke-PollUntil -Condition { (Get-Service -Name "vds" -ErrorAction SilentlyContinue).Status -eq 'Running' } -MaxWaitSeconds 5 -IntervalMs 300
         $vhd = Mount-VHD -Path $Path -Passthru -ErrorAction Stop
         return $vhd
     } catch {
@@ -112,7 +161,7 @@ function Add-VMHardDiskDriveWithRetry {
                 Write-Host "    [*] Running force escalation (Set-Disk offline, Dismount-VHD)..." -ForegroundColor DarkGray
                 Get-Disk | Where-Object { $_.FriendlyName -like "*Virtual*" } | Set-Disk -IsOffline $true -ErrorAction SilentlyContinue
                 Dismount-VHD -Path $VhdPath -ErrorAction SilentlyContinue
-                Start-Sleep -Seconds 3
+                $null = Invoke-PollUntil -Condition { Get-VhdInfoSafe -VhdPath $VhdPath -TimeoutSeconds 1 } -MaxWaitSeconds 5 -IntervalMs 300
             } else {
                 throw $_
             }
@@ -122,7 +171,7 @@ function Add-VMHardDiskDriveWithRetry {
     Write-Host "    [!!!] Restarting Virtual Disk Service (VDS)..." -ForegroundColor Red
     try {
         Restart-Service -Name "vds" -Force -ErrorAction Stop
-        Start-Sleep -Seconds 4
+        $null = Invoke-PollUntil -Condition { (Get-Service -Name "vds" -ErrorAction SilentlyContinue).Status -eq 'Running' } -MaxWaitSeconds 5 -IntervalMs 300
         Add-VMHardDiskDrive -VMName $VMName -ControllerType SCSI -Path $VhdPath -ErrorAction Stop
         return
     } catch {
@@ -219,7 +268,7 @@ function Invoke-SmartRelease {
                     $printedVmRelease = $true
                 }
                 $vmDrive | Remove-VMHardDiskDrive -ErrorAction Stop
-                Start-Sleep -Seconds 2 # Give Hyper-V time to release file handle
+                $null = Invoke-PollUntil -Condition { Get-VhdInfoSafe -VhdPath $VhdPath -TimeoutSeconds 1 } -MaxWaitSeconds 3 -IntervalMs 300
             }
 
             # 2. Release from Host (only when actually host-mounted; Attached is true for VM too)
@@ -235,14 +284,14 @@ function Invoke-SmartRelease {
                 }
                 Write-Host "    -> Dismounting from Host" -ForegroundColor Yellow
                 Dismount-VHD -Path $VhdPath -ErrorAction Stop
-                Start-Sleep -Seconds 1
+                $null = Invoke-PollUntil -Condition { $v = Get-VhdInfoSafe -VhdPath $VhdPath -TimeoutSeconds 1; $v -and -not $v.Attached } -MaxWaitSeconds 3 -IntervalMs 300
             }
 
             # 3. When vhdInfo was null (timeout/lock), run force escalation to clear any stale state
             if ($null -eq $vhdInfo -or ($vhdInfo -and -not $vhdInfo.Attached)) {
                 Get-Disk | Where-Object { $_.FriendlyName -like "*Virtual*" } | Set-Disk -IsOffline $true -ErrorAction SilentlyContinue
                 Dismount-VHD -Path $VhdPath -ErrorAction SilentlyContinue
-                Start-Sleep -Seconds 2
+                $null = Invoke-PollUntil -Condition { Get-VhdInfoSafe -VhdPath $VhdPath -TimeoutSeconds 1 } -MaxWaitSeconds 3 -IntervalMs 300
             }
             return
         } catch {
@@ -262,7 +311,7 @@ function Invoke-SmartRelease {
     Write-Host "    [!!!] Restarting Virtual Disk Service (VDS)..." -ForegroundColor Red
     try {
         Restart-Service -Name "vds" -Force -ErrorAction Stop
-        Start-Sleep -Seconds 4
+        $null = Invoke-PollUntil -Condition { (Get-Service -Name "vds" -ErrorAction SilentlyContinue).Status -eq 'Running' } -MaxWaitSeconds 5 -IntervalMs 300
         Get-Disk | Where-Object { $_.FriendlyName -like "*Virtual*" } | Set-Disk -IsOffline $true -ErrorAction SilentlyContinue
         Dismount-VHD -Path $VhdPath -ErrorAction SilentlyContinue
         return
@@ -300,18 +349,13 @@ function Restore-VhdState {
         return
     }
 
-    $maxRetries = 3
-    $count = 0
-    while ($count -lt $maxRetries) {
+    $success = Invoke-PollUntil -Condition {
         try {
             Add-VMHardDiskDrive -VMName $VMName -ControllerType SCSI -Path $VhdPath -ErrorAction Stop
-            return
-        } catch {
-            $count++
-            Write-Host "    [!] VM drive attach failed. Retrying ($count/$maxRetries)..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 2
-        }
-    }
+            return $true
+        } catch { return $false }
+    } -MaxWaitSeconds 10 -IntervalMs 300
+    if (-not $success) { Write-Host "    [!] VM drive attach failed after multiple attempts." -ForegroundColor Yellow }
 }
 
 function Invoke-MasterSwoop {
@@ -330,22 +374,27 @@ function Invoke-MasterSwoop {
             $targetDiskNumber = $vhd.DiskNumber
         }
         
-        Start-Sleep -Seconds 1
+        $vol = Invoke-PollUntil -Condition {
+            $p = Get-Partition -DiskNumber $targetDiskNumber -ErrorAction SilentlyContinue | Get-Volume -ErrorAction SilentlyContinue | Where-Object DriveLetter
+            if ($p) { $p } else { $false }
+        } -MaxWaitSeconds 3 -IntervalMs 200
 
         if ($null -eq $targetDiskNumber) { throw "Could not identify Disk Number for VHD." }
 
-        $vol = Get-Partition -DiskNumber $targetDiskNumber | Get-Volume | Where-Object DriveLetter
+        if (-not $vol) { $vol = Get-Partition -DiskNumber $targetDiskNumber | Get-Volume | Where-Object DriveLetter }
         $driveLetter = $vol.DriveLetter
         if (-not $driveLetter) { throw "No Host Drive Letter assigned." }
-        $label = (Get-Config).StagingVolumeLabel
+        $cfg = Get-Config
+        $label = $cfg.StagingVolumeLabel
         if ($label -and $vol.FileSystemLabel -ne $label) {
             Set-Volume -DriveLetter $driveLetter -NewFileSystemLabel $label -ErrorAction SilentlyContinue
         }
-
         foreach ($Source in $Sources) {
-            $destination = Join-Path "$($driveLetter):" (Split-Path $Source -Leaf)
+            $sourceLeaf = Split-Path $Source -Leaf
+            $destFolder = if ($sourceLeaf -eq "_offline") { $cfg.OfflinePath } elseif ($sourceLeaf -eq "installers") { $cfg.InstallersPath } else { $sourceLeaf }
+            $destination = Join-Path "$($driveLetter):" $destFolder
             Write-Host "[Syncing] $Source -> $destination" -ForegroundColor Yellow
-            robocopy $Source $destination /MIR /MT:16 /R:2 /W:5 /NP /NDL /FFT
+            robocopy $Source $destination /MIR /MT:16 /R:2 /W:5 /NP /NDL /FFT /XF RDP-Tcp.reg
         }
         
         Restore-VhdState -VhdPath $VhdPath -VMName $VMName -State $State
@@ -377,10 +426,12 @@ function Invoke-ReverseSwoop {
             $targetDiskNumber = $vhd.DiskNumber
         }
         
-        Start-Sleep -Seconds 1
+        $vol = Invoke-PollUntil -Condition {
+            $p = Get-Partition -DiskNumber $targetDiskNumber -ErrorAction SilentlyContinue | Get-Volume -ErrorAction SilentlyContinue | Where-Object DriveLetter
+            if ($p) { $p } else { $false }
+        } -MaxWaitSeconds 3 -IntervalMs 200
         if ($null -eq $targetDiskNumber) { throw "Could not identify Disk Number for VHD." }
-
-        $driveLetter = (Get-Partition -DiskNumber $targetDiskNumber | Get-Volume | Where-Object DriveLetter).DriveLetter
+        $driveLetter = if ($vol) { $vol.DriveLetter } else { (Get-Partition -DiskNumber $targetDiskNumber | Get-Volume | Where-Object DriveLetter).DriveLetter }
 
         if ($driveLetter) {
             $vhdReturnSource = "$($driveLetter):\return"
@@ -426,27 +477,28 @@ function Show-VhdHeader {
         $gs = Get-VMIntegrationService -VMName $Cfg.VMName -Name "Guest Service Interface" -ErrorAction SilentlyContinue
         $guestServicesEnabled = $gs -and $gs.Enabled
     }
-    $vmStatusColor    = if ($vmObj.State -eq 'Running') { "Green" } else { "Red" }
+    $vmRunning = $vmObj -and $vmObj.State -eq 'Running'
+    $vmStatusColor    = if ($vmRunning) { "Green" } else { "Red" }
     $hostStagingColor = if ($hostLetter) { "Green" } else { "Red" }
     $vmStagingColor   = if (-not $isAtVM) { "Red" } elseif ($guestServicesEnabled) { "Green" } else { "Yellow" }
 
-    Write-Host "               (VM) " -NoNewline
-    Write-Host "($($vmObj.State)) " -NoNewline -ForegroundColor $vmStatusColor
+    $vmStateDisplay = if ($vmObj) { if ($vmObj.State -eq 'Running') { "Running" } else { "Stopped" } } else { "Not Found" }
+    $credsMode = if ($Cfg.UsePasswordCreds -eq $true -or $Cfg.UsePasswordCreds -eq "true") { "Password" } else { "Empty" }
+    Write-Host "               ($vmStateDisplay) " -NoNewline -ForegroundColor $vmStatusColor
     Write-Host "[Host Staging] " -NoNewline -ForegroundColor $hostStagingColor
     Write-Host "[VM Staging]" -ForegroundColor $vmStagingColor
+    Write-Host "  [Creds: $credsMode]" -ForegroundColor DarkCyan
+    if ($vmStagingColor -eq "Yellow" -and $isAtVM) {
+        Write-Host "  [VM Staging] Guest Services disabled" -ForegroundColor DarkYellow
+    }
     Write-Host ""
     Write-Host $bar -ForegroundColor Cyan
     Write-Host "VHD: $($Cfg.VhdPath)" -NoNewline -ForegroundColor DarkGray
     if ($hostLetter) { Write-Host " [$($hostLetter):]" -ForegroundColor Magenta } else { Write-Host "" }
     if ($isAtVM) {
         $volLabel = if ($Cfg.StagingVolumeLabel) { $Cfg.StagingVolumeLabel } else { "Golden Imaging" }
-        $fallback = if ($Cfg.GuestStagingDrive) { $Cfg.GuestStagingDrive.Trim().TrimEnd(':')[0] } else { 'F' }
-        $guestLetter = & (Join-Path $PSScriptRoot "scripts\Get-GuestStagingDrive.ps1") -VMName $Cfg.VMName -VolumeLabel $volLabel -FallbackLetter $fallback
-        if ($guestLetter -and $guestLetter -ne $Cfg.GuestStagingDrive) {
-            $Cfg.GuestStagingDrive = $guestLetter
-            Save-Config $Cfg
-        }
-        Write-Host "VM drive: $volLabel ($($guestLetter):)" -ForegroundColor DarkGray
+        $guestDrive = Get-GuestDriveLetter $Cfg.GuestStagingDrive
+        Write-Host "VM drive: $volLabel ($($guestDrive):)" -ForegroundColor DarkGray
     }
 }
 
@@ -466,15 +518,14 @@ if ($Action -eq 'ConnectVM') {
     $localProjectRoot = "P:\Projects\golden-image"
     $hostReturnDir = Join-Path $localProjectRoot "return"
     $logScript = Join-Path $PSScriptRoot "scripts\Get-RemoteLog.ps1"
-    $creds = Get-VMCreds $Cfg.VMUser
+    $creds = Get-VMCreds $Cfg.VMUser $Cfg
 
     Write-Host ""
     Write-Host "SYNC OPERATIONS:" -ForegroundColor Magenta
-    Write-Host "  1. Sync"
-    Write-Host "   11. Sync _offline"
-    Write-Host "   12. Sync installers"
+    Write-Host "  1. Sync _offline"
+    Write-Host "  2. Sync all"
     Write-Host ""
-    $guestDrive = if ($Cfg.GuestStagingDrive) { $Cfg.GuestStagingDrive.Trim().TrimEnd(':')[0] } else { 'F' }
+    $guestDrive = Get-GuestDriveLetter $Cfg.GuestStagingDrive
     $returnPath = "${guestDrive}:\return"
     Write-Host "PULL LOGS:" -ForegroundColor Magenta
     Write-Host "  6. Pull Shit (F:\shit.txt from VM)"
@@ -494,7 +545,7 @@ if ($Action -eq 'ConnectVM') {
     Write-Host "  R: Pull Return" -ForegroundColor Cyan
     Write-Host "  Z: VHD lock diagnostics (what is holding the file open?)" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "[SH] Set VHD  [SV] Set VM  [SG] Set Guest drive ($guestDrive)  [U] Set User  [X] Exit (Ctrl+C)" -ForegroundColor DarkGray
+    Write-Host "[SH] Set VHD  [SV] Set VM  [SG] Set Guest drive ($guestDrive)  [U] Set User  [P] Toggle creds  [W] Set VM Password  [X] Exit (Ctrl+C)" -ForegroundColor DarkGray
     
     try {
         $choice = Read-Host "Select Action"
@@ -504,11 +555,10 @@ if ($Action -eq 'ConnectVM') {
     }
     try {
         switch ($choice) {
-            "1" { Invoke-MasterSwoop @("$localProjectRoot\_offline", "$localProjectRoot\installers") $Cfg.VhdPath $Cfg.VMName }
-            "11" { Invoke-MasterSwoop @("$localProjectRoot\_offline") $Cfg.VhdPath $Cfg.VMName }
-            "12" { Invoke-MasterSwoop @("$localProjectRoot\installers") $Cfg.VhdPath $Cfg.VMName }
+            "1" { Invoke-MasterSwoop @("$localProjectRoot\_offline") $Cfg.VhdPath $Cfg.VMName }
+            "2" { Invoke-MasterSwoop @("$localProjectRoot\_offline", "$localProjectRoot\installers") $Cfg.VhdPath $Cfg.VMName }
             "6" {
-                $creds = Get-VMCreds $Cfg.VMUser
+                $creds = Get-VMCreds $Cfg.VMUser $Cfg
                 Write-Host "--- Pull Shit (VM $($Cfg.VMName)) ---" -ForegroundColor Cyan
                 Invoke-Command -VMName $Cfg.VMName -Credential $creds -ScriptBlock {
                     $path = "${using:guestDrive}:\shit.txt"
@@ -525,22 +575,23 @@ if ($Action -eq 'ConnectVM') {
             "72" { & $logScript -Category msvc -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
             "73" { & $logScript -Category apps -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
             "74" { & $logScript -Category rust -VMName $Cfg.VMName -Credential $creds -ReturnPath $returnPath; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
-            { $_ -in 'd','D' } { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; Start-Sleep 1 }
-            { $_ -in 'h','H' } { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; $null = Mount-VhdWithRetry -Path $Cfg.VhdPath; Start-Sleep 1 }
-            { $_ -in 'v','V' } { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; Add-VMHardDiskDriveWithRetry -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; Start-Sleep 1 }
+            "d" { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; $null = Invoke-PollUntil -Condition { $v = Get-VhdInfoSafe -VhdPath $Cfg.VhdPath -TimeoutSeconds 1; $v -and -not $v.Attached } -MaxWaitSeconds 3 -IntervalMs 200 }
+            "D" { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; $null = Invoke-PollUntil -Condition { $v = Get-VhdInfoSafe -VhdPath $Cfg.VhdPath -TimeoutSeconds 1; $v -and -not $v.Attached } -MaxWaitSeconds 3 -IntervalMs 200 }
+            "h" { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; $null = Mount-VhdWithRetry -Path $Cfg.VhdPath; $null = Invoke-PollUntil -Condition { $v = Get-VhdInfoSafe -VhdPath $Cfg.VhdPath -TimeoutSeconds 1; $v -and $v.Attached -and $null -ne $v.DiskNumber } -MaxWaitSeconds 3 -IntervalMs 200 }
+            "H" { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; $null = Mount-VhdWithRetry -Path $Cfg.VhdPath; $null = Invoke-PollUntil -Condition { $v = Get-VhdInfoSafe -VhdPath $Cfg.VhdPath -TimeoutSeconds 1; $v -and $v.Attached -and $null -ne $v.DiskNumber } -MaxWaitSeconds 3 -IntervalMs 200 }
+            "v" { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; Add-VMHardDiskDriveWithRetry -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; $null = Invoke-PollUntil -Condition { Get-VmDriveForVhd -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName } -MaxWaitSeconds 3 -IntervalMs 200 }
+            "V" { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; Add-VMHardDiskDriveWithRetry -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; $null = Invoke-PollUntil -Condition { Get-VmDriveForVhd -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName } -MaxWaitSeconds 3 -IntervalMs 200 }
             "k" {
                 Write-Host "[!!!] Restarting Virtual Disk Service (VDS)..." -ForegroundColor Red
                 Restart-Service -Name "vds" -Force -ErrorAction Stop
-                Start-Sleep -Seconds 3
+                $null = Invoke-PollUntil -Condition { (Get-Service -Name "vds" -ErrorAction SilentlyContinue).Status -eq 'Running' } -MaxWaitSeconds 5 -IntervalMs 300
                 Write-Host "[OK] VDS restarted. Try sync again." -ForegroundColor Green
-                Start-Sleep 1
             }
             "K" {
                 Write-Host "[!!!] Restarting Virtual Disk Service (VDS)..." -ForegroundColor Red
                 Restart-Service -Name "vds" -Force -ErrorAction Stop
-                Start-Sleep -Seconds 3
+                $null = Invoke-PollUntil -Condition { (Get-Service -Name "vds" -ErrorAction SilentlyContinue).Status -eq 'Running' } -MaxWaitSeconds 5 -IntervalMs 300
                 Write-Host "[OK] VDS restarted. Try sync again." -ForegroundColor Green
-                Start-Sleep 1
             }
             "z" { & (Join-Path $PSScriptRoot "scripts\Get-VhdLockDiagnostics.ps1") -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
             "Z" { & (Join-Path $PSScriptRoot "scripts\Get-VhdLockDiagnostics.ps1") -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName; Write-Host "`nPress Enter to continue..."; $null = Read-Host; $host.UI.RawUI.FlushInputBuffer() }
@@ -560,7 +611,12 @@ if ($Action -eq 'ConnectVM') {
             "SG" { $dr = Read-Host "Guest staging drive letter (e.g. F)"; if ($dr) { $Cfg.GuestStagingDrive = $dr.Trim().TrimEnd(':')[0].ToString(); Save-Config $Cfg } }
             "u" { $Cfg.VMUser = Read-Host "VM User (default: Administrator)"; Save-Config $Cfg }
             "U" { $Cfg.VMUser = Read-Host "VM User (default: Administrator)"; Save-Config $Cfg }
-            { $_ -in 'x','X' } { break MainLoop }
+            "p" { $Cfg.UsePasswordCreds = -not ($Cfg.UsePasswordCreds -eq $true -or $Cfg.UsePasswordCreds -eq "true"); Save-Config $Cfg; Write-Host "[*] Creds: $(if ($Cfg.UsePasswordCreds) { 'Password (VMPassword)' } else { 'Empty (Audit-mode)' })" -ForegroundColor Cyan }
+            "P" { $Cfg.UsePasswordCreds = -not ($Cfg.UsePasswordCreds -eq $true -or $Cfg.UsePasswordCreds -eq "true"); Save-Config $Cfg; Write-Host "[*] Creds: $(if ($Cfg.UsePasswordCreds) { 'Password (VMPassword)' } else { 'Empty (Audit-mode)' })" -ForegroundColor Cyan }
+            "w" { $Cfg.VMPassword = Read-Host "VM Password (for PowerShell Direct)"; Save-Config $Cfg; Write-Host "[*] VMPassword saved." -ForegroundColor Cyan }
+            "W" { $Cfg.VMPassword = Read-Host "VM Password (for PowerShell Direct)"; Save-Config $Cfg; Write-Host "[*] VMPassword saved." -ForegroundColor Cyan }
+            "x" { break MainLoop }
+            "X" { break MainLoop }
         }
     } catch {
         Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
