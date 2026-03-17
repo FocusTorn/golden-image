@@ -292,13 +292,14 @@ if ($StagingDrive -ne $TargetDrive) {
     }
 }
 
-#> 10c. Share staging drive for host pull (HyperVGuestFileCopy.Pull uses \\VM\{drive}_DRIVE)
-$shareDrive = $TargetDrive
-$shareName = "${shareDrive}_DRIVE"
-$sharePath = "${shareDrive}:\"
-net share $shareName /delete 2>$null
-net share $shareName=$sharePath /GRANT:Everyone,FULL 2>$null
-if ($LASTEXITCODE -eq 0) { Write-Host "[*] Shared ${shareDrive}: as $shareName for host pull" -ForegroundColor Green }
+# #> 10c. Share staging drive for host pull (HyperVGuestFileCopy.Pull uses \\VM\{drive}_DRIVE) - commented out
+# $shareDrive = $TargetDrive
+# $shareName = "${shareDrive}_DRIVE"
+# $sharePath = "${shareDrive}:\"
+# net share $shareName /delete 2>$null
+# net share $shareName=$sharePath /GRANT:Everyone,FULL 2>$null
+# if ($LASTEXITCODE -eq 0) { Write-Host "[*] Shared ${shareDrive}: as $shareName for host pull" -ForegroundColor Green }
+# #<
 
 #<
 

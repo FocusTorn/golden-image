@@ -1803,7 +1803,7 @@ public class User32_ShowWindow {
                 } catch { $errs += "WinRM: $_" }
                 $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{
                     $homeConnUpdateBtn.IsEnabled = $true
-                    Update-HomeDashboard
+                    Update-ConnectionSettingsOnly
                     if ($errs.Count -gt 0) {
                         Show-MessageBox -Message "Update Connections completed with errors:`n`n$($errs -join "`n")" -Title "Update Connections" -Button 'OK' -Icon 'Warning' | Out-Null
                     } else {
@@ -2227,6 +2227,39 @@ public class User32_ShowWindow {
         }
     })
 
+    # Refresh only Connection Settings (LimitBlank, WinRM, KeyIso, Admin) - does not touch Stages Audit
+    function Update-ConnectionSettingsOnly {
+        $connLimit = $window.FindName('HomeConnLimitBlank')
+        $connWinRM = $window.FindName('HomeConnWinRM')
+        $connKeyIso = $window.FindName('HomeConnKeyIso')
+        $connAdmin = $window.FindName('HomeConnAdmin')
+        $connSpinner = $window.FindName('HomeConnSpinner')
+        $connContent = $window.FindName('HomeConnContent')
+        if (-not $connLimit -or -not $connSpinner) { return }
+        if ($connSpinner) { $connSpinner.Visibility = 'Visible' }
+        if ($connContent) { $connContent.Visibility = 'Collapsed' }
+        $runConnAudit = {
+            Import-Module Microsoft.PowerShell.LocalAccounts -ErrorAction SilentlyContinue
+            $conn = @{ LimitBlank = $false; WinRM = $false; KeyIso = $false; Admin = $false }
+            try { $val = (Get-ItemPropertyValue -Path 'HKLM:\System\CurrentControlSet\Control\Lsa' -Name 'LimitBlankPasswordUse' -ErrorAction Stop).ToString(); $conn.LimitBlank = ($val -eq '0') } catch { }
+            try { $svc = Get-Service -Name WinRM -ErrorAction Stop; $conn.WinRM = "$($svc.Status) ($($svc.StartType))" -like 'Running*Auto*' } catch { }
+            try { $svc = Get-Service -Name KeyIso -ErrorAction Stop; $conn.KeyIso = "$($svc.Status) ($($svc.StartType))" -like 'Running*Auto*' } catch { }
+            try { $admin = Get-LocalUser | Where-Object { $_.SID -like '*-500' }; $conn.Admin = ($admin -and $admin.Enabled) } catch { }
+            $conn
+        }
+        $result = Invoke-NonBlocking -ScriptBlock $runConnAudit
+        $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{
+            if ($result) {
+                $connLimit.IsChecked = $result.LimitBlank
+                $connWinRM.IsChecked = $result.WinRM
+                $connKeyIso.IsChecked = $result.KeyIso
+                $connAdmin.IsChecked = $result.Admin
+            }
+            if ($connSpinner) { $connSpinner.Visibility = 'Collapsed' }
+            if ($connContent) { $connContent.Visibility = 'Visible' }
+        })
+    }
+
     # Populate Home dashboard (Connection Settings + Stages Audit) from VM_Dashboard logic
     function Update-HomeDashboard {
         # #region agent log
@@ -2432,8 +2465,17 @@ public class User32_ShowWindow {
         $spinnerSelector = $window.FindName('HomeSpinnerSelector')
         if ($spinnerSelector) {
             $spinnerSelector.Add_SelectionChanged({
-                # Reload audit when spinner changed
-                Update-HomeDashboard
+                # Only update spinner style; do not re-run the audit
+                $connSpinner = $window.FindName('HomeConnSpinner')
+                $stagesSpinner = $window.FindName('HomeStagesAuditSpinner')
+                $styleKey = if ($spinnerSelector.Text) { "$($spinnerSelector.Text)Style" } else { "OldWinBars1Style" }
+                try {
+                    $style = $window.Resources[$styleKey]
+                    if ($style) {
+                        if ($connSpinner) { $connSpinner.Style = $style }
+                        if ($stagesSpinner) { $stagesSpinner.Style = $style }
+                    }
+                } catch { }
             })
         }
 

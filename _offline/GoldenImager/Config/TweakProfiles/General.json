@@ -7,6 +7,14 @@
                      },
                      {
                          "Value":  true,
+                         "Name":  "DisableSnapAssist"
+                     },
+                     {
+                         "Value":  true,
+                         "Name":  "EnableDarkMode"
+                     },
+                     {
+                         "Value":  true,
                          "Name":  "DisableBitlockerAutoEncryption"
                      },
                      {
@@ -24,6 +32,10 @@
                      {
                          "Value":  true,
                          "Name":  "DisableLockscreenTips"
+                     },
+                     {
+                         "Value":  true,
+                         "Name":  "DisableSnapLayouts"
                      },
                      {
                          "Value":  true,
@@ -88,6 +100,10 @@
                      {
                          "Value":  true,
                          "Name":  "EnableEndTask"
+                     },
+                     {
+                         "Value":  true,
+                         "Name":  "HideTabsInAltTab"
                      },
                      {
                          "Value":  true,
@@ -160,6 +176,10 @@
                      {
                          "Value":  true,
                          "Name":  "DisableUpdateASAP"
+                     },
+                     {
+                         "Value":  true,
+                         "Name":  "DisableAnimations"
                      },
                      {
                          "Value":  true,
