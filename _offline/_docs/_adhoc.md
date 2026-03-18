@@ -1,4 +1,30 @@
 
+
+
+
+
+Get-Content "H:\_offline\GoldenImager\Scripts\FileIO\LoadAppsDetailsFromJson.ps1" -ErrorAction Stop | Select-Object -First 3
+
+
+icacls "H:\_offline\GoldenImager\Scripts\FileIO\LoadAppsDetailsFromJson.ps1"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 $ExecutionContext.SessionState.LanguageMode
 
 

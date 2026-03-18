@@ -24,7 +24,7 @@ try {
         Write-Host "[!] Source missing on VHD: $sourcePath" -ForegroundColor Yellow
     } else {
         Write-Host "[*] Pulling: $sourcePath -> $TargetHostDir" -ForegroundColor Yellow
-        robocopy $sourcePath $TargetHostDir /MIR /MT:16 /R:2 /W:5 /NP /NDL /B
+        robocopy $sourcePath $TargetHostDir /MIR /MT:16 /R:2 /W:5 /NP /NDL
     }
 
     Write-Host "[2/2] Reconnecting VHD to VM..." -ForegroundColor Gray

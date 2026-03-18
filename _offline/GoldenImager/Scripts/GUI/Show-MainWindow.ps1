@@ -790,62 +790,85 @@ public class PSAppID {
     function script:AddAppsToPanel($appsToAdd) {
         $script:MainWindowLastSelectedCheckbox = $null
         if (-not $appsToAdd) { $appsToAdd = @() }
-        $appsToAdd | Sort-Object -Property FriendlyName | ForEach-Object {
+
+        $brushSafe    = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#4CAF50')
+        $brushUnsafe  = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#F44336')
+        $brushDefault = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FFC107')
+        $brushSafe.Freeze(); $brushUnsafe.Freeze(); $brushDefault.Freeze()
+
+        $batchSize = 20
+        $idx = 0
+        $sorted = @($appsToAdd | Sort-Object -Property FriendlyName)
+        foreach ($app in $sorted) {
             $checkbox = New-Object System.Windows.Controls.CheckBox
-            $checkbox.SetValue([System.Windows.Automation.AutomationProperties]::NameProperty, $_.FriendlyName)
-            $checkbox.Tag = $_.AppId
-            $checkbox.IsChecked = $_.IsChecked
+            $automationName = if ($app.FriendlyName) { $app.FriendlyName } elseif ($app.AppId) { $app.AppId } else { $null }
+            if ($automationName) { $checkbox.SetValue([System.Windows.Automation.AutomationProperties]::NameProperty, $automationName) }
+            $checkbox.Tag = $app.AppId
+            $checkbox.IsChecked = $app.IsChecked
             $checkbox.Style = $window.Resources["AppsPanelCheckBoxStyle"]
 
-            # Build table row content: App Name | Description | App ID
             $row = New-Object System.Windows.Controls.Grid
-            $c0 = New-Object System.Windows.Controls.ColumnDefinition; $c0.Width = [System.Windows.GridLength]::new(160)
-            $c1 = New-Object System.Windows.Controls.ColumnDefinition; $c1.Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Star)
-            $c2 = New-Object System.Windows.Controls.ColumnDefinition; $c2.Width = [System.Windows.GridLength]::new(286)
-            $row.ColumnDefinitions.Add($c0); $row.ColumnDefinitions.Add($c1); $row.ColumnDefinitions.Add($c2)
+            $row.Margin = [System.Windows.Thickness]::new(0,1,0,0)
+            $c0 = New-Object System.Windows.Controls.ColumnDefinition; $c0.Width = [System.Windows.GridLength]::new(16)
+            $c1 = New-Object System.Windows.Controls.ColumnDefinition; $c1.Width = [System.Windows.GridLength]::new(151)
+            $c2 = New-Object System.Windows.Controls.ColumnDefinition; $c2.Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Star)
+            $c3 = New-Object System.Windows.Controls.ColumnDefinition; $c3.Width = [System.Windows.GridLength]::new(261)
+            $row.ColumnDefinitions.Add($c0); $row.ColumnDefinitions.Add($c1)
+            $row.ColumnDefinitions.Add($c2); $row.ColumnDefinitions.Add($c3)
+
+            $dot = New-Object System.Windows.Shapes.Ellipse
+            $dot.Width = 9; $dot.Height = 9
+            $dot.HorizontalAlignment = 'Left'
+            $dot.VerticalAlignment = 'Center'
+            $dot.Fill  = switch ($app.Recommendation) { 'safe' { $brushSafe } 'unsafe' { $brushUnsafe } default { $brushDefault } }
+            $dot.ToolTip = switch ($app.Recommendation) {
+                'safe'   { '[Recommended] Safe to remove for most users' }
+                'unsafe' { '[Not Recommended] Only remove if you know what you are doing' }
+                default  { "[Optional] Remove if you don't need this app" }
+            }
+            [System.Windows.Controls.Grid]::SetColumn($dot, 0)
 
             $tbName = New-Object System.Windows.Controls.TextBlock
-            $tbName.Text = $_.FriendlyName
+            $tbName.Text = $app.FriendlyName
             $tbName.Style = $window.Resources["AppNameTextStyle"]
-            [System.Windows.Controls.Grid]::SetColumn($tbName, 0)
+            [System.Windows.Controls.Grid]::SetColumn($tbName, 1)
 
             $tbDesc = New-Object System.Windows.Controls.TextBlock
-            $tbDesc.Text = $_.Description
+            $tbDesc.Text = $app.Description
             $tbDesc.Style = $window.Resources["AppDescTextStyle"]
-            $tbDesc.ToolTip = $_.Description
-            [System.Windows.Controls.Grid]::SetColumn($tbDesc, 1)
+            $tbDesc.ToolTip = $app.Description
+            [System.Windows.Controls.Grid]::SetColumn($tbDesc, 2)
 
             $tbId = New-Object System.Windows.Controls.TextBlock
-            $tbId.Text = $_.AppId
+            $tbId.Text = $app.AppId
             $tbId.Style = $window.Resources["AppIdTextStyle"]
-            $tbId.ToolTip = $_.AppId
-            [System.Windows.Controls.Grid]::SetColumn($tbId, 2)
+            $tbId.ToolTip = $app.AppId
+            [System.Windows.Controls.Grid]::SetColumn($tbId, 3)
 
+            $row.Children.Add($dot)    | Out-Null
             $row.Children.Add($tbName) | Out-Null
             $row.Children.Add($tbDesc) | Out-Null
-            $row.Children.Add($tbId) | Out-Null
+            $row.Children.Add($tbId)   | Out-Null
             $checkbox.Content = $row
 
-            # Store metadata in checkbox for later use
-            Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "AppName" -Value $_.FriendlyName
-            Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "AppDescription" -Value $_.Description
-            Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "SelectedByDefault" -Value $_.SelectedByDefault
-            
-            # Add event handler to update status
+            Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "AppName" -Value $app.FriendlyName
+            Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "AppDescription" -Value $app.Description
+            Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "SelectedByDefault" -Value $app.SelectedByDefault
+
             $checkbox.Add_Checked({ UpdateAppSelectionStatus })
             $checkbox.Add_Unchecked({ UpdateAppSelectionStatus })
-            
-            # Attach shift-click behavior for range selection
             AttachShiftClickBehavior -checkbox $checkbox -appsPanel $appsPanel -lastSelectedCheckboxRef ([ref]$script:MainWindowLastSelectedCheckbox) -updateStatusCallback { UpdateAppSelectionStatus }
-            
+
             $appsPanel.Children.Add($checkbox) | Out-Null
+            $idx++
+            if ($idx % $batchSize -eq 0) { DoEvents }
         }
         $loadingAppsIndicator.Visibility = 'Collapsed'
         UpdateNavigationButtons
         UpdateAppSelectionStatus
     }
 
-    # Starts app loading in a background job (offline: Get-AppxPackage + Get-AppxProvisionedPackage, same logic as Generate_App_Lists.ps1)
+    # Loads apps via in-process runspace (Invoke-NonBlocking keeps UI responsive via DoEvents)
     function script:LoadAppsWithList {
         $onlyInstalledVal = $false
         if ($onlyInstalledAppsBox) { $onlyInstalledVal = $onlyInstalledAppsBox.IsChecked }
@@ -856,77 +879,29 @@ public class PSAppID {
 
         $appsListPath = [System.IO.Path]::GetFullPath($script:AppsListFilePath)
         $loaderPath = [System.IO.Path]::GetFullPath($script:LoadAppsDetailsScriptPath)
-        $script:CurrentAppDetailsJob = Start-Job -ScriptBlock {
-            param($appsListFilePath, $loaderScriptPath, $onlyInstalled, $viewMode)
-            $script:AppsListFilePath = $appsListFilePath
 
-            . $loaderScriptPath
-            LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalled -ViewMode $viewMode -InitialCheckedFromJson:$false
-        } -ArgumentList $appsListPath, $loaderPath, $onlyInstalledVal, $viewMode
-        $script:CurrentAppDetailsJobStartTime = Get-Date
+        try {
+            $appsToAdd = Invoke-NonBlocking -ScriptBlock {
+                param($loaderScriptPath, $appsListFilePath, $onlyInstalled, $viewMode)
+                $script:AppsListFilePath = $appsListFilePath
+                . $loaderScriptPath
+                LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalled -ViewMode $viewMode -InitialCheckedFromJson:$false
+            } -ArgumentList $loaderPath, $appsListPath, $onlyInstalledVal, $viewMode -TimeoutSeconds 60
 
-        if (-not $script:CurrentAppLoadTimer -or -not $script:CurrentAppLoadTimer.IsEnabled) {
-            $script:CurrentAppLoadTimer = New-Object System.Windows.Threading.DispatcherTimer
-            $script:CurrentAppLoadTimer.Interval = [TimeSpan]::FromMilliseconds(100)
-            $script:CurrentAppLoadTimer.Add_Tick({
-                if ($script:CurrentAppDetailsJob) {
-                    $elapsed = (Get-Date) - $script:CurrentAppDetailsJobStartTime
-                    if ($script:CurrentAppDetailsJob.State -eq 'Completed') {
-                        $script:CurrentAppLoadTimer.Stop()
-                        $appsToAdd = Receive-Job -Job $script:CurrentAppDetailsJob
-                        Remove-Job -Job $script:CurrentAppDetailsJob -ErrorAction SilentlyContinue
-                        $script:CurrentAppDetailsJob = $null
-                        $script:CurrentAppLoadTimer = $null
-                        $script:CurrentAppDetailsJobStartTime = $null
-                        AddAppsToPanel $appsToAdd
-                    }
-                    elseif ($elapsed.TotalSeconds -gt 30 -or $script:CurrentAppDetailsJob.State -eq 'Failed') {
-                        $script:CurrentAppLoadTimer.Stop()
-                        $errMsg = 'Unable to load app list.'
-                        if ($script:CurrentAppDetailsJob.State -eq 'Failed') {
-                            $jobErr = $script:CurrentAppDetailsJob.ChildJobs[0].Error | Select-Object -First 1
-                            if ($jobErr) { $errMsg += "`n`n$($jobErr.ToString())" }
-                        }
-                        Remove-Job -Job $script:CurrentAppDetailsJob -Force -ErrorAction SilentlyContinue
-                        $script:CurrentAppDetailsJob = $null
-                        $script:CurrentAppLoadTimer = $null
-                        $script:CurrentAppDetailsJobStartTime = $null
-                        $loadingAppsIndicator.Visibility = 'Collapsed'
-                        UpdateNavigationButtons
-                        Show-MessageBox -Message $errMsg -Title 'Error' -Button 'OK' -Icon 'Error' | Out-Null
-                    }
-                }
-            })
-            $script:CurrentAppLoadTimer.Start()
+            AddAppsToPanel $appsToAdd
+        }
+        catch {
+            $loadingAppsIndicator.Visibility = 'Collapsed'
+            UpdateNavigationButtons
+            Show-MessageBox -Message "Unable to load app list.`n`n$($_.Exception.Message)" -Title 'Error' -Button 'OK' -Icon 'Error' | Out-Null
         }
     }
 
     # Loads apps into the UI
     function LoadAppsIntoMainUI {
-        # Cancel any existing load operation to prevent race conditions
-        if ($script:CurrentAppLoadTimer -and $script:CurrentAppLoadTimer.IsEnabled) {
-            $script:CurrentAppLoadTimer.Stop()
-        }
-        if ($script:CurrentAppLoadJob) {
-            Remove-Job -Job $script:CurrentAppLoadJob -Force -ErrorAction SilentlyContinue
-        }
-        if ($script:CurrentAppDetailsJob) {
-            Remove-Job -Job $script:CurrentAppDetailsJob -Force -ErrorAction SilentlyContinue
-        }
-        $script:CurrentAppLoadTimer = $null
-        $script:CurrentAppLoadJob = $null
-        $script:CurrentAppLoadJobStartTime = $null
-        $script:CurrentAppDetailsJob = $null
-        $script:CurrentAppDetailsJobStartTime = $null
-        
-        # Show loading indicator and navigation blocker, clear existing apps immediately
         $loadingAppsIndicator.Visibility = 'Visible'
         $appsPanel.Children.Clear()
-        
-        # Update navigation buttons to disable Next/Previous
         UpdateNavigationButtons
-        
-        # Force UI to update and render all changes (loading indicator, blocker, disabled buttons)
         $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Render, [action]{})
         
         # Start loading job immediately - all work runs in background, UI stays responsive

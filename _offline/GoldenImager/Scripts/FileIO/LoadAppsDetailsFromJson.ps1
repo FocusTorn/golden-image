@@ -11,42 +11,42 @@ function LoadAppsDetailsFromJson {
     )
 
     $apps = @()
+    $needInstalled = $OnlyInstalled -or $ViewMode -ne 'FromJson'
+    $needProvisioned = $ViewMode -in @('UserNotListed', 'ProvisionedNotListed', 'AllNotListed')
 
-    # Get system app lists using same logic as _helpers/Generate_App_Lists.ps1 (offline, no winget)
     $installedNames = @()
     $provisionedNames = @()
-    try {
-        $installedPkgs = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue
-        if (-not $installedPkgs) { $installedPkgs = @(Get-AppxPackage -ErrorAction SilentlyContinue) }
-        $installedNames = @($installedPkgs | ForEach-Object { $_.Name } | Where-Object { $_ } | Sort-Object -Unique)
-    } catch { }
 
-    try {
-        $provisioned = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
-        $provisionedNames = @($provisioned | ForEach-Object { $_.DisplayName } | Where-Object { $_ } | Sort-Object -Unique)
-    } catch { }
+    if ($needInstalled) {
+        try {
+            $installedPkgs = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+            if (-not $installedPkgs) { $installedPkgs = @(Get-AppxPackage -ErrorAction SilentlyContinue) }
+            $installedNames = @($installedPkgs | ForEach-Object { $_.Name } | Where-Object { $_ } | Sort-Object -Unique)
+        } catch { }
+    }
 
-    # User-installed only: in installed but NOT in provisioned (audit mode extras)
+    if ($needProvisioned) {
+        try {
+            $provisioned = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+            $provisionedNames = @($provisioned | ForEach-Object { $_.DisplayName } | Where-Object { $_ } | Sort-Object -Unique)
+        } catch { }
+    }
+
     $userOnlyNames = @($installedNames | Where-Object { $provisionedNames -notcontains $_ })
 
-    # Load Apps.json for curated list (needed for FromJson modes and to compute "not listed")
     $jsonAppIds = @()
     $jsonContent = $null
-    if ($ViewMode -eq 'FromJson' -or $ViewMode -in @('UserNotListed', 'ProvisionedNotListed', 'AllNotListed')) {
-        try {
-            $jsonContent = Get-Content -Path $script:AppsListFilePath -Raw -ErrorAction Stop | ConvertFrom-Json
-            foreach ($appData in $jsonContent.Apps) {
-                $appId = $appData.AppId.Trim()
-                if ($appId.Length -gt 0) {
-                    $jsonAppIds += $appId
-                }
-            }
-        } catch {
-            if ($ViewMode -eq 'FromJson') {
-                Write-Error "Failed to read Apps.json: $_"
-                return $apps
+    try {
+        $jsonContent = Get-Content -Path $script:AppsListFilePath -Raw -ErrorAction Stop | ConvertFrom-Json
+        foreach ($appData in $jsonContent.Apps) {
+            $appId = $appData.AppId.Trim()
+            if ($appId.Length -gt 0) {
+                $jsonAppIds += $appId
             }
         }
+    } catch {
+        Write-Error "Failed to read Apps.json: $_"
+        return $apps
     }
 
     # --- ViewMode: Not-listed modes (apps on system but NOT in Apps.json) ---
@@ -87,7 +87,6 @@ function LoadAppsDetailsFromJson {
         if ($appId.Length -eq 0) { continue }
 
         if ($OnlyInstalled) {
-            # Exact match: app must be in installed list (same logic as Generate_App_Lists)
             $isInstalled = $installedNames -contains $appId
             if (-not $isInstalled) { continue }
         }
