@@ -2,8 +2,12 @@
 # Run this on your HOST machine with internet access.
 # Downloads the necessary tools for offline Windows optimization.
 
+$LocalProjectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+. (Join-Path $LocalProjectRoot "_helpers\ConfigUtils.ps1")
+$Cfg = Get-Config
+$InstallersDir = Join-Path $LocalProjectRoot $Cfg.InstallersPath
+
 $ErrorActionPreference = "Stop"
-$InstallersDir = "P:\Projects\golden-image\installers"
 
 # Ensure directories exist
 if (-not (Test-Path $InstallersDir)) { New-Item -ItemType Directory -Path $InstallersDir | Out-Null }

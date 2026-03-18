@@ -1,21 +1,9 @@
-@echo off
-:: Launcher for VM_Dashboard.ps1 via Windows Terminal (pwsh) or pwsh directly
-
-
-set "SCRIPT=%~dp0\vhd-management\Staging_Dashboard.ps1"
-set "PWSH=C:\Program Files\PowerShell\7\pwsh.exe"
-where wt >nul 2>&1
-if %errorLevel% equ 0 (
-    if exist "%PWSH%" (
-        start "" wt new-tab "%PWSH%" -NoExit -File "%SCRIPT%"
-    ) else (
-        start "" wt new-tab pwsh -NoExit -File "%SCRIPT%"
-    )
-) else (
-    if exist "%PWSH%" (
-        start "" "%PWSH%" -NoExit -File "%SCRIPT%"
-    ) else (
-        start "" powershell -NoExit -File "%SCRIPT%"
-    )
-)
-exit
+   @echo off
+   :loop
+   cls
+   :: 'call' prevents the batch file from being tied to the process termination
+   call powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0\vhd-management\Staging_Dashboard.ps1"
+   echo.
+   echo Dashboard exited. Press any key to reload...
+   pause >nul
+   goto loop

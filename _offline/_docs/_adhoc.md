@@ -1,4 +1,42 @@
 
+$ExecutionContext.SessionState.LanguageMode
+
+
+
+  The Fix (To run inside your VM):
+
+  Open an Administrator Command Prompt in the VM and run this command:
+
+
+   reg add "HKLM\SYSTEM\Setup" /v CmdLine /t REG_SZ /d "" /f
+
+
+  Why this works:
+   * The Sysprep window pops up because HKLM\SYSTEM\Setup has a value named CmdLine that explicitly tells Windows to run C:\Windows\System32\sysprep\sysprep.exe /audit /reboot (or
+     similar) on login.
+   * By setting CmdLine to an empty string "", you tell Windows to do nothing at login.
+   * Crucially, this keeps the AuditInProgress and other flags set to 1. Since these flags are still 1, Windows stays in "Audit Mode" and allows you to log in as Administrator without
+     ever triggering the GUI.
+
+
+  How to proceed:
+   1. Run that reg add command inside the VM.
+   2. (Optional) If it still pops up, also run:
+      reg add "HKLM\SYSTEM\Setup" /v SetupType /t REG_DWORD /d 0 /f
+   3. Reboot the VM.
+
+
+
+
+
+
+
+
+
+
+
+
+
 net share E_DRIVE=E:\ /GRANT:Everyone,FULL
 
 net use Z: \\localhost\E_DRIVE /user:Administrator 654654

@@ -2,10 +2,13 @@
 # Run this on your HOST machine with internet access.
 # This script uses the fastest native download method with a background progress tracker.
 
-$ErrorActionPreference = "Stop"
-$InstallersDir = "P:\Projects\golden-image\installers"
+$LocalProjectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+. (Join-Path $LocalProjectRoot "_helpers\ConfigUtils.ps1")
+$Cfg = Get-Config
+$InstallersDir = Join-Path $LocalProjectRoot $Cfg.InstallersPath
 $TargetFile = Join-Path $InstallersDir "VSCodeSetup-x64-System.exe"
 
+$ErrorActionPreference = "Stop"
 Write-Host "--- PREPARING VS CODE SYSTEM INSTALLER (FAST MODE) ---" -ForegroundColor Cyan
 
 # Ensure directory exists

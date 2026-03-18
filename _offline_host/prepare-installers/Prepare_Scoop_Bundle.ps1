@@ -2,9 +2,11 @@
 # Run this on a machine with internet access and Scoop installed.
 # This script creates a portable, robocopy-safe Scoop structure.
 
-Param(
-    [string]$BundleRoot = "P:\Projects\golden-image\installers\Scoop_Offline_Bundle"
-)
+$LocalProjectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+. (Join-Path $LocalProjectRoot "_helpers\ConfigUtils.ps1")
+$Cfg = Get-Config
+$InstallersDir = Join-Path $LocalProjectRoot $Cfg.InstallersPath
+$BundleRoot = Join-Path $InstallersDir "Scoop_Offline_Bundle"
 
 $ErrorActionPreference = "Stop"
 Write-Host "--- STAGE 1: PREPARE SCOOP BUNDLE (ONLINE) ---" -ForegroundColor Cyan

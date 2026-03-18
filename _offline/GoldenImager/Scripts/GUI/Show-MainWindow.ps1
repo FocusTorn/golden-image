@@ -842,17 +842,19 @@ public class PSAppID {
         UpdateAppSelectionStatus
     }
 
-    # Starts app loading in a background job (winget + LoadAppsDetailsFromJson); timer polls and calls AddAppsToPanel when done
+    # Starts app loading in a background job (offline-first: Get-AppxPackage; winget optional for online)
     function script:LoadAppsWithList {
         $onlyInstalledVal = $false
         if ($onlyInstalledAppsBox) { $onlyInstalledVal = $onlyInstalledAppsBox.IsChecked }
-        $wingetPath = if ($script:WingetInstalled -and $script:WingetPath) { $script:WingetPath } else { $null }
+        $wingetPath = $null
 
+        $appsListPath = [System.IO.Path]::GetFullPath($script:AppsListFilePath)
+        $sourceRootPath = [System.IO.Path]::GetFullPath($script:SourceRoot)
         $script:CurrentAppDetailsJob = Start-Job -ScriptBlock {
             param($appsListFilePath, $sourceRoot, $onlyInstalled, $wingetExe)
             $script:AppsListFilePath = $appsListFilePath
 
-            # Get installed list - fast offline first (runs in job, does not block UI)
+            # Get installed list - offline first (Get-AppxPackage), no network required
             $offlineApps = @()
             try {
                 $offlineApps += Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
@@ -878,7 +880,7 @@ public class PSAppID {
 
             . "$sourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
             LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalled -InstalledList $installedList -InitialCheckedFromJson:$false
-        } -ArgumentList $script:AppsListFilePath, $script:SourceRoot, $onlyInstalledVal, $wingetPath
+        } -ArgumentList $appsListPath, $sourceRootPath, $onlyInstalledVal, $wingetPath
         $script:CurrentAppDetailsJobStartTime = Get-Date
 
         if (-not $script:CurrentAppLoadTimer -or -not $script:CurrentAppLoadTimer.IsEnabled) {
@@ -894,6 +896,12 @@ public class PSAppID {
                         $script:CurrentAppDetailsJob = $null
                         $script:CurrentAppLoadTimer = $null
                         $script:CurrentAppDetailsJobStartTime = $null
+                        if ((-not $appsToAdd -or $appsToAdd.Count -eq 0) -and -not $onlyInstalledVal) {
+                            try {
+                                . "$script:SourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
+                                $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:$false -InstalledList '' -InitialCheckedFromJson:$false
+                            } catch {}
+                        }
                         AddAppsToPanel $appsToAdd
                     }
                     elseif ($elapsed.TotalSeconds -gt 30 -or $script:CurrentAppDetailsJob.State -eq 'Failed') {
@@ -1142,8 +1150,13 @@ public class User32_ShowWindow {
         if (-not (Test-Path $filePath)) { return @() }
         try {
             $data = Get-Content -Path $filePath -Raw | ConvertFrom-Json
-            if ($data.Apps) { return @($data.Apps) }
-            return @()
+            if (-not $data.Apps) { return @() }
+            $ids = @()
+            foreach ($a in @($data.Apps)) {
+                if ($a -is [string]) { $ids += $a.Trim() }
+                elseif ($a.AppId) { $ids += $a.AppId.ToString().Trim() }
+            }
+            return $ids
         } catch { return @() }
     }
     function Save-AppProfile {
@@ -1151,7 +1164,25 @@ public class User32_ShowWindow {
         $profilesPath = Get-AppProfilesPath
         if (-not (Test-Path $profilesPath)) { New-Item -ItemType Directory -Path $profilesPath -Force | Out-Null }
         $filePath = Join-Path $profilesPath "$ProfileName.json"
-        @{ Apps = @($AppIds) } | ConvertTo-Json | Set-Content -Path $filePath -Encoding UTF8
+        $json = @{ Apps = @($AppIds) } | ConvertTo-Json
+        Set-Content -Path $filePath -Value $json -Encoding UTF8
+        $offlineDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $configPath = Join-Path $offlineDir "_offline_config.json"
+        $guestDrive = "E"
+        $returnPath = "return"
+        if (Test-Path $configPath) {
+            try {
+                $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+                if ($cfg.GuestStagingDrive) { $guestDrive = $cfg.GuestStagingDrive.ToString().Trim().TrimEnd(':')[0] }
+                if ($cfg.ReturnPath) { $returnPath = $cfg.ReturnPath.ToString().Trim() }
+            } catch {}
+        }
+        $returnDir = Join-Path "${guestDrive}:\" $returnPath
+        if (Test-Path $returnDir) {
+            try { Copy-Item -Path $filePath -Destination (Join-Path $returnDir "$ProfileName.json") -Force } catch {}
+        } else {
+            try { New-Item -ItemType Directory -Path $returnDir -Force | Out-Null; Copy-Item -Path $filePath -Destination (Join-Path $returnDir "$ProfileName.json") -Force } catch {}
+        }
     }
     function Update-AppProfileCombo {
         $combo = $window.FindName('AppProfileCombo')
@@ -1187,7 +1218,9 @@ public class User32_ShowWindow {
     $appProfileReplaceBtn = $window.FindName('AppProfileReplaceBtn')
     $appProfileMergeBtn = $window.FindName('AppProfileMergeBtn')
     $appProfileSaveBtn = $window.FindName('AppProfileSaveBtn')
-    if ($appProfileCombo -and $appProfileReplaceBtn -and $appProfileMergeBtn -and $appProfileSaveBtn) {
+    $appProfileSaveAsBtn = $window.FindName('AppProfileSaveAsBtn')
+    $appProfileDeleteBtn = $window.FindName('AppProfileDeleteBtn')
+    if ($appProfileCombo -and $appProfileReplaceBtn -and $appProfileMergeBtn -and $appProfileSaveBtn -and $appProfileSaveAsBtn -and $appProfileDeleteBtn) {
         Update-AppProfileCombo
         $appProfileReplaceBtn.Add_Click({
             $item = $appProfileCombo.SelectedItem
@@ -1228,7 +1261,41 @@ public class User32_ShowWindow {
                 Show-MessageBox -Message "No apps selected. Select at least one app to save." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
                 return
             }
-            $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save App Profile" -DefaultText "New Profile"
+            $item = $appProfileCombo.SelectedItem
+            $profileName = $null
+            if ($item -and $appProfileCombo.SelectedIndex -ge 2) {
+                $profileName = $item.Content
+            }
+            if (-not $profileName) {
+                $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save App Profile" -DefaultText "New Profile"
+                if ([string]::IsNullOrWhiteSpace($profileName)) { return }
+                $profileName = $profileName.Trim()
+            }
+            if ($profileName -eq 'Default') {
+                Show-MessageBox -Message "'Default' is reserved for the built-in preset." -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            $invalidPattern = '[<>:' + [char]34 + '/\\|?*]'
+            if ($profileName -match $invalidPattern) {
+                Show-MessageBox -Message 'Profile name cannot contain: < > : " / \ | ? *' -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            Save-AppProfile -ProfileName $profileName -AppIds $selectedApps
+            Update-AppProfileCombo
+            Show-MessageBox -Message "Profile '$profileName' saved with $($selectedApps.Count) app(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+        })
+        $appProfileSaveAsBtn.Add_Click({
+            $selectedApps = @()
+            foreach ($child in $appsPanel.Children) {
+                if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) {
+                    $selectedApps += $child.Tag
+                }
+            }
+            if ($selectedApps.Count -eq 0) {
+                Show-MessageBox -Message "No apps selected. Select at least one app to save." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save App Profile As" -DefaultText "New Profile"
             if ([string]::IsNullOrWhiteSpace($profileName)) { return }
             $profileName = $profileName.Trim()
             if ($profileName -eq 'Default') {
@@ -1243,6 +1310,42 @@ public class User32_ShowWindow {
             Save-AppProfile -ProfileName $profileName -AppIds $selectedApps
             Update-AppProfileCombo
             Show-MessageBox -Message "Profile '$profileName' saved with $($selectedApps.Count) app(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+        })
+        $appProfileDeleteBtn.Add_Click({
+            $item = $appProfileCombo.SelectedItem
+            if (-not $item -or $appProfileCombo.SelectedIndex -lt 2) {
+                Show-MessageBox -Message "Select a custom profile to delete (not Default or 'No profile selected')." -Title "Delete Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return
+            }
+            $profileName = $item.Content
+            if ($profileName -eq 'Default') {
+                Show-MessageBox -Message "Cannot delete the built-in Default profile." -Title "Delete Profile" -Button 'OK' -Icon 'Warning' | Out-Null
+                return
+            }
+            $profilesPath = Get-AppProfilesPath
+            $filePath = Join-Path $profilesPath "$profileName.json"
+            if (-not (Test-Path $filePath)) {
+                Update-AppProfileCombo
+                return
+            }
+            try {
+                Remove-Item -Path $filePath -Force
+                $offlineDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+                $configPath = Join-Path $offlineDir "_offline_config.json"
+                $guestDrive = "E"
+                $returnPath = "return"
+                if (Test-Path $configPath) {
+                    try {
+                        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+                        if ($cfg.GuestStagingDrive) { $guestDrive = $cfg.GuestStagingDrive.ToString().Trim().TrimEnd(':')[0] }
+                        if ($cfg.ReturnPath) { $returnPath = $cfg.ReturnPath.ToString().Trim() }
+                    } catch {}
+                }
+                $returnFilePath = Join-Path (Join-Path "${guestDrive}:\" $returnPath) "$ProfileName.json"
+                if (Test-Path $returnFilePath) { Remove-Item -Path $returnFilePath -Force }
+            } catch {}
+            Update-AppProfileCombo
+            Show-MessageBox -Message "Profile '$profileName' deleted." -Title "Delete Profile" -Button 'OK' -Icon 'Information' | Out-Null
         })
     }
 
@@ -2596,31 +2699,27 @@ public class User32_ShowWindow {
         $loadLastUsedAppsBtn.Visibility = 'Collapsed'
     }
 
-    # Clear All Tweaks button
+    # Clear All Tweaks button - clears all selections including update-added (system-applied) ones
     $clearAllTweaksBtn = $window.FindName('ClearAllTweaksBtn')
     $clearAllTweaksBtn.Add_Click({
         if ($script:UiControlMappings) {
             foreach ($comboName in $script:UiControlMappings.Keys) {
                 $control = $window.FindName($comboName)
-                $mapping = $script:UiControlMappings[$comboName]
                 if ($control -is [System.Windows.Controls.CheckBox]) {
-                    if ($mapping.IsSystemApplied) {
-                        $control.IsChecked = $null
-                    }
-                    else {
-                        $control.IsChecked = $false
-                    }
+                    $control.IsChecked = $false
                 }
                 elseif ($control -is [System.Windows.Controls.ComboBox]) {
                     $control.SelectedIndex = 0
                 }
             }
         }
-        Clear-AppliedTweakStyling
+        Clear-AppliedTweakStyling -ClearAll
     })
 
-    # GuiFork: Clear system-activated styling. For system-applied checkboxes, reset to star (ignore). For combos, clear green.
+    # GuiFork: Clear system-activated styling. For system-applied checkboxes, reset to star (ignore) unless $ClearAll.
+    # When $ClearAll is true (from Clear button), also reset system-applied to unchecked.
     function Clear-AppliedTweakStyling {
+        param([switch]$ClearAll)
         if (-not $script:UiControlMappings) { return }
         $defaultFg = $window.Resources["FgColor"]
         foreach ($comboName in $script:UiControlMappings.Keys) {
@@ -2640,7 +2739,7 @@ public class User32_ShowWindow {
             elseif ($control -is [System.Windows.Controls.CheckBox]) {
                 $mapping = $script:UiControlMappings[$comboName]
                 if ($mapping.IsSystemApplied) {
-                    $control.IsChecked = $null
+                    $control.IsChecked = if ($ClearAll) { $false } else { $null }
                 }
             }
             if ($lblBorder -and $lblBorder.Child) { $lblBorder.Child.Foreground = $defaultFg }
@@ -2873,10 +2972,8 @@ public class User32_ShowWindow {
                 }
             }
             elseif ($control -is [System.Windows.Controls.ComboBox] -and $control.SelectedIndex -gt 0) {
-                if (-not $mapping.IsSystemApplied -or $control.SelectedIndex -ne $mapping.AppliedIndex) {
-                    $paramName = if ($mapping.Type -eq 'feature') { $mapping.FeatureId } else { $mapping.Values[$control.SelectedIndex - 1].FeatureIds[0] }
-                    $settings += @{ Name = $paramName; Value = $true }
-                }
+                $paramName = if ($mapping.Type -eq 'feature') { $mapping.FeatureId } else { $mapping.Values[$control.SelectedIndex - 1].FeatureIds[0] }
+                $settings += @{ Name = $paramName; Value = $true }
             }
         }
         return @{ Version = "1.0"; Settings = $settings }
@@ -2910,7 +3007,26 @@ public class User32_ShowWindow {
         $path = Get-TweakProfilesPath
         if (-not (Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
         $filePath = Join-Path $path "$ProfileName.json"
-        $SettingsJson | ConvertTo-Json -Depth 10 | Set-Content -Path $filePath -Encoding UTF8
+        $json = $SettingsJson | ConvertTo-Json -Depth 10
+        Set-Content -Path $filePath -Value $json -Encoding UTF8
+        $offlineDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $configPath = Join-Path $offlineDir "_offline_config.json"
+        $guestDrive = "E"
+        $returnPath = "return"
+        if (Test-Path $configPath) {
+            try {
+                $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+                if ($cfg.GuestStagingDrive) { $guestDrive = $cfg.GuestStagingDrive.ToString().Trim().TrimEnd(':')[0] }
+                if ($cfg.ReturnPath) { $returnPath = $cfg.ReturnPath.ToString().Trim() }
+            } catch {}
+        }
+        $returnDir = Join-Path "${guestDrive}:\" $returnPath
+        if (Test-Path $returnDir) {
+            $destPath = Join-Path $returnDir "$ProfileName.json"
+            try { Copy-Item -Path $filePath -Destination $destPath -Force } catch {}
+        } else {
+            try { New-Item -ItemType Directory -Path $returnDir -Force | Out-Null; Copy-Item -Path $filePath -Destination (Join-Path $returnDir "$ProfileName.json") -Force } catch {}
+        }
     }
     function Update-TweakProfileCombo {
         $combo = $window.FindName('TweakProfileCombo')
@@ -2930,6 +3046,8 @@ public class User32_ShowWindow {
     $tweakProfileReplaceBtn = $window.FindName('TweakProfileReplaceBtn')
     $tweakProfileMergeBtn = $window.FindName('TweakProfileMergeBtn')
     $tweakProfileSaveBtn = $window.FindName('TweakProfileSaveBtn')
+    $tweakProfileSaveAsBtn = $window.FindName('TweakProfileSaveAsBtn')
+    $tweakProfileDeleteBtn = $window.FindName('TweakProfileDeleteBtn')
     $tweakUpdateStatus = $window.FindName('TweakUpdateStatus')
     if ($tweakUpdateBtn) {
         $tweakUpdateBtn.Add_Click({
@@ -2954,6 +3072,30 @@ public class User32_ShowWindow {
     }
     if ($tweakProfileCombo -and $tweakProfileReplaceBtn -and $tweakProfileMergeBtn -and $tweakProfileSaveBtn) {
         Update-TweakProfileCombo
+        $doSaveTweakProfile = {
+            param([string]$ProfileName)
+            $settingsJson = Get-CurrentTweakSettingsFromUi
+            if ($settingsJson.Settings.Count -eq 0) {
+                Show-MessageBox -Message "No tweaks selected. Select at least one to save." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                return $false
+            }
+            if ($ProfileName -eq 'Default') {
+                Show-MessageBox -Message "'Default' is reserved for the built-in preset." -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
+                return $false
+            }
+            $invalidPattern = '[<>:' + [char]34 + '/\\|?*]'
+            if ($ProfileName -match $invalidPattern) {
+                Show-MessageBox -Message 'Profile name cannot contain: < > : " / \ | ? *' -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
+                return $false
+            }
+            Save-TweakProfile -ProfileName $ProfileName -SettingsJson $settingsJson
+            Update-TweakProfileCombo
+            for ($i = 0; $i -lt $tweakProfileCombo.Items.Count; $i++) {
+                $it = $tweakProfileCombo.Items[$i]
+                if ($it -and $it.Content -eq $ProfileName) { $tweakProfileCombo.SelectedIndex = $i; break }
+            }
+            return $true
+        }
         $tweakProfileReplaceBtn.Add_Click({
             $item = $tweakProfileCombo.SelectedItem
             if (-not $item -or $tweakProfileCombo.SelectedIndex -eq 0) {
@@ -3024,27 +3166,68 @@ public class User32_ShowWindow {
             }
         })
         $tweakProfileSaveBtn.Add_Click({
-            $settingsJson = Get-CurrentTweakSettingsFromUi
-            if ($settingsJson.Settings.Count -eq 0) {
-                Show-MessageBox -Message "No tweaks selected. Select at least one to save." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
-                return
+            $item = $tweakProfileCombo.SelectedItem
+            $profileName = if ($item -and $item.Content) { $item.Content.Trim() } else { $null }
+            if ($profileName -and $profileName -ne "(No profile selected)" -and $profileName -ne "Default") {
+                if (& $doSaveTweakProfile -ProfileName $profileName) {
+                    Show-MessageBox -Message "Profile '$profileName' updated." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                }
+            } else {
+                $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save Tweak Profile" -DefaultText "New Profile"
+                if ([string]::IsNullOrWhiteSpace($profileName)) { return }
+                $profileName = $profileName.Trim()
+                if (& $doSaveTweakProfile -ProfileName $profileName) {
+                    Show-MessageBox -Message "Profile '$profileName' saved with $((Get-CurrentTweakSettingsFromUi).Settings.Count) setting(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                }
             }
-            $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save Tweak Profile" -DefaultText "New Profile"
-            if ([string]::IsNullOrWhiteSpace($profileName)) { return }
-            $profileName = $profileName.Trim()
-            if ($profileName -eq 'Default') {
-                Show-MessageBox -Message "'Default' is reserved for the built-in preset." -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
-                return
-            }
-            $invalidPattern = '[<>:' + [char]34 + '/\\|?*]'
-            if ($profileName -match $invalidPattern) {
-                Show-MessageBox -Message 'Profile name cannot contain: < > : " / \ | ? *' -Title "Invalid Name" -Button 'OK' -Icon 'Warning' | Out-Null
-                return
-            }
-            Save-TweakProfile -ProfileName $profileName -SettingsJson $settingsJson
-            Update-TweakProfileCombo
-            Show-MessageBox -Message "Profile '$profileName' saved with $($settingsJson.Settings.Count) setting(s)." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
         })
+        if ($tweakProfileSaveAsBtn) {
+            $tweakProfileSaveAsBtn.Add_Click({
+                $profileName = Show-InputDialog -Prompt "Enter profile name:" -Title "Save Tweak Profile As" -DefaultText "New Profile"
+                if ([string]::IsNullOrWhiteSpace($profileName)) { return }
+                $profileName = $profileName.Trim()
+                if (& $doSaveTweakProfile -ProfileName $profileName) {
+                    Show-MessageBox -Message "Profile '$profileName' saved." -Title "Save Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                }
+            })
+        }
+        if ($tweakProfileDeleteBtn) {
+            $tweakProfileDeleteBtn.Add_Click({
+                $item = $tweakProfileCombo.SelectedItem
+                if (-not $item -or $tweakProfileCombo.SelectedIndex -le 1) {
+                    Show-MessageBox -Message "Select a profile to delete (cannot delete Default)." -Title "Delete Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                    return
+                }
+                $profileName = $item.Content
+                if ($profileName -eq "Default") {
+                    Show-MessageBox -Message "Cannot delete the Default profile." -Title "Delete Profile" -Button 'OK' -Icon 'Warning' | Out-Null
+                    return
+                }
+                $confirm = Show-MessageBox -Message "Delete profile '$profileName'?" -Title "Delete Profile" -Button 'YesNo' -Icon 'Question'
+                if ($confirm -eq 'Yes') {
+                    $path = Get-TweakProfilesPath
+                    $filePath = Join-Path $path "$profileName.json"
+                    if (Test-Path $filePath) {
+                        Remove-Item $filePath -Force
+                        Update-TweakProfileCombo
+                        $offlineDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+                        $configPath = Join-Path $offlineDir "_offline_config.json"
+                        $guestDrive = "E"
+                        $returnPath = "return"
+                        if (Test-Path $configPath) {
+                            try {
+                                $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+                                if ($cfg.GuestStagingDrive) { $guestDrive = $cfg.GuestStagingDrive.ToString().Trim().TrimEnd(':')[0] }
+                                if ($cfg.ReturnPath) { $returnPath = $cfg.ReturnPath.ToString().Trim() }
+                            } catch {}
+                        }
+                        $returnFilePath = Join-Path (Join-Path "${guestDrive}:\" $returnPath) "$profileName.json"
+                        if (Test-Path $returnFilePath) { Remove-Item $returnFilePath -Force }
+                        Show-MessageBox -Message "Profile '$profileName' deleted." -Title "Delete Profile" -Button 'OK' -Icon 'Information' | Out-Null
+                    }
+                }
+            })
+        }
     }
 
     # Restore window position/size before showing

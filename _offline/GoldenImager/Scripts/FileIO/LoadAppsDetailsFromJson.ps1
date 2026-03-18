@@ -1,4 +1,4 @@
-﻿# Read Apps.json and return list of app objects with optional filtering
+# Read Apps.json and return list of app objects with optional filtering
 function LoadAppsDetailsFromJson {
     param (
         [switch]$OnlyInstalled,
@@ -19,14 +19,19 @@ function LoadAppsDetailsFromJson {
         $appId = $appData.AppId.Trim()
         if ($appId.length -eq 0) { continue }
 
+        $isInstalled = $true
         if ($OnlyInstalled) {
-            if (-not ($InstalledList -like ("*$appId*")) -and -not (Get-AppxPackage -Name $appId)) {
-                continue
-            }
-            if (($appId -eq "Microsoft.Edge") -and -not ($InstalledList -like "* Microsoft.Edge *")) {
-                continue
-            }
+            $isInstalled = $false
+            # Check list passed from background job
+            if ($InstalledList -match [regex]::Escape($appId)) { $isInstalled = $true }
+            # Fallback: Live check if list is empty
+            elseif (Get-AppxPackage -Name $appId -ErrorAction SilentlyContinue) { $isInstalled = $true }
+            
+            # Special case for Edge
+            if (($appId -eq "Microsoft.Edge") -and ($InstalledList -match "Microsoft.Edge")) { $isInstalled = $true }
         }
+
+        if (-not $isInstalled) { continue }
 
         $friendlyName = if ($appData.FriendlyName) { $appData.FriendlyName } else { $appId }
         $displayName = if ($appData.FriendlyName) { "$($appData.FriendlyName) ($appId)" } else { $appId }

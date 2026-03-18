@@ -69,17 +69,17 @@ Remove-Item -Path "C:\Windows\Temp\*" -Recurse -Force -ErrorAction SilentlyConti
 
 Write-Host "`n--- STAGE 5: FINAL VERIFICATION ---" -ForegroundColor Cyan
 
-# 13. Verify Unattend.xml exists (copy from Z:\code\unattend.xml if missing, then recheck)
+# 13. Verify Unattend.xml exists (copy from Z:\_offline\unattend.xml if missing, then recheck)
 $UnattendPath = "C:\Windows\System32\Sysprep\unattend.xml"
 $UnattendSource = "Z:\_offline\unattend.xml"
 if (-not (Test-Path $UnattendPath) -and (Test-Path $UnattendSource)) {
     Copy-Item -LiteralPath $UnattendSource -Destination $UnattendPath -Force
-    Write-Host "[*] Copied unattend.xml from Z:\code\unattend.xml to Sysprep folder." -ForegroundColor Gray
+    Write-Host "[*] Copied unattend.xml from $UnattendSource." -ForegroundColor Gray
 }
 if (Test-Path $UnattendPath) {
     Write-Host "[SUCCESS] unattend.xml found in Sysprep folder." -ForegroundColor Green
 } else {
-    Write-Host "[CRITICAL] unattend.xml MISSING! Copy it to C:\Windows\System32\Sysprep\ or place at Z:\code\unattend.xml and re-run." -ForegroundColor Red
+    Write-Host "[CRITICAL] unattend.xml MISSING!" -ForegroundColor Red
 }
 
 

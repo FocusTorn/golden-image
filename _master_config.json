@@ -1,0 +1,50 @@
+{
+    "shared": {
+        "GuestStagingDrive": "E",
+        "StagingVolumeLabel": "Golden Imaging",
+        "OfflinePath": "_offline",
+        "InstallersPath": "installers",
+        "ReturnPath": "return",
+        "VMHostname": "DESKTOP-HJHJ8UV"
+    },
+    "_offline": {
+    },
+    "offline_host": {
+        "VhdPath": "N:/VHD/MasterInstallers.vhdx",
+        "VMName": "Windows 11 Master",
+        "VMUser": "Administrator",
+        "VMPassword": "654654",
+        "UsePasswordCreds": true
+    },
+    "ahk": {
+    },
+    
+    
+    "--- NEW VERSION ---------------------------------------------------------": "",
+    
+    "VMDetails": {
+        "VhdPath": "N:/VHD/MasterInstallers.vhdx",
+        "VMName": "Windows 11 Master",
+        "VMHostname": "DESKTOP-HJHJ8UV"
+    },
+    "VMFileSystem": {
+        "GuestStagingDrive": "E",
+        "StagingVolumeLabel": "Golden Imaging",
+        "OfflinePath": "_offline",
+        "InstallersPath": "installers",
+        "ReturnPath": "return"
+    },
+    "VMCredentials": {
+        "VMUser": "Administrator",
+        "VMPassword": "654654",
+        "UsePasswordCreds": false
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+}
