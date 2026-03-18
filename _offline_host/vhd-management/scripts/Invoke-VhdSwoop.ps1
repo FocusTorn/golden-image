@@ -30,7 +30,7 @@ try {
         $destFolder = if ($sourceLeaf -eq "_offline") { $Cfg.OfflinePath } elseif ($sourceLeaf -eq "installers") { $Cfg.InstallersPath } else { $sourceLeaf }
         $destination = Join-Path $drive $destFolder
         Write-Host "[Syncing] $Source -> $destination" -ForegroundColor Yellow
-        robocopy $Source $destination /MIR /MT:16 /R:2 /W:5 /NP /NDL /FFT /XF RDP-Tcp.reg
+        robocopy $Source $destination /MIR /MT:16 /R:2 /W:5 /NP /NDL /FFT /B /XF RDP-Tcp.reg
     }
 
     Write-Host "[2/2] Reconnecting VHD to VM..." -ForegroundColor Gray

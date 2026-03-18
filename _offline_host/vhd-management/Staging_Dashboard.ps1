@@ -4,6 +4,21 @@ param([string]$Action)
 
 . (Join-Path $PSScriptRoot "scripts\VhdUtils.ps1")
 
+# --- GUEST SERVICES AUTO-ENABLE ---
+function Enable-GuestServicesIfNeeded {
+    param([string]$VMName)
+    if (-not $VMName) { return }
+    $vm = Get-VM -Name $VMName -ErrorAction SilentlyContinue
+    if (-not $vm -or $vm.State -ne 'Running') { return }
+    try {
+        $guestSvc = Get-VMIntegrationService -VMName $VMName -Name "Guest Service Interface" -ErrorAction SilentlyContinue
+        if ($guestSvc -and -not $guestSvc.Enabled) {
+            Enable-VMIntegrationService -VMName $VMName -Name "Guest Service Interface" -ErrorAction Stop
+            Write-Host "[*] Guest Services enabled on $VMName" -ForegroundColor DarkGray
+        }
+    } catch { }
+}
+
 # --- UI HELPERS ---
 function Show-VhdHeader {
     $Cfg = Get-Config
@@ -45,8 +60,9 @@ if ($Action -eq 'ConnectVM') {
 # --- MAIN EXECUTION LOOP ---
 while ($true) {
     Clear-Host
-    Show-VhdHeader
     $Cfg = Get-Config
+    Enable-GuestServicesIfNeeded -VMName $Cfg.VMName
+    Show-VhdHeader
     $scriptsDir = Join-Path $PSScriptRoot "scripts"
     $localReturnDir = Join-Path $LocalProjectRoot "return"
     $guestDrive = Get-GuestDriveLetter $Cfg.GuestStagingDrive

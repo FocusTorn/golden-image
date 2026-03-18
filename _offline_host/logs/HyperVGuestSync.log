@@ -1,66 +1,20 @@
-﻿2026-03-18 06:56:06.fff [SmartSync] Push START (drive E:\ from VMFileSystem.GuestStagingDrive in P:\Projects\golden-image\_master_config.json)
-2026-03-18 06:56:06.fff Syncing 336 files to E:\_offline...
-2026-03-18 06:56:06.fff Push: START vmName=Windows 11 Master fileCount=336
-2026-03-18 06:56:06.fff   WMI connected: root\virtualization\v2
-2026-03-18 06:56:06.fff   VM found: Windows 11 Master GUID=873FC5A4-A521-4723-A844-59B8F9F98AB6
-2026-03-18 06:56:06.fff   Service: Msvm_GuestFileService (new)
-2026-03-18 06:56:06.fff     [1] P:\Projects\golden-image\_offline\GoldenImager.bat -> E:\_offline\GoldenImager.bat
-2026-03-18 06:56:06.fff     [2] P:\Projects\golden-image\_offline\GoldenImager\Config\Options.json -> E:\_offline\GoldenImager\Config\Options.json
-2026-03-18 06:56:06.fff     [3] P:\Projects\golden-image\_offline\GoldenImager\Config\TweakProfiles\General.json -> E:\_offline\GoldenImager\Config\TweakProfiles\General.json
-2026-03-18 06:56:06.fff     [4] P:\Projects\golden-image\_offline\GoldenImager\Config\WindowBounds.json -> E:\_offline\GoldenImager\Config\WindowBounds.json
-2026-03-18 06:56:06.fff     [5] P:\Projects\golden-image\_offline\GoldenImager\Foundation\.github\CONTRIBUTING.md -> E:\_offline\GoldenImager\Foundation\.github\CONTRIBUTING.md
-2026-03-18 06:56:06.fff     ... and 331 more files
-2026-03-18 06:56:06.fff   ExecMethod CopyFilesToGuest returned
-2026-03-18 06:56:06.fff   ReturnValue=4096 (0=OK 4096=JobStarted)
-2026-03-18 06:56:06.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:06.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:06.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:06.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:06.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:07.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:08.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:09.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:10.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:11.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:12.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:12.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:12.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
-2026-03-18 06:56:12.fff FAILED: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The device is not ready. (0x80070015). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+﻿2026-03-18 07:30:52.fff [SmartSync] Push START (drive E:\ from VMFileSystem.GuestStagingDrive in P:\Projects\golden-image\_master_config.json)
+2026-03-18 07:30:52.fff Syncing 336 files to E:\_offline...
+2026-03-18 07:30:52.fff Push: START vmName=Windows 11 Master fileCount=336
+2026-03-18 07:30:52.fff   WMI connected: root\virtualization\v2
+2026-03-18 07:30:52.fff   VM found: Windows 11 Master GUID=873FC5A4-A521-4723-A844-59B8F9F98AB6
+2026-03-18 07:30:52.fff   Service: Msvm_GuestFileService (new)
+2026-03-18 07:30:53.fff     [1] P:\Projects\golden-image\_offline\GoldenImager.bat -> E:\_offline\GoldenImager.bat
+2026-03-18 07:30:53.fff     [2] P:\Projects\golden-image\_offline\GoldenImager\Config\Options.json -> E:\_offline\GoldenImager\Config\Options.json
+2026-03-18 07:30:53.fff     [3] P:\Projects\golden-image\_offline\GoldenImager\Config\TweakProfiles\General.json -> E:\_offline\GoldenImager\Config\TweakProfiles\General.json
+2026-03-18 07:30:53.fff     [4] P:\Projects\golden-image\_offline\GoldenImager\Config\WindowBounds.json -> E:\_offline\GoldenImager\Config\WindowBounds.json
+2026-03-18 07:30:53.fff     [5] P:\Projects\golden-image\_offline\GoldenImager\Foundation\.github\CONTRIBUTING.md -> E:\_offline\GoldenImager\Foundation\.github\CONTRIBUTING.md
+2026-03-18 07:30:53.fff     ... and 331 more files
+2026-03-18 07:30:53.fff   ExecMethod CopyFilesToGuest returned
+2026-03-18 07:30:53.fff   ReturnValue=4096 (0=OK 4096=JobStarted)
+2026-03-18 07:31:05.fff   ERROR: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The process cannot access the file because it is being used by another process. (0x80070020). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+
+'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\GoldenImager\Logs\GoldenImager.log' to the destination 'E:\_offline\GoldenImager\Logs\GoldenImager.log' in the guest: The process cannot access the file because it is being used by another process. (0x80070020). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+2026-03-18 07:31:05.fff FAILED: Hyper-V Copy Job Failed (State 10): 'Windows 11 Master' failed to initiate copying files to the guest: The process cannot access the file because it is being used by another process. (0x80070020). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)
+
+'Windows 11 Master' failed to copy the source file 'P:\Projects\golden-image\_offline\GoldenImager\Logs\GoldenImager.log' to the destination 'E:\_offline\GoldenImager\Logs\GoldenImager.log' in the guest: The process cannot access the file because it is being used by another process. (0x80070020). (Virtual machine ID 873FC5A4-A521-4723-A844-59B8F9F98AB6)

@@ -1322,6 +1322,8 @@ public class User32_ShowWindow {
                 Show-MessageBox -Message "Cannot delete the built-in Default profile." -Title "Delete Profile" -Button 'OK' -Icon 'Warning' | Out-Null
                 return
             }
+            $confirm = Show-MessageBox -Message "Delete profile '$profileName'?" -Title "Delete Profile" -Button 'YesNo' -Icon 'Question'
+            if ($confirm -ne 'Yes') { return }
             $profilesPath = Get-AppProfilesPath
             $filePath = Join-Path $profilesPath "$profileName.json"
             if (-not (Test-Path $filePath)) {

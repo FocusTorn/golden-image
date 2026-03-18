@@ -18,7 +18,7 @@ function Sync-Configs {
 
     # Only initialize host config if it's missing or empty
     if (-not (Test-Path $HostConfigPath)) {
-        $hostCfg = @{}
+        $hostCfg = [PSCustomObject]@{}
         foreach ($section in @($master.shared, $master.offline_host)) {
             if ($null -eq $section) { continue }
             foreach ($prop in $section.psobject.Properties) {
@@ -29,7 +29,7 @@ function Sync-Configs {
     }
 
     # Always ensure guest config is updated (it's the target for syncing to VM)
-    $offCfg = if (Test-Path $GuestConfigPath) { Get-Content $GuestConfigPath | ConvertFrom-Json } else { @{} }
+    $offCfg = if (Test-Path $GuestConfigPath) { Get-Content $GuestConfigPath | ConvertFrom-Json } else { [PSCustomObject]@{} }
     foreach ($section in @($master.shared, $master._offline)) {
         if ($null -eq $section) { continue }
         foreach ($prop in $section.psobject.Properties) {

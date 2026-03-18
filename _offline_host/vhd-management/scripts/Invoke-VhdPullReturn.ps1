@@ -18,13 +18,13 @@ try {
     $vhd = Invoke-VhdTransition -Target "Host" -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName
     $part = Get-Partition -DiskNumber $vhd.DiskNumber | Where-Object DriveLetter | Select-Object -First 1
     if (-not $part) { throw "No partition with drive letter found on VHD." }
-    
-    $sourcePath = Join-Path "${($part.DriveLetter)}:" "return"
+    $driveLetter = $part.DriveLetter
+    $sourcePath = Join-Path "${driveLetter}:" "return"
     if (-not (Test-Path $sourcePath)) {
         Write-Host "[!] Source missing on VHD: $sourcePath" -ForegroundColor Yellow
     } else {
         Write-Host "[*] Pulling: $sourcePath -> $TargetHostDir" -ForegroundColor Yellow
-        robocopy $sourcePath $TargetHostDir /MIR /MT:16 /R:2 /W:5 /NP /NDL
+        robocopy $sourcePath $TargetHostDir /MIR /MT:16 /R:2 /W:5 /NP /NDL /B
     }
 
     Write-Host "[2/2] Reconnecting VHD to VM..." -ForegroundColor Gray
