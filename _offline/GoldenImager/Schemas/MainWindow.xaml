@@ -1060,7 +1060,6 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="10"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
@@ -1070,10 +1069,8 @@
                                         <Button x:Name="LoadLastUsedAppsBtn" Content="Select Last Used Selection" ToolTip="Select the apps that were selected the last time Golden Imager was run" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,10,0" AutomationProperties.Name="Select Last Used Selection"/>
                                         <Button x:Name="ClearAppSelectionBtn" Content="Clear Selection" ToolTip="Clear all selected apps" Style="{DynamicResource SecondaryButtonStyle}" Height="32"  Padding="10,0" Margin="0,0,10,0" AutomationProperties.Name="Clear Selection"/>
                                     </StackPanel>
-                                    
-                                    <CheckBox x:Name="OnlyInstalledAppsBox" Grid.Row="0" Grid.Column="2" Content="Show all installed apps" IsChecked="False" Foreground="{DynamicResource FgColor}" VerticalAlignment="Center" AutomationProperties.Name="Show all installed apps"/>
 
-                                    <Border x:Name="AppSearchBorder" Grid.Row="0" Grid.Column="4">
+                                    <Border x:Name="AppSearchBorder" Grid.Row="0" Grid.Column="3">
                                         <Border.Style>
                                             <Style TargetType="Border" BasedOn="{StaticResource SearchBoxBorderStyle}">
                                                 <Style.Triggers>
@@ -1094,16 +1091,29 @@
                                         </Grid>
                                     </Border>
 
-                                    <!-- App Profile row (GuiFork) -->
-                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,12,0,0">
-                                        <TextBlock Text="App Profile:" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" FontWeight="{DynamicResource LabelFontWeight}" Foreground="{DynamicResource LabelColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <ComboBox x:Name="AppProfileCombo" MinWidth="180" Height="32" Margin="0,0,8,0" AutomationProperties.Name="App Profile"/>
-                                        <Button x:Name="AppProfileReplaceBtn" Content="Load" ToolTip="Clear selection and load profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Load profile"/>
-                                        <Button x:Name="AppProfileMergeBtn" Content="Merge" ToolTip="Add profile selections to current selection" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Merge profile"/>
-                                        <Button x:Name="AppProfileSaveBtn" Content="Save" ToolTip="Update active profile or save as new" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Save profile"/>
-                                        <Button x:Name="AppProfileSaveAsBtn" Content="Save as..." ToolTip="Save current selection to a new profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Save to new profile"/>
-                                        <Button x:Name="AppProfileDeleteBtn" Content="Delete" ToolTip="Remove selected profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" AutomationProperties.Name="Delete profile"/>
-                                    </StackPanel>
+                                    <!-- App Profile row with toggles right-justified -->
+                                    <Grid Grid.Row="1" Grid.ColumnSpan="4" Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                            <TextBlock Text="App Profile:" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" FontWeight="{DynamicResource LabelFontWeight}" Foreground="{DynamicResource LabelColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <ComboBox x:Name="AppProfileCombo" MinWidth="180" Height="32" Margin="0,0,8,0" AutomationProperties.Name="App Profile"/>
+                                            <Button x:Name="AppProfileReplaceBtn" Content="Load" ToolTip="Clear selection and load profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Load profile"/>
+                                            <Button x:Name="AppProfileMergeBtn" Content="Merge" ToolTip="Add profile selections to current selection" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Merge profile"/>
+                                            <Button x:Name="AppProfileSaveBtn" Content="Save" ToolTip="Update active profile or save as new" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Save profile"/>
+                                            <Button x:Name="AppProfileSaveAsBtn" Content="Save as..." ToolTip="Save current selection to a new profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Save to new profile"/>
+                                            <Button x:Name="AppProfileDeleteBtn" Content="Delete" ToolTip="Remove selected profile" Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" AutomationProperties.Name="Delete profile"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <CheckBox x:Name="OnlyInstalledAppsBox" Content="Only show installed" IsChecked="False" Foreground="{DynamicResource FgColor}" VerticalAlignment="Center" Margin="0,0,16,0" ToolTip="Filter curated list to apps installed on this system (uses Get-AppxPackage)" AutomationProperties.Name="Only show installed"/>
+                                            <CheckBox x:Name="ShowUserNotListedBox" Content="Show user not listed" IsChecked="False" Foreground="{DynamicResource FgColor}" VerticalAlignment="Center" Margin="0,0,16,0" ToolTip="User-installed apps (in profile, not provisioned) that are not in Apps.json" AutomationProperties.Name="Show user not listed"/>
+                                            <CheckBox x:Name="ShowProvisionedNotListedBox" Content="Show provisioned not listed" IsChecked="False" Foreground="{DynamicResource FgColor}" VerticalAlignment="Center" Margin="0,0,16,0" ToolTip="Provisioned apps (master template) that are not in Apps.json" AutomationProperties.Name="Show provisioned not listed"/>
+                                            <CheckBox x:Name="ShowAllNotListedBox" Content="Show all not listed" IsChecked="False" Foreground="{DynamicResource FgColor}" VerticalAlignment="Center" ToolTip="All installed/provisioned apps not in Apps.json" AutomationProperties.Name="Show all not listed"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </Grid>
                             </StackPanel>
                         </Border>

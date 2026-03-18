@@ -1,0 +1,12 @@
+PS E:\_offline> & "E:\_offline\_helpers\Get-FileLockDiagnostics.ps1"  -accepteula
+
+=== FILE LOCK DIAGNOSTICS ===
+File: E:\_offline\GoldenImager\Scripts\FileIO\LoadAppsDetailsFromJson.ps1
+
+Processes with handles on 'LoadAppsDetailsFromJson.ps1':
+
+  Nthandle v5.0 - Handle viewer
+  Copyright (C) 1997-2022 Mark Russinovich
+  Sysinternals - www.sysinternals.com
+
+  No matching handles found.

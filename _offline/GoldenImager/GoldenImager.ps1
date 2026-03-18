@@ -120,6 +120,7 @@ $script:DefaultSettingsFilePath = "$script:SourceRoot/Config/DefaultSettings.jso
 $script:FeaturesFilePath = "$script:SourceRoot/Config/Features.json"
 $script:SavedSettingsFilePath = "$script:SourceRoot/Config/LastUsedSettings.json"
 $script:CustomAppsListFilePath = "$script:SourceRoot/Config/CustomAppsList"
+$script:LoadAppsDetailsScriptPath = "$PSScriptRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
 $script:RegfilesPath = "$script:SourceRoot/Regfiles"
 $script:AssetsPath = "$script:SourceRoot/Assets"
 $script:AppSelectionSchema = "$script:SourceRoot/Schemas/AppSelectionWindow.xaml"
@@ -248,12 +249,18 @@ Write-Host "             Golden Imager is launching..." -ForegroundColor White
 Write-Host "               Leave this window open" -ForegroundColor DarkGray
 Write-Host ""
 
-# Log script output to GoldenImager.log at the specified path
-if ($LogPath -and (Test-Path $LogPath)) {
-    Start-Transcript -Path (Join-Path $LogPath "GoldenImager.log") -Append -IncludeInvocationHeader -Force | Out-Null
-}
-else {
-    Start-Transcript -Path $script:DefaultLogPath -Append -IncludeInvocationHeader -Force | Out-Null
+# Log script output and errors to GoldenImager.log
+$script:LogFilePath = if ($LogPath -and (Test-Path $LogPath)) { Join-Path $LogPath "GoldenImager.log" } else { $script:DefaultLogPath }
+$logDir = Split-Path $script:LogFilePath -Parent
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
+Start-Transcript -Path $script:LogFilePath -Append -IncludeInvocationHeader -Force | Out-Null
+
+# Trap terminating errors (transcript captures Write-Host; do not Add-Content - causes encoding corruption)
+trap {
+    $errLine = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ERROR: $($_.Exception.Message)"
+    if ($_.ScriptStackTrace) { $errLine += "`n$($_.ScriptStackTrace)" }
+    Write-Host $errLine -ForegroundColor Red
+    continue
 }
 
 # Check if script has all required files
@@ -300,15 +307,7 @@ catch {
     $script:WingetPath = $null
 }
 
-# Show WinGet warning only when using Foundation RemoveApps (overlay = offline-only, no WinGet)
-if (-not $script:WingetInstalled -and -not $Silent -and -not (Test-Path "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1")) {
-    Write-Warning "WinGet is not installed or outdated, this may prevent Golden Imager from removing certain apps"
-    Write-Output ""
-    Write-Output "Press any key to continue anyway..."
-    $null = [System.Console]::ReadKey()
-}
-
-
+# GoldenImager overlay uses offline-only RemoveApps (no WinGet required)
 
 ##################################################################################################################
 #                                                                                                                #
@@ -318,11 +317,33 @@ if (-not $script:WingetInstalled -and -not $Silent -and -not (Test-Path "$PSScri
 
 # Load app removal functions (overlay RemoveApps = offline-only, no WinGet)
 . "$script:SourceRoot/Scripts/AppRemoval/ForceRemoveEdge.ps1"
-$removeAppsPath = if (Test-Path "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1") { "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1" } else { "$script:SourceRoot/Scripts/AppRemoval/RemoveApps.ps1" }
-. $removeAppsPath
+. "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1"
 
-# Load CLI functions
-. "$script:SourceRoot/Scripts/CLI/AwaitKeyToExit.ps1"
+# Copy log file to return path when it exists (after transcript is stopped)
+function Copy-LogToReturnPath {
+    if (-not $script:LogFilePath -or -not (Test-Path $script:LogFilePath)) { return }
+    $offlineDir = Split-Path $PSScriptRoot -Parent
+    $configPath = Join-Path $offlineDir "_offline_config.json"
+    $guestDrive = "E"
+    $returnPath = "return"
+    if (Test-Path $configPath) {
+        try {
+            $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+            if ($cfg.GuestStagingDrive) { $guestDrive = $cfg.GuestStagingDrive.ToString().Trim().TrimEnd(':')[0] }
+            if ($cfg.ReturnPath) { $returnPath = $cfg.ReturnPath.ToString().Trim() }
+        } catch {}
+    }
+    $returnDir = Join-Path "${guestDrive}:\" $returnPath
+    if (Test-Path $returnDir) {
+        try {
+            $destPath = Join-Path $returnDir "GoldenImager.log"
+            Copy-Item -Path $script:LogFilePath -Destination $destPath -Force
+        } catch {}
+    }
+}
+
+# Load CLI functions (GoldenImager overlay required)
+. "$PSScriptRoot/Scripts/CLI/AwaitKeyToExit.ps1"
 . "$script:SourceRoot/Scripts/CLI/ShowCLILastUsedSettings.ps1"  
 . "$script:SourceRoot/Scripts/CLI/ShowCLIDefaultModeAppRemovalOptions.ps1"
 . "$script:SourceRoot/Scripts/CLI/ShowCLIDefaultModeOptions.ps1"
@@ -357,9 +378,9 @@ $removeAppsPath = if (Test-Path "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1
 . "$script:SourceRoot/Scripts/FileIO/SaveSettings.ps1"
 . "$script:SourceRoot/Scripts/FileIO/LoadSettings.ps1"
 . "$script:SourceRoot/Scripts/FileIO/SaveCustomAppsListToFile.ps1"
-. "$script:SourceRoot/Scripts/FileIO/ValidateAppslist.ps1"
+. "$PSScriptRoot/Scripts/FileIO/ValidateAppslist.ps1"
 . "$script:SourceRoot/Scripts/FileIO/LoadAppsFromFile.ps1"
-. "$script:SourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
+. "$PSScriptRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
 
 # Returns $true if WPF GUI is available (desktop session with display); $false otherwise (Server Core, SSH, remoting, etc.)
 function Test-WpfAvailable {
@@ -1016,8 +1037,9 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
         else {
             try {
                 $result = Show-MainWindow
-            
-                Stop-Transcript
+
+                Stop-Transcript -ErrorAction SilentlyContinue
+                Copy-LogToReturnPath
                 Exit
             }
             catch {

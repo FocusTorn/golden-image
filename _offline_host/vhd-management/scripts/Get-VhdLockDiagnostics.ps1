@@ -71,7 +71,7 @@ if ($vhdInfo -and $vhdInfo.Attached -and $null -ne $vhdInfo.DiskNumber) {
 $handlePath = Get-Command handle.exe -ErrorAction SilentlyContinue
 if ($handlePath) {
     Write-Host "`n[HOST] Processes with handles on '$leaf' (handle.exe):" -ForegroundColor Yellow
-    $out = & handle.exe $leaf 2>&1
+    $out = & handle.exe -accepteula $leaf 2>&1
     if ($out) { $out | ForEach-Object { Write-Host "  $_" } }
     else { Write-Host "  (no matches - try full path)" -ForegroundColor DarkGray }
 } else {

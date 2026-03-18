@@ -460,6 +460,9 @@ public class PSAppID {
     # Integrated App Selection UI
     $appsPanel = $window.FindName('AppSelectionPanel')
     $onlyInstalledAppsBox = $window.FindName('OnlyInstalledAppsBox')
+    $showUserNotListedBox = $window.FindName('ShowUserNotListedBox')
+    $showProvisionedNotListedBox = $window.FindName('ShowProvisionedNotListedBox')
+    $showAllNotListedBox = $window.FindName('ShowAllNotListedBox')
     $loadingAppsIndicator = $window.FindName('LoadingAppsIndicator')
     $appSelectionStatus = $window.FindName('AppSelectionStatus')
     $defaultAppsBtn = $window.FindName('DefaultAppsBtn')
@@ -842,45 +845,24 @@ public class PSAppID {
         UpdateAppSelectionStatus
     }
 
-    # Starts app loading in a background job (offline-first: Get-AppxPackage; winget optional for online)
+    # Starts app loading in a background job (offline: Get-AppxPackage + Get-AppxProvisionedPackage, same logic as Generate_App_Lists.ps1)
     function script:LoadAppsWithList {
         $onlyInstalledVal = $false
         if ($onlyInstalledAppsBox) { $onlyInstalledVal = $onlyInstalledAppsBox.IsChecked }
-        $wingetPath = $null
+        $viewMode = 'FromJson'
+        if ($showAllNotListedBox -and $showAllNotListedBox.IsChecked) { $viewMode = 'AllNotListed' }
+        elseif ($showProvisionedNotListedBox -and $showProvisionedNotListedBox.IsChecked) { $viewMode = 'ProvisionedNotListed' }
+        elseif ($showUserNotListedBox -and $showUserNotListedBox.IsChecked) { $viewMode = 'UserNotListed' }
 
         $appsListPath = [System.IO.Path]::GetFullPath($script:AppsListFilePath)
-        $sourceRootPath = [System.IO.Path]::GetFullPath($script:SourceRoot)
+        $loaderPath = [System.IO.Path]::GetFullPath($script:LoadAppsDetailsScriptPath)
         $script:CurrentAppDetailsJob = Start-Job -ScriptBlock {
-            param($appsListFilePath, $sourceRoot, $onlyInstalled, $wingetExe)
+            param($appsListFilePath, $loaderScriptPath, $onlyInstalled, $viewMode)
             $script:AppsListFilePath = $appsListFilePath
 
-            # Get installed list - offline first (Get-AppxPackage), no network required
-            $offlineApps = @()
-            try {
-                $offlineApps += Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
-            } catch { try { $offlineApps += Get-AppxPackage | Select-Object -ExpandProperty Name } catch { } }
-            $installedList = ($offlineApps | Where-Object { $_ } | Sort-Object -Unique) -join "`n"
-
-            if ($wingetExe) {
-                $tempFile = [System.IO.Path]::GetTempFileName()
-                try {
-                    $p = Start-Process -FilePath $wingetExe -ArgumentList "list --accept-source-agreements --disable-interactivity" -NoNewWindow -PassThru -RedirectStandardOutput $tempFile -ErrorAction SilentlyContinue
-                    if ($p) {
-                        $p | Wait-Process -Timeout 5 -ErrorAction SilentlyContinue
-                        if (-not $p.HasExited) {
-                            $p | Stop-Process -Force -ErrorAction SilentlyContinue
-                        } else {
-                            if (($raw = Get-Content $tempFile -Raw) -and $raw.Length -gt 100) { $installedList = $raw }
-                        }
-                    }
-                } finally {
-                    if (Test-Path $tempFile) { Remove-Item $tempFile -Force -ErrorAction SilentlyContinue }
-                }
-            }
-
-            . "$sourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
-            LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalled -InstalledList $installedList -InitialCheckedFromJson:$false
-        } -ArgumentList $appsListPath, $sourceRootPath, $onlyInstalledVal, $wingetPath
+            . $loaderScriptPath
+            LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalled -ViewMode $viewMode -InitialCheckedFromJson:$false
+        } -ArgumentList $appsListPath, $loaderPath, $onlyInstalledVal, $viewMode
         $script:CurrentAppDetailsJobStartTime = Get-Date
 
         if (-not $script:CurrentAppLoadTimer -or -not $script:CurrentAppLoadTimer.IsEnabled) {
@@ -896,23 +878,22 @@ public class PSAppID {
                         $script:CurrentAppDetailsJob = $null
                         $script:CurrentAppLoadTimer = $null
                         $script:CurrentAppDetailsJobStartTime = $null
-                        if ((-not $appsToAdd -or $appsToAdd.Count -eq 0) -and -not $onlyInstalledVal) {
-                            try {
-                                . "$script:SourceRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
-                                $appsToAdd = LoadAppsDetailsFromJson -OnlyInstalled:$false -InstalledList '' -InitialCheckedFromJson:$false
-                            } catch {}
-                        }
                         AddAppsToPanel $appsToAdd
                     }
                     elseif ($elapsed.TotalSeconds -gt 30 -or $script:CurrentAppDetailsJob.State -eq 'Failed') {
                         $script:CurrentAppLoadTimer.Stop()
+                        $errMsg = 'Unable to load app list.'
+                        if ($script:CurrentAppDetailsJob.State -eq 'Failed') {
+                            $jobErr = $script:CurrentAppDetailsJob.ChildJobs[0].Error | Select-Object -First 1
+                            if ($jobErr) { $errMsg += "`n`n$($jobErr.ToString())" }
+                        }
                         Remove-Job -Job $script:CurrentAppDetailsJob -Force -ErrorAction SilentlyContinue
                         $script:CurrentAppDetailsJob = $null
                         $script:CurrentAppLoadTimer = $null
                         $script:CurrentAppDetailsJobStartTime = $null
                         $loadingAppsIndicator.Visibility = 'Collapsed'
                         UpdateNavigationButtons
-                        Show-MessageBox -Message 'Unable to load app list. Showing empty list.' -Title 'Error' -Button 'OK' -Icon 'Warning' | Out-Null
+                        Show-MessageBox -Message $errMsg -Title 'Error' -Button 'OK' -Icon 'Error' | Out-Null
                     }
                 }
             })
@@ -953,12 +934,30 @@ public class PSAppID {
     }
 
     # Event handlers for app selection
-    $onlyInstalledAppsBox.Add_Checked({
-        LoadAppsIntoMainUI 
+    $onlyInstalledAppsBox.Add_Checked({ LoadAppsIntoMainUI })
+    $onlyInstalledAppsBox.Add_Unchecked({ LoadAppsIntoMainUI })
+
+    # Mutually exclusive: when one "not listed" toggle is checked, uncheck the others
+    function script:UncheckOtherNotListed($checkedBox) {
+        if ($showUserNotListedBox -and $showUserNotListedBox -ne $checkedBox) { $showUserNotListedBox.IsChecked = $false }
+        if ($showProvisionedNotListedBox -and $showProvisionedNotListedBox -ne $checkedBox) { $showProvisionedNotListedBox.IsChecked = $false }
+        if ($showAllNotListedBox -and $showAllNotListedBox -ne $checkedBox) { $showAllNotListedBox.IsChecked = $false }
+    }
+    $showUserNotListedBox.Add_Checked({
+        UncheckOtherNotListed $showUserNotListedBox
+        LoadAppsIntoMainUI
     })
-    $onlyInstalledAppsBox.Add_Unchecked({
-        LoadAppsIntoMainUI 
+    $showUserNotListedBox.Add_Unchecked({ LoadAppsIntoMainUI })
+    $showProvisionedNotListedBox.Add_Checked({
+        UncheckOtherNotListed $showProvisionedNotListedBox
+        LoadAppsIntoMainUI
     })
+    $showProvisionedNotListedBox.Add_Unchecked({ LoadAppsIntoMainUI })
+    $showAllNotListedBox.Add_Checked({
+        UncheckOtherNotListed $showAllNotListedBox
+        LoadAppsIntoMainUI
+    })
+    $showAllNotListedBox.Add_Unchecked({ LoadAppsIntoMainUI })
 
     # Quick selection buttons - only select apps actually in those categories
     $defaultAppsBtn.Add_Click({
