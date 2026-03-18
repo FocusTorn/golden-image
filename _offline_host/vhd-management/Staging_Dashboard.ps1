@@ -19,6 +19,28 @@ function Enable-GuestServicesIfNeeded {
     } catch { }
 }
 
+# --- AUTO-CONTINUE PAUSE ---
+function Wait-AutoContinue {
+    param([int]$Seconds = 10)
+    Write-Host ""
+    for ($i = $Seconds; $i -gt 0; $i--) {
+        Write-Host "`r  Continuing in ${i}s... [Enter=now | Any key=hold]  " -NoNewline -ForegroundColor DarkGray
+        $end = (Get-Date).AddSeconds(1)
+        while ((Get-Date) -lt $end) {
+            if ([Console]::KeyAvailable) {
+                $key = [Console]::ReadKey($true)
+                if ($key.Key -eq 'Enter') { Write-Host ""; return }
+                Write-Host "`r                                                    " -NoNewline
+                Write-Host "`r  Timer paused." -ForegroundColor Yellow
+                Read-Host "  Press Enter to continue"
+                return
+            }
+            Start-Sleep -Milliseconds 50
+        }
+    }
+    Write-Host ""
+}
+
 # --- UI HELPERS ---
 function Show-VhdHeader {
     $Cfg = Get-Config
@@ -83,20 +105,20 @@ while ($true) {
     $ErrorActionPreference = "Stop"
     try {
         switch ($choice) {
-            "1" { & "$scriptsDir\Invoke-VhdSwoop.ps1" -Sources @("$LocalProjectRoot\_offline") }
-            "2" { & "$scriptsDir\Invoke-VhdSwoop.ps1" -Sources @("$LocalProjectRoot\_offline", "$LocalProjectRoot\installers") }
+            "1" { & "$scriptsDir\Invoke-VhdSwoop.ps1" -Sources @("$LocalProjectRoot\_offline") -NoPause; Wait-AutoContinue }
+            "2" { & "$scriptsDir\Invoke-VhdSwoop.ps1" -Sources @("$LocalProjectRoot\_offline", "$LocalProjectRoot\installers") -NoPause; Wait-AutoContinue }
             "6" { 
                 $creds = Get-VMCreds $Cfg.VMUser $Cfg
                 Invoke-Command -VMName $Cfg.VMName -Credential $creds -ScriptBlock { Get-Content "${using:guestDrive}:\shit.txt" }
-                Read-Host "`nPress Enter..."
+                Wait-AutoContinue
             }
-            "7" { & "$scriptsDir\Get-RemoteLog.ps1" -Category all; Read-Host "`nPress Enter..." }
-            "d" { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; Read-Host "`nPress Enter..." }
+            "7" { & "$scriptsDir\Get-RemoteLog.ps1" -Category all; Wait-AutoContinue }
+            "d" { Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName; Wait-AutoContinue }
             "h" { Invoke-VhdTransition -Target "Host" -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName | Out-Null }
             "v" { Invoke-VhdTransition -Target "VM" -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName | Out-Null }
             "k" { Restart-Service "vds" -Force; Write-Host "[OK] VDS Restarted." -ForegroundColor Green; Start-Sleep -Seconds 2 }
-            "r" { & "$scriptsDir\Invoke-VhdPullReturn.ps1" -TargetHostDir $localReturnDir }
-            "z" { & "$scriptsDir\Get-VhdLockDiagnostics.ps1"; Read-Host "`nPress Enter..." }
+            "r" { & "$scriptsDir\Invoke-VhdPullReturn.ps1" -TargetHostDir $localReturnDir -NoPause; Wait-AutoContinue }
+            "z" { & "$scriptsDir\Get-VhdLockDiagnostics.ps1"; Wait-AutoContinue }
             "l" { & "$scriptsDir\Invoke-VmShortcut.ps1" }
             "sh" { $Cfg.VhdPath = Read-Host "VHD Path"; $Cfg | ConvertTo-Json | Set-Content $ConfigPath }
             "sv" { $Cfg.VMName = Read-Host "VM Name"; $Cfg | ConvertTo-Json | Set-Content $ConfigPath }
@@ -112,6 +134,6 @@ while ($true) {
         }
     } catch {
         Write-Host "`n[ERROR] Command failed: $($_.Exception.Message)" -ForegroundColor Red
-        Read-Host "Press Enter to reload dashboard..."
+        Wait-AutoContinue
     }
 }

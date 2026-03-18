@@ -470,18 +470,92 @@ public class PSAppID {
     
     # Track the last selected checkbox for shift-click range selection
     $script:MainWindowLastSelectedCheckbox = $null
-    
-    # Track current app loading operation to prevent race conditions
-    $script:CurrentAppLoadTimer = $null
-    $script:CurrentAppLoadJob = $null
-    $script:CurrentAppLoadJobStartTime = $null
-    $script:CurrentAppDetailsJob = $null
-    $script:CurrentAppDetailsJobStartTime = $null
-    
+
     # Set script-level variable for GUI window reference
     $script:GuiWindow = $window
 
-    # Updates app selection status text in the App Selection tab
+    # Column header elements for sort and resize
+    $appHeaderGrid      = $window.FindName('AppHeaderGrid')
+    $headerNameBtn      = $window.FindName('HeaderNameBtn')
+    $headerDescriptionBtn = $window.FindName('HeaderDescriptionBtn')
+    $headerAppIdBtn     = $window.FindName('HeaderAppIdBtn')
+    $sortArrowName        = $window.FindName('SortArrowName')
+    $sortArrowDescription = $window.FindName('SortArrowDescription')
+    $sortArrowAppId       = $window.FindName('SortArrowAppId')
+    $script:HeaderColName = $window.FindName('HeaderColName')
+    $script:HeaderColDesc = $window.FindName('HeaderColDesc')
+    $script:HeaderColId   = $window.FindName('HeaderColId')
+
+    $script:SortColumn = 'Name'
+    $script:SortAscending = $true
+
+    function UpdateSortArrows {
+        $ease = New-Object System.Windows.Media.Animation.QuadraticEase
+        $ease.EasingMode = 'EaseOut'
+        $arrows = @{
+            'Name'        = $sortArrowName
+            'Description' = $sortArrowDescription
+            'AppId'       = $sortArrowAppId
+        }
+        foreach ($col in $arrows.Keys) {
+            $tb = $arrows[$col]
+            if ($col -eq $script:SortColumn) {
+                $targetAngle = if ($script:SortAscending) { 0 } else { 180 }
+                $tb.Opacity = 1.0
+            } else {
+                $targetAngle = 0
+                $tb.Opacity = 0.3
+            }
+            $anim = New-Object System.Windows.Media.Animation.DoubleAnimation
+            $anim.To = $targetAngle
+            $anim.Duration = [System.Windows.Duration]::new([System.TimeSpan]::FromMilliseconds(200))
+            $anim.EasingFunction = $ease
+            $tb.RenderTransform.BeginAnimation([System.Windows.Media.RotateTransform]::AngleProperty, $anim)
+        }
+    }
+
+    function SortApps {
+        $children = @($appsPanel.Children)
+        $key = switch ($script:SortColumn) {
+            'Name'        { { $_.AppName } }
+            'Description' { { $_.AppDescription } }
+            'AppId'       { { $_.Tag } }
+        }
+        $sorted = $children | Sort-Object $key -Descending:(-not $script:SortAscending)
+        $appsPanel.Children.Clear()
+        foreach ($checkbox in $sorted) {
+            $appsPanel.Children.Add($checkbox) | Out-Null
+        }
+        UpdateSortArrows
+    }
+
+    function SetSortColumn($column) {
+        if ($script:SortColumn -eq $column) {
+            $script:SortAscending = -not $script:SortAscending
+        } else {
+            $script:SortColumn = $column
+            $script:SortAscending = $true
+        }
+        SortApps
+    }
+
+    function SyncColumnWidthsToRows {
+        $nameW  = $script:HeaderColName.ActualWidth
+        $descW  = $script:HeaderColDesc.ActualWidth
+        $idW    = $script:HeaderColId.ActualWidth
+        if ($nameW -le 0) { return }
+        foreach ($child in $appsPanel.Children) {
+            if ($child -is [System.Windows.Controls.CheckBox] -and $child.Content -is [System.Windows.Controls.Grid]) {
+                $grid = $child.Content
+                if ($grid.ColumnDefinitions.Count -ge 4) {
+                    $grid.ColumnDefinitions[1].Width = [System.Windows.GridLength]::new($nameW)
+                    $grid.ColumnDefinitions[2].Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Star)
+                    $grid.ColumnDefinitions[3].Width = [System.Windows.GridLength]::new($idW)
+                }
+            }
+        }
+    }
+
     function UpdateAppSelectionStatus {
         $selectedCount = 0
         foreach ($child in $appsPanel.Children) {
@@ -798,7 +872,7 @@ public class PSAppID {
 
         $batchSize = 20
         $idx = 0
-        $sorted = @($appsToAdd | Sort-Object -Property FriendlyName)
+        $sorted = @($appsToAdd | Where-Object { $_.AppId -or $_.FriendlyName } | Sort-Object -Property FriendlyName)
         foreach ($app in $sorted) {
             $checkbox = New-Object System.Windows.Controls.CheckBox
             $automationName = if ($app.FriendlyName) { $app.FriendlyName } elseif ($app.AppId) { $app.AppId } else { $null }
@@ -863,6 +937,8 @@ public class PSAppID {
             $idx++
             if ($idx % $batchSize -eq 0) { DoEvents }
         }
+        SortApps
+        SyncColumnWidthsToRows
         $loadingAppsIndicator.Visibility = 'Collapsed'
         UpdateNavigationButtons
         UpdateAppSelectionStatus
@@ -907,6 +983,21 @@ public class PSAppID {
         # Start loading job immediately - all work runs in background, UI stays responsive
         LoadAppsWithList
     }
+
+    # Column header sort handlers
+    $headerNameBtn.Add_MouseLeftButtonUp({ SetSortColumn 'Name' })
+    $headerDescriptionBtn.Add_MouseLeftButtonUp({ SetSortColumn 'Description' })
+    $headerAppIdBtn.Add_MouseLeftButtonUp({ SetSortColumn 'AppId' })
+
+    # GridSplitter drag handler — propagate header column widths to all data rows
+    $appHeaderGrid.Add_LayoutUpdated({
+        if ($script:_lastColNameW -ne $script:HeaderColName.ActualWidth -or
+            $script:_lastColIdW   -ne $script:HeaderColId.ActualWidth) {
+            $script:_lastColNameW = $script:HeaderColName.ActualWidth
+            $script:_lastColIdW   = $script:HeaderColId.ActualWidth
+            SyncColumnWidthsToRows
+        }
+    })
 
     # Event handlers for app selection
     $onlyInstalledAppsBox.Add_Checked({ LoadAppsIntoMainUI })
@@ -2214,6 +2305,42 @@ public class User32_ShowWindow {
 
         # Close the main window after the apply dialog closes
         $window.Close()
+    })
+
+    # Handle Export App List link
+    $exportAppListLink = $window.FindName('ExportAppListLink')
+    $exportAppListLink.Add_MouseLeftButtonUp({
+        $apps = @()
+        foreach ($child in $appsPanel.Children) {
+            if ($child -is [System.Windows.Controls.CheckBox] -and $child.Tag) {
+                $apps += [PSCustomObject]@{
+                    AppId            = $child.Tag
+                    FriendlyName     = $child.AppName
+                    Description      = $child.AppDescription
+                    IsChecked        = [bool]$child.IsChecked
+                    SelectedByDefault = $child.SelectedByDefault
+                }
+            }
+        }
+        if ($apps.Count -eq 0) {
+            Show-MessageBox -Message 'No apps in the current list to export.' -Title 'Export' -Button 'OK' -Icon 'Information' | Out-Null
+            return
+        }
+        $dlg = New-Object Microsoft.Win32.SaveFileDialog
+        $dlg.Filter = 'JSON files (*.json)|*.json|CSV files (*.csv)|*.csv|All files (*.*)|*.*'
+        $dlg.FileName = 'AppList'
+        if ($dlg.ShowDialog()) {
+            try {
+                if ($dlg.FileName -like '*.csv') {
+                    $apps | Export-Csv -Path $dlg.FileName -NoTypeInformation -Encoding UTF8
+                } else {
+                    $apps | ConvertTo-Json -Depth 5 | Set-Content -Path $dlg.FileName -Encoding UTF8
+                }
+                Show-MessageBox -Message "App list exported to:`n$($dlg.FileName)" -Title "Export" -Button 'OK' -Icon 'Information' | Out-Null
+            } catch {
+                Show-MessageBox -Message "Failed to export: $_" -Title "Export Error" -Button 'OK' -Icon 'Warning' | Out-Null
+            }
+        }
     })
 
     # Handle Export CLI button - build CLI command from current selections and copy to clipboard
