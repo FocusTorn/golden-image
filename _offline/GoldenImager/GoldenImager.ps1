@@ -120,6 +120,7 @@ $script:DefaultSettingsFilePath = "$script:SourceRoot/Config/DefaultSettings.jso
 $script:FeaturesFilePath = "$script:SourceRoot/Config/Features.json"
 $script:SavedSettingsFilePath = "$script:SourceRoot/Config/LastUsedSettings.json"
 $script:CustomAppsListFilePath = "$script:SourceRoot/Config/CustomAppsList"
+$script:OverlayAppsListFilePath = "$PSScriptRoot/Config/Apps.json"
 $script:LoadAppsDetailsScriptPath = "$PSScriptRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
 $script:RegfilesPath = "$script:SourceRoot/Regfiles"
 $script:AssetsPath = "$script:SourceRoot/Assets"

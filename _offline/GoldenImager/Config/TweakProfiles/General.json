@@ -19,10 +19,6 @@
                      },
                      {
                          "Value":  true,
-                         "Name":  "HideSearchTb"
-                     },
-                     {
-                         "Value":  true,
                          "Name":  "DisableTelemetry"
                      },
                      {
@@ -88,10 +84,6 @@
                      {
                          "Value":  true,
                          "Name":  "ShowKnownFileExt"
-                     },
-                     {
-                         "Value":  true,
-                         "Name":  "ClearStart"
                      },
                      {
                          "Value":  true,
@@ -184,6 +176,10 @@
                      {
                          "Value":  true,
                          "Name":  "DisableUpdateASAP"
+                     },
+                     {
+                         "Value":  true,
+                         "Name":  "DisableAnimations"
                      },
                      {
                          "Value":  true,

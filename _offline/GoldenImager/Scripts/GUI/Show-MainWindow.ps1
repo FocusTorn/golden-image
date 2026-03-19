@@ -940,6 +940,8 @@ public class PSAppID {
         SortApps
         SyncColumnWidthsToRows
         $loadingAppsIndicator.Visibility = 'Collapsed'
+        $exportAppListLink = $window.FindName('ExportAppListLink')
+        if ($exportAppListLink) { $exportAppListLink.Visibility = 'Visible' }
         UpdateNavigationButtons
         UpdateAppSelectionStatus
     }
@@ -955,19 +957,23 @@ public class PSAppID {
 
         $appsListPath = [System.IO.Path]::GetFullPath($script:AppsListFilePath)
         $loaderPath = [System.IO.Path]::GetFullPath($script:LoadAppsDetailsScriptPath)
+        $overlayPath = if ($script:OverlayAppsListFilePath) { [System.IO.Path]::GetFullPath($script:OverlayAppsListFilePath) } else { '' }
 
         try {
             $appsToAdd = Invoke-NonBlocking -ScriptBlock {
-                param($loaderScriptPath, $appsListFilePath, $onlyInstalled, $viewMode)
+                param($loaderScriptPath, $appsListFilePath, $onlyInstalled, $viewMode, $overlayAppsPath)
                 $script:AppsListFilePath = $appsListFilePath
+                $script:OverlayAppsListFilePath = $overlayAppsPath
                 . $loaderScriptPath
                 LoadAppsDetailsFromJson -OnlyInstalled:$onlyInstalled -ViewMode $viewMode -InitialCheckedFromJson:$false
-            } -ArgumentList $loaderPath, $appsListPath, $onlyInstalledVal, $viewMode -TimeoutSeconds 60
+            } -ArgumentList $loaderPath, $appsListPath, $onlyInstalledVal, $viewMode, $overlayPath -TimeoutSeconds 60
 
             AddAppsToPanel $appsToAdd
         }
         catch {
             $loadingAppsIndicator.Visibility = 'Collapsed'
+            $exportLink = $window.FindName('ExportAppListLink')
+            if ($exportLink) { $exportLink.Visibility = 'Collapsed' }
             UpdateNavigationButtons
             Show-MessageBox -Message "Unable to load app list.`n`n$($_.Exception.Message)" -Title 'Error' -Button 'OK' -Icon 'Error' | Out-Null
         }
@@ -975,6 +981,8 @@ public class PSAppID {
 
     # Loads apps into the UI
     function LoadAppsIntoMainUI {
+        $exportAppListLink = $window.FindName('ExportAppListLink')
+        if ($exportAppListLink) { $exportAppListLink.Visibility = 'Collapsed' }
         $loadingAppsIndicator.Visibility = 'Visible'
         $appsPanel.Children.Clear()
         UpdateNavigationButtons
@@ -1055,10 +1063,30 @@ using System.Runtime.InteropServices;
 public class User32_ShowWindow {
     [DllImport("kernel32.dll")]
     public static extern IntPtr GetConsoleWindow();
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentThreadId();
     [DllImport("user32.dll")]
     public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);
+    [DllImport("user32.dll")]
+    public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
     public const int SW_HIDE = 0;
     public const int SW_SHOW = 5;
+    public const int SW_RESTORE = 9;
+
+    public static void ForceActivate(IntPtr hwnd) {
+        IntPtr fg = GetForegroundWindow();
+        uint fgThread = GetWindowThreadProcessId(fg, IntPtr.Zero);
+        uint myThread = GetCurrentThreadId();
+        if (fgThread != myThread) AttachThreadInput(myThread, fgThread, true);
+        SetForegroundWindow(hwnd);
+        if (fgThread != myThread) AttachThreadInput(myThread, fgThread, false);
+    }
 }
 '@
     if (-not ([System.Management.Automation.PSTypeName]'User32_ShowWindow').Type) {
@@ -1994,31 +2022,40 @@ public class User32_ShowWindow {
             return
         }
         $tasks = @()
-        if (($window.FindName('HomeExec1')).IsChecked) { $tasks += @{ N='Customize'; C={ $bat = "$off\1_Customize.bat"; if (Test-Path $bat) { cmd /c "`"$bat`"" } else { & "$off\1_Customize.ps1" } } } }
-        if (($window.FindName('HomeExec2')).IsChecked) { $tasks += @{ N='Scoop'; C={ & "$off\2_Scoop.ps1" } } }
-        if (($window.FindName('HomeExec3')).IsChecked) { $tasks += @{ N='MSVC Build Tools'; C={ & "$off\3_MSVC.ps1" } } }
-        if (($window.FindName('HomeExec4')).IsChecked) { $tasks += @{ N='ALL System Apps'; C={ & "$off\4_System_Apps.ps1" -App "All" } } }
-        if (($window.FindName('HomeExec41')).IsChecked) { $tasks += @{ N='Chrome'; C={ & "$off\4_System_Apps.ps1" -App "Chrome" } } }
-        if (($window.FindName('HomeExec42')).IsChecked) { $tasks += @{ N='VS Code'; C={ & "$off\4_System_Apps.ps1" -App "VSCode" } } }
-        if (($window.FindName('HomeExec43')).IsChecked) { $tasks += @{ N='Go'; C={ & "$off\4_System_Apps.ps1" -App "Go" } } }
-        if (($window.FindName('HomeExec44')).IsChecked) { $tasks += @{ N='Git'; C={ & "$off\4_System_Apps.ps1" -App "Git" } } }
-        if (($window.FindName('HomeExec45')).IsChecked) { $tasks += @{ N='GitHub CLI'; C={ & "$off\4_System_Apps.ps1" -App "GitHubCLI" } } }
-        if (($window.FindName('HomeExec46')).IsChecked) { $tasks += @{ N='UniGetUI'; C={ & "$off\4_System_Apps.ps1" -App "UniGetUI" } } }
-        if (($window.FindName('HomeExec5')).IsChecked) { $tasks += @{ N='Rust'; C={ & "$off\5_Rust_Finish.ps1" } } }
-        if (($window.FindName('HomeExec6')).IsChecked) { $tasks += @{ N='Finalize'; C={ & "$off\7_Finalize.ps1" } } }
+        if (($window.FindName('HomeExec1')).IsChecked) { $tasks += @{ N='Customize'; C={ $p = $script:ImagingScriptsPath; $bat = "$p\1_Customize.bat"; if (Test-Path $bat) { cmd /c "`"$bat`"" } else { & "$p\1_Customize.ps1" } } } }
+        if (($window.FindName('HomeExec2')).IsChecked) { $tasks += @{ N='Scoop'; C={ & "$($script:ImagingScriptsPath)\2_Scoop.ps1" } } }
+        if (($window.FindName('HomeExec3')).IsChecked) { $tasks += @{ N='MSVC Build Tools'; C={ & "$($script:ImagingScriptsPath)\3_MSVC.ps1" } } }
+        if (($window.FindName('HomeExec4')).IsChecked) { $tasks += @{ N='ALL System Apps'; C={ & "$($script:ImagingScriptsPath)\4_System_Apps.ps1" -App "All" } } }
+        if (($window.FindName('HomeExec41')).IsChecked) { $tasks += @{ N='Chrome'; C={ & "$($script:ImagingScriptsPath)\4_System_Apps.ps1" -App "Chrome" } } }
+        if (($window.FindName('HomeExec42')).IsChecked) { $tasks += @{ N='VS Code'; C={ & "$($script:ImagingScriptsPath)\4_System_Apps.ps1" -App "VSCode" } } }
+        if (($window.FindName('HomeExec43')).IsChecked) { $tasks += @{ N='Go'; C={ & "$($script:ImagingScriptsPath)\4_System_Apps.ps1" -App "Go" } } }
+        if (($window.FindName('HomeExec44')).IsChecked) { $tasks += @{ N='Git'; C={ & "$($script:ImagingScriptsPath)\4_System_Apps.ps1" -App "Git" } } }
+        if (($window.FindName('HomeExec45')).IsChecked) { $tasks += @{ N='GitHub CLI'; C={ & "$($script:ImagingScriptsPath)\4_System_Apps.ps1" -App "GitHubCLI" } } }
+        if (($window.FindName('HomeExec46')).IsChecked) { $tasks += @{ N='UniGetUI'; C={ & "$($script:ImagingScriptsPath)\4_System_Apps.ps1" -App "UniGetUI" } } }
+        if (($window.FindName('HomeExec5')).IsChecked) { $tasks += @{ N='Rust'; C={ & "$($script:ImagingScriptsPath)\5_Rust_Finish.ps1" } } }
+        if (($window.FindName('HomeExec6')).IsChecked) { $tasks += @{ N='Finalize'; C={ & "$($script:ImagingScriptsPath)\7_Finalize.ps1" } } }
         if ($tasks.Count -eq 0) {
             Show-MessageBox -Message "Select at least one execution option." -Title "Execute" -Button 'OK' -Icon 'Information' | Out-Null
             return
         }
         $homeExecRunBtn.IsEnabled = $false
+        $script:PendingHomeTasks = $tasks
         $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [action]{
-            foreach ($t in $tasks) {
+            try {
+                $h = [User32_ShowWindow]::GetConsoleWindow()
+                if ($h -ne [IntPtr]::Zero) {
+                    [User32_ShowWindow]::ShowWindow($h, [User32_ShowWindow]::SW_RESTORE) | Out-Null
+                    [User32_ShowWindow]::ForceActivate($h)
+                }
+            } catch { }
+            foreach ($t in $script:PendingHomeTasks) {
                 try {
                     & $t.C
                 } catch {
                     Show-MessageBox -Message "$($t.N) failed: $_" -Title "Error" -Button 'OK' -Icon 'Warning' | Out-Null
                 }
             }
+            $script:PendingHomeTasks = $null
             $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{ $homeExecRunBtn.IsEnabled = $true })
             $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Normal, [action]{ Update-HomeDashboard })
         }) | Out-Null
@@ -2446,7 +2483,7 @@ public class User32_ShowWindow {
         if ($connContent) { $connContent.Visibility = 'Collapsed' }
         $runConnAudit = {
             Import-Module Microsoft.PowerShell.LocalAccounts -ErrorAction SilentlyContinue
-            $conn = @{ LimitBlank = $false; WinRM = $false; KeyIso = $false; Admin = $false }
+            $conn = @{ LimitBlank = $null; WinRM = $null; KeyIso = $null; Admin = $null }
             try { $val = (Get-ItemPropertyValue -Path 'HKLM:\System\CurrentControlSet\Control\Lsa' -Name 'LimitBlankPasswordUse' -ErrorAction Stop).ToString(); $conn.LimitBlank = ($val -eq '0') } catch { }
             try { $svc = Get-Service -Name WinRM -ErrorAction Stop; $conn.WinRM = "$($svc.Status) ($($svc.StartType))" -like 'Running*Auto*' } catch { }
             try { $svc = Get-Service -Name KeyIso -ErrorAction Stop; $conn.KeyIso = "$($svc.Status) ($($svc.StartType))" -like 'Running*Auto*' } catch { }
@@ -2541,7 +2578,7 @@ public class User32_ShowWindow {
             @{ N='MSVC Build Tools'; Reg='Visual Studio Build Tools'; Exe=$null; Lnk=$null; NoPath=$true; NoReg=$false; NoLnk=$true; FileCheck="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" },
             @{ N='Chrome'; Reg='Google Chrome'; Exe=$null; Lnk='Chrome'; NoPath=$true; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\Google\Chrome\Application\chrome.exe' },
             @{ N='VS Code'; Reg='Visual Studio Code'; Exe='code'; Lnk='Visual Studio Code'; NoPath=$false; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\Microsoft VS Code\bin\code.cmd' },
-            @{ N='Go'; Reg='Go Programming Language'; Exe='go'; Lnk=$null; NoPath=$false; NoReg=$false; NoLnk=$true; FileCheck=$null },
+            @{ N='Go'; Reg='Go Programming Language'; Exe='go'; Lnk=$null; NoPath=$false; NoReg=$false; NoLnk=$true; FileCheck='C:\Program Files\Go\bin\go.exe' },
             @{ N='Git'; Reg='Git'; Exe='git'; Lnk='Git'; NoPath=$false; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\Git\bin\git.exe' },
             @{ N='GitHub CLI'; Reg='GitHub CLI'; Exe='gh'; Lnk=$null; NoPath=$false; NoReg=$false; NoLnk=$true; FileCheck='C:\Program Files\GitHub CLI\gh.exe' },
             @{ N='UniGetUI'; Reg='UniGetUI'; Exe='unigetui'; Lnk='UniGetUI'; NoPath=$false; NoReg=$false; NoLnk=$false; FileCheck='C:\Program Files\UniGetUI\unigetui.exe' },
@@ -2553,7 +2590,7 @@ public class User32_ShowWindow {
             param($appsJson, $delaySec)
             if ($delaySec -gt 0) { Start-Sleep -Seconds $delaySec }
             Import-Module Microsoft.PowerShell.LocalAccounts -ErrorAction SilentlyContinue
-            $conn = @{ LimitBlank = $false; WinRM = $false; KeyIso = $false; Admin = $false }
+            $conn = @{ LimitBlank = $null; WinRM = $null; KeyIso = $null; Admin = $null }
             try {
                 $val = (Get-ItemPropertyValue -Path 'HKLM:\System\CurrentControlSet\Control\Lsa' -Name 'LimitBlankPasswordUse' -ErrorAction Stop).ToString()
                 $conn.LimitBlank = ($val -eq '0')

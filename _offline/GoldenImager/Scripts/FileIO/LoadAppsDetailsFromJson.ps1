@@ -11,6 +11,7 @@ function LoadAppsDetailsFromJson {
     )
 
     $apps = @()
+    $guidPattern = '^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$'
     $needInstalled = $OnlyInstalled -or $ViewMode -ne 'FromJson'
     $needProvisioned = $ViewMode -in @('UserNotListed', 'ProvisionedNotListed', 'AllNotListed')
 
@@ -49,16 +50,31 @@ function LoadAppsDetailsFromJson {
         return $apps
     }
 
+    if ($script:OverlayAppsListFilePath -and (Test-Path $script:OverlayAppsListFilePath)) {
+        try {
+            $overlayContent = Get-Content -Path $script:OverlayAppsListFilePath -Raw -ErrorAction Stop | ConvertFrom-Json
+            foreach ($overlayApp in $overlayContent.Apps) {
+                $oId = $overlayApp.AppId.Trim()
+                if ($oId.Length -gt 0 -and $jsonAppIds -notcontains $oId) {
+                    $jsonContent.Apps += $overlayApp
+                    $jsonAppIds += $oId
+                }
+            }
+        } catch {
+            Write-Warning "Failed to read overlay Apps.json: $_"
+        }
+    }
+
     # --- ViewMode: Not-listed modes (apps on system but NOT in Apps.json) ---
     if ($ViewMode -eq 'UserNotListed') {
-        $namesToShow = @($userOnlyNames | Where-Object { $jsonAppIds -notcontains $_ })
+        $namesToShow = @($userOnlyNames | Where-Object { $jsonAppIds -notcontains $_ -and $_ -notmatch $guidPattern })
     }
     elseif ($ViewMode -eq 'ProvisionedNotListed') {
-        $namesToShow = @($provisionedNames | Where-Object { $jsonAppIds -notcontains $_ })
+        $namesToShow = @($provisionedNames | Where-Object { $jsonAppIds -notcontains $_ -and $_ -notmatch $guidPattern })
     }
     elseif ($ViewMode -eq 'AllNotListed') {
         $allSystemNames = @($installedNames + $provisionedNames | Sort-Object -Unique)
-        $namesToShow = @($allSystemNames | Where-Object { $jsonAppIds -notcontains $_ })
+        $namesToShow = @($allSystemNames | Where-Object { $jsonAppIds -notcontains $_ -and $_ -notmatch $guidPattern })
     }
     else {
         $namesToShow = @()
@@ -85,6 +101,7 @@ function LoadAppsDetailsFromJson {
     foreach ($appData in $jsonContent.Apps) {
         $appId = $appData.AppId.Trim()
         if ($appId.Length -eq 0) { continue }
+        if ($appId -match $guidPattern) { continue }
 
         if ($OnlyInstalled) {
             $isInstalled = $installedNames -contains $appId

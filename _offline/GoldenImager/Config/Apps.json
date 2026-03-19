@@ -1,0 +1,453 @@
+{
+  "Version": "1.0",
+  "Apps": [
+    {
+      "FriendlyName": "AAD Broker Plugin",
+      "AppId": "Microsoft.AAD.BrokerPlugin",
+      "Description": "Azure AD authentication broker, required for Microsoft account sign-in",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Accounts Control",
+      "AppId": "Microsoft.AccountsControl",
+      "Description": "System account management UI, required for sign-in flows",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "App Compatibility Enhancements",
+      "AppId": "Microsoft.ApplicationCompatibilityEnhancements",
+      "Description": "Application compatibility shims and enhancements",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Async Text Service",
+      "AppId": "Microsoft.AsyncTextService",
+      "Description": "Background text input service, required for IME and text processing",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "AV1 Video Extension",
+      "AppId": "Microsoft.AV1VideoExtension",
+      "Description": "AV1 video codec for playback of AV1-encoded content",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "AVC Encoder Video Extension",
+      "AppId": "Microsoft.AVCEncoderVideoExtension",
+      "Description": "H.264/AVC hardware video encoder extension",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "Bio Enrollment",
+      "AppId": "Microsoft.BioEnrollment",
+      "Description": "Windows Hello biometric enrollment (fingerprint, face recognition)",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Credential Dialog Host",
+      "AppId": "Microsoft.CredDialogHost",
+      "Description": "System credential prompt dialog, required for authentication",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "App Installer (WinGet)",
+      "AppId": "Microsoft.DesktopAppInstaller",
+      "Description": "WinGet package manager and MSIX/Appx installer",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "EC App (Eye Contact)",
+      "AppId": "Microsoft.ECApp",
+      "Description": "Eye Contact app, system component for camera AI features",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "HEIF Image Extension",
+      "AppId": "Microsoft.HEIFImageExtension",
+      "Description": "HEIF/HEIC image codec for viewing Apple-format photos",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "HEVC Video Extension",
+      "AppId": "Microsoft.HEVCVideoExtension",
+      "Description": "H.265/HEVC video codec for high-efficiency video playback",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "Lock App",
+      "AppId": "Microsoft.LockApp",
+      "Description": "Windows lock screen, removing breaks lock/sign-in experience",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Microsoft Edge (Stable)",
+      "AppId": "Microsoft.MicrosoftEdge.Stable",
+      "Description": "Edge browser WebView2 runtime and additional install",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "Edge DevTools Client",
+      "AppId": "Microsoft.MicrosoftEdgeDevToolsClient",
+      "Description": "Edge developer tools, not needed for typical usage",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "MPEG-2 Video Extension",
+      "AppId": "Microsoft.MPEG2VideoExtension",
+      "Description": "MPEG-2 video codec for DVD and legacy video playback",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": ".NET Native Framework 2.2",
+      "AppId": "Microsoft.NET.Native.Framework.2.2",
+      "Description": ".NET Native framework runtime, required by many Store apps",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": ".NET Native Runtime 2.2",
+      "AppId": "Microsoft.NET.Native.Runtime.2.2",
+      "Description": ".NET Native runtime, required by many Store apps",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "RAW Image Extension",
+      "AppId": "Microsoft.RawImageExtension",
+      "Description": "RAW image codec for viewing camera RAW photos",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "Windows Security UI",
+      "AppId": "Microsoft.SecHealthUI",
+      "Description": "Windows Security center UI, removing breaks Defender access",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Store Purchase App",
+      "AppId": "Microsoft.StorePurchaseApp",
+      "Description": "Handles Microsoft Store purchases and license management",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "WinUI XAML 2.8",
+      "AppId": "Microsoft.UI.Xaml.2.8",
+      "Description": "WinUI 2.8 XAML framework, dependency for many modern apps",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "WinUI XAML CBS",
+      "AppId": "Microsoft.UI.Xaml.CBS",
+      "Description": "WinUI XAML CBS component, system framework dependency",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "VC++ Libraries 14.0",
+      "AppId": "Microsoft.VCLibs.140.00",
+      "Description": "Visual C++ 14.0 runtime libraries for UWP apps",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "VC++ Libraries 14.0 Desktop",
+      "AppId": "Microsoft.VCLibs.140.00.UWPDesktop",
+      "Description": "Visual C++ 14.0 runtime libraries for desktop bridge apps",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "VP9 Video Extensions",
+      "AppId": "Microsoft.VP9VideoExtensions",
+      "Description": "VP9 video codec for WebM and YouTube video playback",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "Web Media Extensions",
+      "AppId": "Microsoft.WebMediaExtensions",
+      "Description": "OGG Vorbis and Theora media codec extensions",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "WebP Image Extension",
+      "AppId": "Microsoft.WebpImageExtension",
+      "Description": "WebP image codec for viewing web-optimized images",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "Widgets Platform Runtime",
+      "AppId": "Microsoft.WidgetsPlatformRuntime",
+      "Description": "Runtime for Windows 11 Widgets, removable bloat",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "Win32 WebView Host",
+      "AppId": "Microsoft.Win32WebViewHost",
+      "Description": "WebView host for Win32 system dialogs and web content",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "SmartScreen (ChxApp)",
+      "AppId": "Microsoft.Windows.Apprep.ChxApp",
+      "Description": "SmartScreen app reputation checking, system security component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Assigned Access Lock App",
+      "AppId": "Microsoft.Windows.AssignedAccessLockApp",
+      "Description": "Kiosk mode assigned access lock, system component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "AugLoop CBS",
+      "AppId": "Microsoft.Windows.AugLoop.CBS",
+      "Description": "AI/ML augmented loop CBS component, system telemetry",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Capture Picker",
+      "AppId": "Microsoft.Windows.CapturePicker",
+      "Description": "Screen capture source picker dialog, system component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Cloud Experience Host",
+      "AppId": "Microsoft.Windows.CloudExperienceHost",
+      "Description": "OOBE and cloud account setup, removing breaks first-run and Azure AD join",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Content Delivery Manager",
+      "AppId": "Microsoft.Windows.ContentDeliveryManager",
+      "Description": "Manages Start menu suggestions, app pre-installs, and spotlight",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Narrator Quick Start",
+      "AppId": "Microsoft.Windows.NarratorQuickStart",
+      "Description": "Narrator accessibility quick-start guide, safe to remove",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "OOBE Captive Portal",
+      "AppId": "Microsoft.Windows.OOBENetworkCaptivePortal",
+      "Description": "OOBE captive portal network login, only used during setup",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "OOBE Network Connection Flow",
+      "AppId": "Microsoft.Windows.OOBENetworkConnectionFlow",
+      "Description": "OOBE network connection wizard, only used during setup",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "Parental Controls",
+      "AppId": "Microsoft.Windows.ParentalControls",
+      "Description": "Parental controls settings app, safe to remove if unused",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "People Experience Host",
+      "AppId": "Microsoft.Windows.PeopleExperienceHost",
+      "Description": "People flyout and share experience, system shell component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Pinning Confirmation Dialog",
+      "AppId": "Microsoft.Windows.PinningConfirmationDialog",
+      "Description": "Taskbar and Start pinning confirmation, system UI component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Print Queue Action Center",
+      "AppId": "Microsoft.Windows.PrintQueueActionCenter",
+      "Description": "Print queue notifications and management, system component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Secure Assessment Browser",
+      "AppId": "Microsoft.Windows.SecureAssessmentBrowser",
+      "Description": "Locked-down browser for educational testing, safe to remove",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "Shell Experience Host",
+      "AppId": "Microsoft.Windows.ShellExperienceHost",
+      "Description": "Core shell host for taskbar, action center, and notifications",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Start Menu Experience Host",
+      "AppId": "Microsoft.Windows.StartMenuExperienceHost",
+      "Description": "Start menu rendering, removing breaks the Start menu entirely",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "External GPU Eject Dialog",
+      "AppId": "Microsoft.Windows.XGpuEjectDialog",
+      "Description": "External GPU safe-eject dialog, system component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Windows App Runtime 1.5",
+      "AppId": "Microsoft.WindowsAppRuntime.1.5",
+      "Description": "Windows App SDK 1.5 runtime, dependency for modern apps",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "Windows App Runtime 1.6",
+      "AppId": "Microsoft.WindowsAppRuntime.1.6",
+      "Description": "Windows App SDK 1.6 runtime, dependency for modern apps",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "Windows App Runtime CBS",
+      "AppId": "Microsoft.WindowsAppRuntime.CBS",
+      "Description": "Windows App Runtime CBS servicing component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Windows App Runtime CBS 1.6",
+      "AppId": "Microsoft.WindowsAppRuntime.CBS.1.6",
+      "Description": "Windows App Runtime CBS 1.6 servicing component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Xbox Game Callable UI",
+      "AppId": "Microsoft.XboxGameCallableUI",
+      "Description": "Xbox game invitation and achievement UI, not needed without Xbox",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "Filons (Internal)",
+      "AppId": "MicrosoftWindows.54792954.Filons",
+      "Description": "Internal Microsoft component, purpose unclear",
+      "SelectedByDefault": false,
+      "Recommendation": "optional"
+    },
+    {
+      "FriendlyName": "Windows Client CBS",
+      "AppId": "MicrosoftWindows.Client.CBS",
+      "Description": "Core Windows client component-based servicing package",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Windows Client Core",
+      "AppId": "MicrosoftWindows.Client.Core",
+      "Description": "Core Windows client shell and UX package",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Windows Client Core AI",
+      "AppId": "MicrosoftWindows.Client.CoreAI",
+      "Description": "Windows Copilot and AI integration core package",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Windows Client File Explorer",
+      "AppId": "MicrosoftWindows.Client.FileExp",
+      "Description": "Modern File Explorer integration package",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Windows Client OOBE",
+      "AppId": "MicrosoftWindows.Client.OOBE",
+      "Description": "Out-of-box experience client package",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Windows Client Photon",
+      "AppId": "MicrosoftWindows.Client.Photon",
+      "Description": "Shell rendering and composition engine package",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Widgets Web Experience",
+      "AppId": "MicrosoftWindows.Client.WebExperience",
+      "Description": "Widgets web content feed, removable bloat",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "Undocked Dev Kit",
+      "AppId": "MicrosoftWindows.UndockedDevKit",
+      "Description": "Developer kit for undocked/detached UI, safe to remove",
+      "SelectedByDefault": false,
+      "Recommendation": "safe"
+    },
+    {
+      "FriendlyName": "CBS Preview",
+      "AppId": "Windows.CBSPreview",
+      "Description": "Component-based servicing preview package, system component",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Windows Settings",
+      "AppId": "windows.immersivecontrolpanel",
+      "Description": "Windows Settings app (immersive control panel), do not remove",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    },
+    {
+      "FriendlyName": "Print Dialog",
+      "AppId": "Windows.PrintDialog",
+      "Description": "System print dialog, removing breaks printing",
+      "SelectedByDefault": false,
+      "Recommendation": "unsafe"
+    }
+  ]
+}

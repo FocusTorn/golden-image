@@ -1,6 +1,7 @@
 installers/
 _removed/
 output/
+return/
 _offline/Win11_Debloater/Main copy.ps1
 return/genersate-apps.txt
 *.ahk

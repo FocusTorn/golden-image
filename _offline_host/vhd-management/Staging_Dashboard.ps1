@@ -96,6 +96,8 @@ while ($true) {
     Write-Host "  6. Pull Shit | 7. Pull Logs | L. Shortcut"
     Write-Host "`nVHD CONTROL:" -ForegroundColor Magenta
     Write-Host "  D. Disconnect All | H. Connect Host | V. Connect VM | K. Kill VDS | R. Pull Return | Z. Lock Diagnostics"
+    Write-Host "`nIMAGING:" -ForegroundColor Magenta
+    Write-Host "  W. Capture WIM from VHD"
     Write-Host "`nCONFIG:" -ForegroundColor DarkGray
     Write-Host "  [SH] Set VHD  [SV] Set VM  [SG] Set Guest ($guestDrive)  [P] Toggle Creds  [X] Exit"
 
@@ -119,6 +121,7 @@ while ($true) {
             "k" { Restart-Service "vds" -Force; Write-Host "[OK] VDS Restarted." -ForegroundColor Green; Start-Sleep -Seconds 2 }
             "r" { & "$scriptsDir\Invoke-VhdPullReturn.ps1" -TargetHostDir $localReturnDir -NoPause; Wait-AutoContinue }
             "z" { & "$scriptsDir\Get-VhdLockDiagnostics.ps1"; Wait-AutoContinue }
+            "w" { & "$scriptsDir\New-WimFromVhd.ps1" -NoPause; Wait-AutoContinue }
             "l" { & "$scriptsDir\Invoke-VmShortcut.ps1" }
             "sh" { $Cfg.VhdPath = Read-Host "VHD Path"; $Cfg | ConvertTo-Json | Set-Content $ConfigPath }
             "sv" { $Cfg.VMName = Read-Host "VM Name"; $Cfg | ConvertTo-Json | Set-Content $ConfigPath }

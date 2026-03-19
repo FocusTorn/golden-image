@@ -44,7 +44,9 @@ Write-Host "`n--- STAGE 3: CACHE & LOG PURGE ---" -ForegroundColor Cyan
 
 # 8. Clear all Windows Event Logs
 Write-Host "[*] Clearing Event Logs..."
-Get-WinEvent -ListLog * -ErrorAction SilentlyContinue | ForEach-Object { [System.Diagnostics.Eventing.Reader.EventLogSession]::GlobalSession.ClearLog($_.LogName) }
+Get-WinEvent -ListLog * -ErrorAction SilentlyContinue | ForEach-Object {
+    try { [System.Diagnostics.Eventing.Reader.EventLogSession]::GlobalSession.ClearLog($_.LogName) } catch { }
+}
 
 # 9. Clear Prefetch and Recent Items
 Write-Host "[*] Clearing Prefetch and Recent File caches..."
@@ -69,9 +71,9 @@ Remove-Item -Path "C:\Windows\Temp\*" -Recurse -Force -ErrorAction SilentlyConti
 
 Write-Host "`n--- STAGE 5: FINAL VERIFICATION ---" -ForegroundColor Cyan
 
-# 13. Verify Unattend.xml exists (copy from Z:\_offline\unattend.xml if missing, then recheck)
+# 13. Verify Unattend.xml exists (copy from _config if missing, then recheck)
 $UnattendPath = "C:\Windows\System32\Sysprep\unattend.xml"
-$UnattendSource = "Z:\_offline\unattend.xml"
+$UnattendSource = "E:\_offline\_config\unattend.xml"
 if (-not (Test-Path $UnattendPath) -and (Test-Path $UnattendSource)) {
     Copy-Item -LiteralPath $UnattendSource -Destination $UnattendPath -Force
     Write-Host "[*] Copied unattend.xml from $UnattendSource." -ForegroundColor Gray
@@ -88,7 +90,10 @@ if (Test-Path $UnattendPath) {
 
 
 Write-Host "[!] Reverting Execution Policy for Production..." -ForegroundColor Yellow
-Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope LocalMachine -Force
+Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope Process       -Force -ErrorAction SilentlyContinue
+Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope CurrentUser   -Force -ErrorAction SilentlyContinue
+Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope LocalMachine  -Force -ErrorAction SilentlyContinue
+Write-Host "  Execution Policy set to Restricted (all scopes)." -ForegroundColor Gray
 
 
 
