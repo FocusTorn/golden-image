@@ -1,33 +1,11 @@
 {
-    "shared": {
-        "GuestStagingDrive": "E",
-        "StagingVolumeLabel": "Golden Imaging",
-        "OfflinePath": "_offline",
-        "InstallersPath": "installers",
-        "ReturnPath": "return",
-        "VMHostname": "DESKTOP-HJHJ8UV"
-    },
-    "_offline": {
-    },
-    "offline_host": {
-        "VhdPath": "N:/VHD/MasterInstallers.vhdx",
-        "VMName": "Windows 11 Master",
-        "VMUser": "Administrator",
-        "VMPassword": "654654",
-        "UsePasswordCreds": true
-    },
-    "ahk": {
-    },
+    // Master config (JSONC). Active VM profile: $env:GOLDEN_IMAGE_VM_PROFILE, or defaultVMProfile / activeVMProfile below.
     
+    "defaultVMProfile": "Windows 11 Master",
     
-    "--- NEW VERSION ---------------------------------------------------------": "",
-    
-    "VMDetails": {
-        "VhdPath": "N:/VHD/MasterInstallers.vhdx",
-        "VMName": "Windows 11 Master",
-        "VMHostname": "DESKTOP-HJHJ8UV"
-    },
+    // Shared by all profiles unless a profile overrides VhdPath in VMDetails.
     "VMFileSystem": {
+        "HostVhdPath": "N:/VHD/Golden-Imaging.vhdx",
         "GuestStagingDrive": "E",
         "StagingVolumeLabel": "Golden Imaging",
         "OfflinePath": "_offline",
@@ -38,13 +16,68 @@
         "VMUser": "Administrator",
         "VMPassword": "654654",
         "UsePasswordCreds": false
+    },
+
+    "VMProvisioningTemplates": {
+        "OfflineSysprep": {
+            "NewOsVhdSizeGB": 80,
+            "VmMachinePath": "Z:/Virtuals/Hyper-V/",
+            "Generation": 2,
+            "ProcessorCount": 4,
+            "SwitchName": "Not Connected",
+            "AttachStagingVhd": true,
+            "EnableGuestServices": true,
+            "EnableEnhancedSession": true,
+            "DisableAutomaticCheckpoints": true,
+            "DynamicMemoryEnabled": false,
+            "MemoryStartupBytes": 8589934592,
+            "MemoryPriority": 50,
+            "ExposeVirtualizationExtensions": false,
+            "EnableSecureBoot": true,
+            "SecureBootTemplate": "MicrosoftWindows",
+            "TpmEnabled": true
+        },
+        "StandardWindows": {
+            "NewOsVhdSizeGB": 80,
+            "VmMachinePath": "Z:/Virtuals/Hyper-V/",
+            "Generation": 2,
+            "ProcessorCount": 4,
+            "SwitchName": "Default Switch",
+            "AttachStagingVhd": true,
+            "EnableGuestServices": true,
+            "EnableEnhancedSession": true,
+            "DisableAutomaticCheckpoints": true,
+            "DynamicMemoryEnabled": false,
+            "MemoryStartupBytes": 8589934592,
+            "MemoryPriority": 50,
+            "ExposeVirtualizationExtensions": false,
+            "EnableSecureBoot": true,
+            "SecureBootTemplate": "MicrosoftWindows",
+            "TpmEnabled": true
+        }
+    },
+
+    "VMProfiles": {
+        "Windows 11 Master": {
+            "HardwareTemplate": "OfflineSysprep",
+            "VMDetails": {
+                "VMName": "Windows 11 Master",
+                "OSImagePath": "N:/Win11_25H2_English_x64.iso",
+                //"VhdPath": "N:/VHD/Golden-Imaging.vhdx",
+                "OsVhdPath": "N:/VM/GoldenMaster/Virtual Hard Disks/Windows_11_Master_OS.vhdx",
+                "VMHostname": "DESKTOP-HJHJ8UV",
+                "WimDestination": "N:/Custom_Win_11_20260318_170403.wim"
+            }
+        },
+        "TrialVM": {
+            "HardwareTemplate": "StandardWindows",
+            "VMDetails": {
+                "VMName": "Trial VM",
+                "OSImagePath": "N:/Win11_25H2_English_x64.iso",
+                // "VhdPath": "N:/VHD/Golden-Imaging.vhdx",
+                "OsVhdPath": "Z:/Virtuals/Hyper-V/Trial VM/Virtual Hard Disks/Trial_VM_OS.vhdx",
+                "VMHostname": "DESKTOP-TRIAL01"
+            }
+        }
     }
-    
-    
-    
-    
-    
-    
-    
-    
 }

@@ -3,6 +3,20 @@
 
 
 
+
+
+
+
+
+.\OOSU10.exe /factory /apply /quiet
+
+
+
+
+
+
+
+
 Get-Content "H:\_offline\GoldenImager\Scripts\FileIO\LoadAppsDetailsFromJson.ps1" -ErrorAction Stop | Select-Object -First 3
 
 

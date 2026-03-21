@@ -25,17 +25,12 @@ param(
     [switch]$CheckGuest
 )
 
+$LocalProjectRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+. (Join-Path $LocalProjectRoot "_helpers\ConfigUtils.ps1")
 
-# $ConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "config.json" #
-$ConfigPath = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "_offline_host_config.json"
-
-
-
-if (Test-Path $ConfigPath) {
-    $cfg = Get-Content $ConfigPath | ConvertFrom-Json
-    if (-not $VhdPath) { $VhdPath = $cfg.VhdPath }
-    if (-not $VMName) { $VMName = $cfg.VMName }
-}
+$cfg = Get-Config -Target Host
+if (-not $VhdPath) { $VhdPath = $cfg.VhdPath }
+if (-not $VMName) { $VMName = $cfg.VMName }
 if (-not $VhdPath) { $VhdPath = "N:\VHD\MasterInstallers.vhdx" }
 
 $leaf = Split-Path $VhdPath -Leaf

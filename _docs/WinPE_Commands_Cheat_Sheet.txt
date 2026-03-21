@@ -1,4 +1,8 @@
 # DISM COMMANDS FOR WINPE
+#
+# How to build WinPE on a USB and boot from it:
+#   See _docs/WinPE_USB_and_Boot.md
+#
 
 --- CAPTURE (BACKUP) ---
 dism /Capture-Image /ImageFile:"OS_BACKUP.wim" /CaptureDir:C:\ /Name:"PreDebloatBackup" /Compress:max

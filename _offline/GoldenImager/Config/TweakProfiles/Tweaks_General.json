@@ -179,10 +179,6 @@
                      },
                      {
                          "Value":  true,
-                         "Name":  "DisableAnimations"
-                     },
-                     {
-                         "Value":  true,
                          "Name":  "HideHome"
                      }
                  ]

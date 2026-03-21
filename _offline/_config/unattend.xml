@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend">
-    <!-- 
-      This file tells Windows to:
-      1. Copy your CURRENT profile to the "Default User" (CopyProfile=true)
-      2. Skip the annoying "Hi" screens and EULA
+    <!--
+      Golden-image sysprep unattend (validate in Windows System Image Manager vs your install.wim).
+      1. specialize: CopyProfile=true copies the current profile to Default User.
+      2. oobeSystem / OOBE: valid child elements only (see Microsoft-Windows-Shell-Setup OOBE on Learn).
+         Do NOT use HideLocalAdministrationPage — it is not a valid setting and breaks OOBE parsing.
     -->
     <settings pass="specialize">
         <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
@@ -14,7 +15,6 @@
         <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
             <OOBE>
                 <HideEULAPage>true</HideEULAPage>
-                <HideLocalAdministrationPage>true</HideLocalAdministrationPage>
                 <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
                 <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
                 <NetworkLocation>Work</NetworkLocation>

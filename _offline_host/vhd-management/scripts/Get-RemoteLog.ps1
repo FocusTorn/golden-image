@@ -8,10 +8,20 @@ Param(
     [ValidateSet("scoop", "apps", "rust", "msvc", "bootstrapper", "all")]
     [string]$Category = "rust",
 
-    [string]$VMName = "Windows 11 Master",
+    [string]$VMName,
     [PSCredential]$Credential,
-    [string]$ReturnPath = "F:\return"
+    [string]$ReturnPath
 )
+
+$LocalProjectRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+. (Join-Path $LocalProjectRoot "_helpers\ConfigUtils.ps1")
+$hc = Get-Config -Target Host
+if ([string]::IsNullOrWhiteSpace($VMName)) { $VMName = $hc.VMName }
+if ([string]::IsNullOrWhiteSpace($ReturnPath)) {
+    $gd = Get-GuestDriveLetter $hc.GuestStagingDrive
+    $rp = if ($hc.ReturnPath) { $hc.ReturnPath.Trim().TrimStart('/').TrimStart('\') } else { 'return' }
+    $ReturnPath = Join-Path "$gd`:" $rp
+}
 
 # Map category to log file naming patterns (msvc = vs_setup* & dd_bootstrapper*)
 $Script:PatternMap = @{
@@ -23,7 +33,7 @@ $Script:PatternMap = @{
 }
 
 if (-not $Credential) {
-    $Credential = New-Object System.Management.Automation.PSCredential(".\Administrator", (New-Object System.Security.SecureString))
+    $Credential = Get-VMCreds -User $hc.VMUser -Config $hc
 }
 
 $categoriesToRun = if ($Category -eq "all") { @("scoop", "msvc", "apps", "rust") } else { @($Category) }
