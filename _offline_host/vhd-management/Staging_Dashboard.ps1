@@ -195,18 +195,20 @@ function Show-CommandHelp {
     Write-Host "  PC Clear env override       Clear \`$env:GOLDEN_IMAGE_VM_PROFILE for this session" -ForegroundColor Gray
     Write-Host "  PM Resolution               Show how the active profile key is resolved" -ForegroundColor Gray
     Write-Host "  PV New VM from template     Run New-MasterLikeVm.ps1 using the active profile + a selected provisioning template" -ForegroundColor Gray
-    Write-Host ""
     Write-Host "Config (_master_config.json):" -ForegroundColor Magenta
     Write-Host "  CH Set Config VHD          Update the active profile's VHD path in master config" -ForegroundColor Gray
     Write-Host "  CV Set Config VM           Update the active profile's VM name in master config" -ForegroundColor Gray
     Write-Host "  CG Set Config Guest        Update GuestStagingDrive in master config" -ForegroundColor Gray
     Write-Host "  CA Toggle Creds            Toggle UsePasswordCreds in master config" -ForegroundColor Gray
     Write-Host ""
+    Write-Host "Exit:" -ForegroundColor Magenta
+    Write-Host "  X  Exit Dashboard          Disconnect all (VHD released from Host/VM) and exit" -ForegroundColor Gray
+    Write-Host "  Ctrl+C                     Force quit (may leave VHD locked)" -ForegroundColor DarkGray
+    Write-Host ""
     Write-Host "Help:" -ForegroundColor Magenta
     Write-Host "  ? / help                    Show this help screen" -ForegroundColor Gray
     Write-Host "  <cmd> ? / <cmd> help        Show detailed help for a specific command (ex: 'k ?')" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "Exit: Ctrl+C" -ForegroundColor DarkGray
 }
 
 # --- NON-INTERACTIVE HANDLER ---
@@ -269,7 +271,7 @@ while ($true) {
     Write-Host (& $fmt3 -Col1 "  [Z] Lock Diagnostics" -Col2 "  [IN] Boot WIM in new VM" -Col3 "") -ForegroundColor Gray
     Write-Host ""
     Write-Host ""
-    Write-Host "[?] Help | [<command> ?] Targeted Help" -ForegroundColor DarkGray
+    Write-Host "[?] Help | [<command> ?] Targeted Help | [X] Exit" -ForegroundColor DarkGray
     $rawChoice = (Read-Host "Select Action")
     $tokens = @($rawChoice -split '\s+' | Where-Object { $_ -and $_.Trim().Length -gt 0 })
     $choice = if ($tokens.Count -gt 0) { $tokens[0].ToLower().Trim() } else { "" }
@@ -298,6 +300,61 @@ while ($true) {
             "v" { Invoke-VhdTransition -Target "VM" -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName | Out-Null }
             "k" { Restart-Service "vds" -Force; Write-Host "[OK] VDS Restarted." -ForegroundColor Green; Start-Sleep -Seconds 2 }
             "r" { & "$scriptsDir\Invoke-VhdPullReturn.ps1" -TargetHostDir $localReturnDir -NoPause; Wait-AutoContinue }
+            "x" {
+                Write-Host "`n>>> CLEAN EXIT & RESOURCE RELEASE" -ForegroundColor Cyan
+                
+                # 1. VHD Release
+                Write-Host "[1/4] Releasing VHD infrastructure..." -ForegroundColor Gray
+                Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName
+                Write-Host "      VHD detached from VM and Host." -ForegroundColor DarkGray
+
+                # 2. Session Env
+                Write-Host "[2/4] Clearing session overrides..." -ForegroundColor Gray
+                if ($env:GOLDEN_IMAGE_VM_PROFILE) {
+                    $oldProf = $env:GOLDEN_IMAGE_VM_PROFILE
+                    Remove-Item -Path "Env:\GOLDEN_IMAGE_VM_PROFILE" -ErrorAction SilentlyContinue
+                    Write-Host "      Cleared `$env:GOLDEN_IMAGE_VM_PROFILE ($oldProf)." -ForegroundColor DarkGray
+                } else {
+                    Write-Host "      No session profile override found." -ForegroundColor DarkGray
+                }
+
+                # 3. Background Jobs
+                Write-Host "[3/4] Cleaning up background jobs..." -ForegroundColor Gray
+                $jobs = Get-Job | Where-Object { $_.Name -like "Job*" }
+                if ($jobs) {
+                    $jobCount = $jobs.Count
+                    $jobs | Remove-Job -Force -ErrorAction SilentlyContinue
+                    Write-Host "      Removed $jobCount lingering background jobs." -ForegroundColor Yellow
+                } else {
+                    Write-Host "      No background jobs found." -ForegroundColor DarkGray
+                }
+                
+                # 4. Ghost Processes
+                Write-Host "[4/4] Scanning for ghost processes..." -ForegroundColor Gray
+                $targets = @("dism", "robocopy", "diskpart")
+                $foundAny = $false
+                foreach ($t in $targets) {
+                    $procs = Get-Process -Name $t -ErrorAction SilentlyContinue
+                    if ($procs) {
+                        $count = $procs.Count
+                        Write-Host "      Terminating $count ghost '$t' processes..." -ForegroundColor Yellow
+                        try {
+                            $procs | Stop-Process -Force -ErrorAction Stop
+                            Write-Host "      [OK] '$t' cleaned." -ForegroundColor Green
+                        } catch {
+                            Write-Host "      [FAIL] Could not terminate '$t': $($_.Exception.Message)" -ForegroundColor Red
+                        }
+                        $foundAny = $true
+                    }
+                }
+                if (-not $foundAny) {
+                    Write-Host "      No ghost imaging processes found." -ForegroundColor DarkGray
+                }
+
+                Write-Host "`n[OK] Resources released. Dashboard closed cleanly." -ForegroundColor Green
+                Start-Sleep -Seconds 1
+                exit 0
+            }
             "z" { & "$scriptsDir\Get-VhdLockDiagnostics.ps1"; Wait-AutoContinue }
             "w" { & "$scriptsDir\New-WimFromVhd.ps1" -NoPause; Wait-AutoContinue }
             "iw" { & "$scriptsDir\New-WimFromVhd.ps1" -NoPause; Wait-AutoContinue }
@@ -457,7 +514,11 @@ while ($true) {
                         if (-not (Test-Path -LiteralPath $helper)) {
                             Write-Host "Script missing: $helper" -ForegroundColor Red
                         } else {
-                            & $helper -VMProfile $activePk -ProvisioningTemplateKey $tplKey
+                            try {
+                                & $helper -VMProfile $activePk -ProvisioningTemplateKey $tplKey
+                            } catch {
+                                Write-Host "[ERROR] New-MasterLikeVm failed: $($_.Exception.Message)" -ForegroundColor Red
+                            }
                         }
                     }
                 } catch {

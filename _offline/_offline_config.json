@@ -1,8 +1,8 @@
 {
-  "GuestStagingDrive": "E",
-  "StagingVolumeLabel": "Golden Imaging",
-  "OfflinePath": "_offline",
-  "InstallersPath": "installers",
-  "ReturnPath": "return",
-  "VMHostname": "DESKTOP-HJHJ8UV"
+    "GuestStagingDrive":  "E",
+    "StagingVolumeLabel":  "Golden Imaging",
+    "OfflinePath":  "_offline",
+    "InstallersPath":  "installers",
+    "ReturnPath":  "return",
+    "VMHostname":  "DESKTOP-HJHJ8UV"
 }

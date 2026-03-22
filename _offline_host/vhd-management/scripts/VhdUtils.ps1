@@ -73,6 +73,13 @@ function Invoke-VhdTransition {
         Mount-VHD -Path $VhdPath -ErrorAction Stop
         return Invoke-PollUntil { $v = Get-VhdInfoSafe -VhdPath $VhdPath; if ($v -and $v.Attached -and $v.DiskNumber -ne $null) { $v } }
     } else {
+        # Prevent .avhdx creation: Remove any existing snapshots before attaching a new drive.
+        # Hyper-V creates differencing disks for newly attached drives if snapshots exist.
+        if (Get-VMSnapshot -VMName $VMName -ErrorAction SilentlyContinue) {
+            Write-Host "[*] Removing VM snapshots to prevent .avhdx aliases..." -ForegroundColor Yellow
+            Get-VMSnapshot -VMName $VMName | Remove-VMSnapshot -IncludeAllChildSnapshots -ErrorAction SilentlyContinue
+        }
+
         Add-VMHardDiskDrive -VMName $VMName -ControllerType SCSI -Path $VhdPath -ErrorAction Stop
         return Invoke-PollUntil { Get-VmDriveForVhd -VhdPath $VhdPath -VMName $VMName }
     }

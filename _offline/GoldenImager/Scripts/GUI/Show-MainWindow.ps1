@@ -2023,8 +2023,7 @@ public class User32_ShowWindow {
         }
         $tasks = @()
         
-        # if (($window.FindName('HomeExec1')).IsChecked) { $tasks += @{ N='Customize'; C={ $p = $script:ImagingScriptsPath; $bat = "$p\1_Customize.bat"; if (Test-Path $bat) { cmd /c "`"$bat`"" } else { & "$p\1_Customize.ps1" } } } }
-        
+        if (($window.FindName('HomeExec1')).IsChecked) { $tasks += @{ N='Customize'; C={ $p = $script:ImagingScriptsPath; $bat = "$p\1_Customize.bat"; if (Test-Path $bat) { cmd /c "`"$bat`"" } else { & "$p\1_Customize.ps1" } } } }
         if (($window.FindName('HomeExec2')).IsChecked) { $tasks += @{ N='Scoop'; C={ & "$($script:ImagingScriptsPath)\2_Scoop.ps1" } } }
         if (($window.FindName('HomeExec3')).IsChecked) { $tasks += @{ N='MSVC Build Tools'; C={ & "$($script:ImagingScriptsPath)\3_MSVC.ps1" } } }
         if (($window.FindName('HomeExec4')).IsChecked) { $tasks += @{ N='ALL System Apps'; C={ & "$($script:ImagingScriptsPath)\4_System_Apps.ps1" -App "All" } } }

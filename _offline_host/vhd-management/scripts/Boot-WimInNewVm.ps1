@@ -193,7 +193,11 @@ exit
 "@
         $dpPath = Join-Path $env:TEMP ("diskpart_wim_$PID.txt")
         Set-Content -LiteralPath $dpPath -Value $dp -Encoding ASCII
-        diskpart /s $dpPath | Out-Null
+        try {
+            diskpart /s $dpPath | Out-Null
+        } finally {
+            if (Test-Path $dpPath) { Remove-Item -LiteralPath $dpPath -Force | Out-Null }
+        }
 
     # Validate WIM indexes so we fail with a clear message (instead of DISM exit 87).
     $wimInfoOut = & dism.exe /Get-WimInfo "/WimFile:$wimPath" 2>&1
@@ -230,6 +234,69 @@ exit
         & bcdboot "$winLetter`:\Windows" /s "$sysLetter`:" /f UEFI | Out-Null
         if ($LASTEXITCODE -ne 0) {
             throw "bcdboot failed with exit code $LASTEXITCODE"
+        }
+
+        # --- Drive Letter Persistence (First-Boot Script) ---
+        Write-Host "[*] Injecting drive letter configuration (C, D, E)..." -ForegroundColor Yellow
+        $mainOS = if ($Cfg.MainOSDrive) { $Cfg.MainOSDrive.ToString().ToUpper()[0] } else { 'C' }
+        $dvdLetter = if ($Cfg.DVDBootDrive) { $Cfg.DVDBootDrive.ToString().ToUpper()[0] } else { 'D' }
+        $stagingLetter = if ($Cfg.GuestStagingDrive) { $Cfg.GuestStagingDrive.ToString().ToUpper()[0] } else { 'E' }
+        $stagingLabel = if ($Cfg.StagingVolumeLabel) { $Cfg.StagingVolumeLabel } else { 'Golden Imaging' }
+
+        # Create the GI_Scripts directory on the applied OS
+        $giScriptsDir = Join-Path "${winLetter}:\" "GI_Scripts"
+        if (-not (Test-Path $giScriptsDir)) { New-Item -ItemType Directory -Path $giScriptsDir -Force | Out-Null }
+
+        # Create a PS1 script that runs on first boot to fix drive letters
+        $setupDrivesScript = @"
+# Golden Image: First-Boot Drive Letter Assignment
+# Log all output
+Start-Transcript -Path "C:\GI_Scripts\SetupDrives.log" -Append
+
+Write-Host "[*] Assigning drive letters..."
+# 1. Identify the Staging VHD by its volume label
+`$stagingVol = Get-Volume | Where-Object { `$_.FileSystemLabel -eq '$stagingLabel' }
+if (`$stagingVol) {
+    if (`$stagingVol.DriveLetter -ne '$stagingLetter') {
+        Write-Host "    Found staging volume '$stagingLabel'. Reassigning to $stagingLetter`:..."
+        # If the target letter is taken, move it away first
+        `$targetVol = Get-Volume -DriveLetter '$stagingLetter' -ErrorAction SilentlyContinue
+        if (`$targetVol) { Set-Partition -DriveLetter '$stagingLetter' -NewDriveLetter (Get-Volume | Where-Object { -not `$_.DriveLetter } | Select-Object -First 1).DriveLetter -ErrorAction SilentlyContinue }
+        
+        Set-Partition -InputObject (`$stagingVol | Get-Partition) -NewDriveLetter '$stagingLetter'
+    }
+}
+
+# 2. Identify the DVD drive and move to D:
+`$dvd = Get-Volume | Where-Object { `$_.DriveType -eq 'CD-ROM' } | Select-Object -First 1
+if (`$dvd) {
+    if (`$dvd.DriveLetter -ne '$dvdLetter') {
+        Write-Host "    Found DVD drive. Reassigning to $dvdLetter`:..."
+        # If target is taken, move it
+        `$targetVol = Get-Volume -DriveLetter '$dvdLetter' -ErrorAction SilentlyContinue
+        if (`$targetVol) { Set-Partition -DriveLetter '$dvdLetter' -NewDriveLetter (Get-Volume | Where-Object { -not `$_.DriveLetter } | Select-Object -First 1).DriveLetter -ErrorAction SilentlyContinue }
+        
+        Set-Partition -InputObject (`$dvd | Get-Partition) -NewDriveLetter '$dvdLetter'
+    }
+}
+
+Stop-Transcript
+"@
+        Set-Content -LiteralPath (Join-Path $giScriptsDir "SetupDrives.ps1") -Value $setupDrivesScript -Encoding UTF8
+
+        try {
+            # Register the script to run once in the SOFTWARE hive
+            $softHive = Join-Path "${winLetter}:\" "Windows\System32\config\SOFTWARE"
+            if (Test-Path $softHive) {
+                reg load "HKLM\GI_SOFTWARE" $softHive | Out-Null
+                $cmd = 'powershell.exe -ExecutionPolicy Bypass -File C:\GI_Scripts\SetupDrives.ps1'
+                reg add "HKLM\GI_SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "SetupGIDrives" /t REG_SZ /d $cmd /f | Out-Null
+                reg unload "HKLM\GI_SOFTWARE" | Out-Null
+                Write-Host "  First-boot drive setup registered in RunOnce." -ForegroundColor DarkGray
+            }
+        } catch {
+            Write-Warning "Failed to register first-boot drive setup: $_"
+            if (reg query "HKLM\GI_SOFTWARE" 2>$null) { reg unload "HKLM\GI_SOFTWARE" | Out-Null }
         }
     }
     finally {

@@ -104,7 +104,7 @@ param (
 
 # Define script-level variables & paths
 # Golden Imager: use Foundation (Config, Scripts, Regfiles, Assets, Schemas) from upstream
-$script:SourceRoot = Join-Path $PSScriptRoot 'Foundation'
+$script:SourceRoot = Join-Path $PSScriptRoot 'Foundation/Win11Debloat'
 if (-not $script:SourceRoot -or -not (Test-Path $script:SourceRoot)) {
     $displayPath = if ($script:SourceRoot) { $script:SourceRoot } else { "(empty - check script path)" }
     Write-Host "[ERROR] Foundation not found at: $displayPath" -ForegroundColor Red

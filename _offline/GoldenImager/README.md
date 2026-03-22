@@ -24,43 +24,59 @@ Golden Imager provides:
 
 ## Architecture: Foundation + Overlay
 
-The project uses a **Foundation + Overlay** layout:
+The project uses a **Foundation + Overlay** layout to allow customization while keeping the upstream source (Foundation) pristine.
 
-- **Foundation** — Upstream source from the original project. Read-only; do not edit.
-- **Overlay** — Customizations live alongside Foundation, in sibling folders at the project root.
+- **Foundation** — Upstream source from the original project (Win11Debloat). Read-only; do not edit. Located in `Foundation/Win11Debloat`.
+- **Overlay** — Customizations live in the project root, mirroring the Foundation structure.
 
 ### Overlay pattern
 
-Files in Foundation are the canonical source. To customize:
+The entry script `GoldenImager.ps1` manages the loading of these two layers. It explicitly defines which components are loaded from the overlay and which fall back to Foundation.
 
-1. Create a **sibling folder** at the project root with the same relative path as in Foundation.
-2. Place your override files there with the same names.
-3. The entry script loads overlays when they exist, falling back to Foundation otherwise.
+```powershell
+# Foundation is loaded from a subfolder
+$script:SourceRoot = Join-Path $PSScriptRoot 'Foundation/Win11Debloat'
+
+# Overlays are explicitly dot-sourced from the root Scripts/ folder
+. "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1"
+
+# Fallbacks use the SourceRoot (Foundation)
+. "$script:SourceRoot/Scripts/AppRemoval/ForceRemoveEdge.ps1"
+```
 
 The overlay layout mirrors Foundation:
 
 ```
-ProjectRoot/
+GoldenImager/
 ├── Foundation/           # Upstream (do not edit)
-│   ├── Config/
-│   ├── Schemas/
-│   ├── Scripts/
-│   └── ...
-├── Config/                # Overlay: user config, profiles
-├── Schemas/               # Overlay: XAML UI definitions
-├── Scripts/               # Overlay: PowerShell logic
-├── Logs/
-└── EntryScript.ps1
+│   ├── Win11Debloat/     # Upstream Win11Debloat source
+│   │   ├── Config/
+│   │   ├── Regfiles/
+│   │   ├── Schemas/
+│   │   └── Scripts/
+│   └── CTT/              # Upstream Chris Titus Tweaks source (planned)
+├── Config/               # Overlay: custom profiles, overrides
+├── Schemas/              # Overlay: custom XAML (e.g., MainWindow)
+├── Scripts/              # Overlay: custom logic (e.g., offline AppRemoval)
+├── Logs/                 # Runtime output
+└── GoldenImager.ps1      # Entry script and layer orchestrator
 ```
 
 ### What goes in the overlay
 
-| Overlay folder | Purpose | Contents |
-|----------------|---------|----------|
-| **Config/** | User data, runtime config | App profiles, tweak profiles, options, window bounds |
-| **Schemas/** | UI layout | XAML schemas that override Foundation equivalents |
-| **Scripts/** | GUI logic | PowerShell scripts that override Foundation equivalents |
+| Overlay folder | Purpose | Implementation |
+|----------------|---------|----------------|
+| **Config/** | User data, profiles | Referenced by `$PSScriptRoot/Config` |
+| **Schemas/** | UI layout | Overrides specific Foundation XAML files |
+| **Scripts/** | GUI logic | Dot-sourced in `GoldenImager.ps1` to override functions |
 | **Logs/** | Runtime output | Transcript and run logs |
+
+### Key Customizations in Golden Imager
+
+- **Offline App Removal**: Uses a custom `RemoveApps.ps1` that doesn't depend on WinGet or network access, making it safe for Audit Mode and offline imaging.
+- **Three-State UI**: Supports "Revert" logic for tweaks (Apply, Skip, Revert).
+- **Profile Support**: Dedicated UI and logic for saving/loading app and tweak profiles.
+- **Typography & Branding**: Custom UI themes and typography defined in the entry script.
 
 ### Schema overlays
 
@@ -82,7 +98,7 @@ PowerShell scripts in the overlay override Foundation scripts with the same path
 
 When Foundation is updated:
 
-1. Replace Foundation with the new upstream version.
+1. Replace contents of `Foundation/Win11Debloat` with the new upstream version.
 2. Keep overlay folders unchanged.
 3. Resolve any conflicts if Foundation structure changed.
 4. Re-test overlays and adjust if needed.
@@ -103,7 +119,7 @@ Golden Imager is designed for **offline audit mode** and **Sysprep** deployment.
 
 ## Installation
 
-1. Ensure `Foundation` is present (e.g. from `Prepare_Debloat_Tools.ps1` or manual extraction).
+1. Ensure `Foundation/Win11Debloat` is present (e.g. from `Prepare_Debloat_Tools.ps1` or manual extraction).
 2. Run the entry script as Administrator:
    ```powershell
    .\GoldenImager.ps1

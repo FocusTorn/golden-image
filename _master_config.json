@@ -1,27 +1,75 @@
 {
     // Master config (JSONC). Active VM profile: $env:GOLDEN_IMAGE_VM_PROFILE, or defaultVMProfile / activeVMProfile below.
     
-    "defaultVMProfile": "Windows 11 Master",
-    
     // Shared by all profiles unless a profile overrides VhdPath in VMDetails.
-    "VMFileSystem": {
+    "VMFileSystem": { //>
         "HostVhdPath": "N:/VHD/Golden-Imaging.vhdx",
+        
+        "MainOSDrive": "C",
+        "DVDBootDrive": "D",
         "GuestStagingDrive": "E",
         "StagingVolumeLabel": "Golden Imaging",
         "OfflinePath": "_offline",
         "InstallersPath": "installers",
         "ReturnPath": "return"
-    },
-    "VMCredentials": {
+        
+        
+        
+        
+        
+    }, //<
+    "VMCredentials": { //>
         "VMUser": "Administrator",
         "VMPassword": "654654",
         "UsePasswordCreds": false
-    },
+    }, //<
+    
 
+    
+    
+    
+    "defaultVMProfile": "GoldenImage",
+
+    
+    "VMProfiles": {
+        "Windows 11 Master": {
+            "HardwareTemplate": "OfflineSysprep",
+            "VMDetails": {
+                "VMName": "Windows 11 Master",
+                "OSImagePath": "N:/Win11_25H2_English_x64.iso",
+                //"VhdPath": "N:/VHD/Golden-Imaging.vhdx",
+                "OsVhdPath": "N:/VM/GoldenMaster/Virtual Hard Disks/Windows_11_Master_OS.vhdx",
+                "VMHostname": "DESKTOP-HJHJ8UV",
+                "WimDestination": "N:/Custom_Win_11_20260318_170403.wim"
+            }
+        },
+        "GoldenImage": {
+            "HardwareTemplate": "OfflineSysprep",
+            "VMDetails": {
+                "VMName": "Golden Image",
+                "OSImagePath": "N:/Win11_25H2_English_x64.iso",
+                //"VhdPath": "N:/VHD/Golden-Imaging.vhdx",
+                "OsVhdPath": "N:/VM/GoldenImage/Virtual Hard Disks/GoldenImage_OS.vhdx",
+                "VMHostname": "DESKTOP-GoldenImage",
+                "WimDestination": "N:/Win_11_GoldenImage.wim"
+            }
+        },
+        "TrialVM": {
+            "HardwareTemplate": "StandardWindows",
+            "VMDetails": {
+                "VMName": "Trial VM",
+                "OSImagePath": "N:/Win11_25H2_English_x64.iso",
+                // "VhdPath": "N:/VHD/Golden-Imaging.vhdx",
+                "OsVhdPath": "Z:/Virtuals/Hyper-V/Trial VM/Virtual Hard Disks/Trial_VM_OS.vhdx",
+                "VMHostname": "DESKTOP-TRIAL01"
+            }
+        }
+    },
+    
     "VMProvisioningTemplates": {
-        "OfflineSysprep": {
+        "OfflineSysprep": { //>
             "NewOsVhdSizeGB": 80,
-            "VmMachinePath": "Z:/Virtuals/Hyper-V/",
+            "VmMachinePath": "default",
             "Generation": 2,
             "ProcessorCount": 4,
             "SwitchName": "Not Connected",
@@ -36,8 +84,8 @@
             "EnableSecureBoot": true,
             "SecureBootTemplate": "MicrosoftWindows",
             "TpmEnabled": true
-        },
-        "StandardWindows": {
+        }, //<
+        "StandardWindows": { //>
             "NewOsVhdSizeGB": 80,
             "VmMachinePath": "Z:/Virtuals/Hyper-V/",
             "Generation": 2,
@@ -54,30 +102,7 @@
             "EnableSecureBoot": true,
             "SecureBootTemplate": "MicrosoftWindows",
             "TpmEnabled": true
-        }
-    },
-
-    "VMProfiles": {
-        "Windows 11 Master": {
-            "HardwareTemplate": "OfflineSysprep",
-            "VMDetails": {
-                "VMName": "Windows 11 Master",
-                "OSImagePath": "N:/Win11_25H2_English_x64.iso",
-                //"VhdPath": "N:/VHD/Golden-Imaging.vhdx",
-                "OsVhdPath": "N:/VM/GoldenMaster/Virtual Hard Disks/Windows_11_Master_OS.vhdx",
-                "VMHostname": "DESKTOP-HJHJ8UV",
-                "WimDestination": "N:/Custom_Win_11_20260318_170403.wim"
-            }
-        },
-        "TrialVM": {
-            "HardwareTemplate": "StandardWindows",
-            "VMDetails": {
-                "VMName": "Trial VM",
-                "OSImagePath": "N:/Win11_25H2_English_x64.iso",
-                // "VhdPath": "N:/VHD/Golden-Imaging.vhdx",
-                "OsVhdPath": "Z:/Virtuals/Hyper-V/Trial VM/Virtual Hard Disks/Trial_VM_OS.vhdx",
-                "VMHostname": "DESKTOP-TRIAL01"
-            }
-        }
+        } //<
     }
+    
 }
