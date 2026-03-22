@@ -4,39 +4,39 @@
 
 $ErrorActionPreference = "Continue"
 
-# --- ENVIRONMENT DISCOVERY ---
-# Scripts are in _offline/Imaging_Scripts, so VHD Root is typically two levels up.
-$VhdRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$InstallersDir = Join-Path $VhdRoot "installers"
-$OfflineDir = Join-Path $VhdRoot "_offline"
-
-# Fallback: Search for "installers" folder on all drives if not found relative to script
-if (-not (Test-Path $InstallersDir)) {
+# --- SECTION 0: STAGING DRIVE & LOGGING ---
+# 1) Label "Golden Imaging" 2) Fallback: Z..A reverse search for installers or _offline
+$StagingDrive = $null
+$StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Golden Imaging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
+if ($StagingVolume) { $StagingDrive = $StagingVolume.DriveLetter }
+if (-not $StagingDrive) {
     foreach ($d in [char[]](90..65)) {
-        if (Test-Path "${d}:\installers") {
-            $VhdRoot = "${d}:\"
-            $InstallersDir = "${d}:\installers"
-            $OfflineDir = "${d}:\_offline"
+        $root = "${d}:\"
+        if ((Test-Path (Join-Path $root "installers")) -or (Test-Path (Join-Path $root "_offline"))) {
+            $StagingDrive = $d
             break
         }
     }
 }
+$VhdDrive = if ($StagingDrive) { "${StagingDrive}:\" } else { $null }
 
-if (-not (Test-Path $InstallersDir)) {
-    Write-Host "[FAIL] Could not locate 'installers' directory." -ForegroundColor Red
-    exit 1
+if (-not $VhdDrive) {
+    Write-Host "[ERROR] Staging drive not found (label 'Golden Imaging' or drive with installers/_offline)." -ForegroundColor Red
+    return
 }
 
-$VhdDrive = $VhdRoot
 $ReturnPath = Join-Path $VhdDrive "return"
-$RustAssetsDir = Join-Path $InstallersDir "Rust_Assets"
-
 if (-not (Test-Path $ReturnPath)) { New-Item -Path $ReturnPath -ItemType Directory -Force | Out-Null }
+
 $LogFile = Join-Path $ReturnPath "Install_Stage_4_Rust_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+# Start-Transcript captures stdout. Using 'cmd /c' for external calls ensures stderr is captured.
 Start-Transcript -Path $LogFile -Force
 
 Write-Host "--- STAGE 4: RUST & LINKER LOCATOR (OFFLINE) ---" -ForegroundColor Cyan
 Write-Host "[*] Logging to: $LogFile" -ForegroundColor Gray
+
+$InstallersDir = Join-Path $VhdDrive "installers"
+$RustAssetsDir = Join-Path $InstallersDir "Rust_Assets"
 
 try {
     # --- SECTION 1: LINKER LOCATOR (MSVC) ---

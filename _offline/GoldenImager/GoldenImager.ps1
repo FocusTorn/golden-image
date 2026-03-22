@@ -100,10 +100,7 @@ param (
     [switch]$HideShare
 )
 
-
-
 # Define script-level variables & paths
-# Golden Imager: use Foundation (Config, Scripts, Regfiles, Assets, Schemas) from upstream
 $script:SourceRoot = Join-Path $PSScriptRoot 'Foundation/Win11Debloat'
 if (-not $script:SourceRoot -or -not (Test-Path $script:SourceRoot)) {
     $displayPath = if ($script:SourceRoot) { $script:SourceRoot } else { "(empty - check script path)" }
@@ -112,9 +109,10 @@ if (-not $script:SourceRoot -or -not (Test-Path $script:SourceRoot)) {
     Read-Host "Press Enter to exit"
     exit 1
 }
-$script:Version = "2026.03.09"
+
+$script:Version = "2026.03.22"
 $script:AuditDelaySeconds = 2
-$script:SpinnerStyle = "OldWinBars1" # Options: WinDots1, OldWinBars1
+$script:SpinnerStyle = "OldWinBars1"
 $script:AppsListFilePath = "$script:SourceRoot/Config/Apps.json"
 $script:DefaultSettingsFilePath = "$script:SourceRoot/Config/DefaultSettings.json"
 $script:FeaturesFilePath = "$script:SourceRoot/Config/Features.json"
@@ -134,99 +132,7 @@ $script:SharedStylesSchema = "$script:SourceRoot/Schemas/SharedStyles.xaml"
 $script:MainWindowSchema = Join-Path $PSScriptRoot "Schemas/MainWindow.xaml"
 $script:AppProfilesPath = Join-Path $PSScriptRoot "Config\AppProfiles"
 $script:TweakProfilesPath = Join-Path $PSScriptRoot "Config\TweakProfiles"
-
 $script:DefaultLogPath = Join-Path $PSScriptRoot "Logs\GoldenImager.log"
-
-# ------------------------------------------------------------------------------
-# Typography configuration - customize fonts, colors, weights, spacing for UI text
-# Edit these values to change the look of card titles, subtitles, labels, etc.
-# ------------------------------------------------------------------------------
-$script:Typography = @{
-    # Base font family for text (icons use IconFontFamily)
-    FontFamily = "Segoe UI"
-    IconFontFamily = "Segoe Fluent Icons"
-
-    # Page title (e.g. "Golden Imager" on splash)
-    PageTitleFontSize = 28
-    PageTitleFontWeight = "Bold"
-    PageTitleFontFamily = "Segoe UI"
-    PageTitleColor = $null  # null = use FgColor
-
-    # Tab titles (e.g. "App Removal", "System Tweaks")
-    TabTitleFontSize = 20
-    TabTitleFontWeight = "Bold"
-    TabTitleFontFamily = "Segoe UI"
-    TabTitleColor = $null
-
-    # Card titles (e.g. "Connection Settings", "Stages Audit", "Execution Options")
-    CardTitleFontSize = 16
-    CardTitleFontWeight = "Bold"
-    CardTitleFontFamily = "Segoe UI"
-    CardTitleColor = $null
-    CardTitleMargin = "0,0,0,13"
-
-    # Card subtitle / description (e.g. "Select which apps you want to remove...")
-    CardSubtitleFontSize = 13
-    CardSubtitleFontWeight = "Normal"
-    CardSubtitleFontFamily = "Segoe UI"
-    CardSubtitleColor = $null
-
-    # Labels (e.g. "App Profile:", "Tweak Profile:", "R", "P", "L" column headers)
-    LabelFontSize = 12
-    LabelFontWeight = "Normal"
-    LabelFontFamily = "Segoe UI"
-    LabelColor = $null
-
-    # Small labels (e.g. R/P/L column headers)
-    LabelSmallFontSize = 11
-    LabelSmallFontWeight = "Normal"
-
-    # Table headers (e.g. "Name", "Description", "App ID")
-    TableHeaderFontSize = 16
-    TableHeaderFontWeight = "SemiBold"
-    TableHeaderFontFamily = "Segoe UI"
-    TableHeaderColor = $null
-
-    # Body text (descriptions, status messages)
-    BodyFontSize = 12
-    BodyFontWeight = "Normal"
-    BodyFontFamily = "Segoe UI"
-    BodyColor = $null
-
-    # Search box placeholder and input
-    SearchFontSize = 13
-    SearchFontWeight = "Normal"
-    SearchPlaceholderOpacity = 0.5
-
-    # Primary button text (e.g. "Apply Changes", "Custom Setup")
-    ButtonPrimaryFontSize = 18
-    ButtonPrimaryFontWeight = "SemiBold"
-    ButtonSecondaryFontSize = 14
-    ButtonSecondaryFontWeight = "Normal"
-
-    # Nav buttons ("Back", "Next")
-    NavButtonFontSize = 14
-    NavButtonFontWeight = "Normal"
-
-    # Help link text
-    HelpLinkFontSize = 12
-    HelpLinkFontWeight = "Bold"
-
-    # Custom Setup button on splash
-    CustomSetupFontSize = 17
-    CustomSetupFontWeight = "SemiBold"
-
-    # Character spacing (hundredths of em, 0 = default, 100 = 0.1em wider)
-    CharacterSpacing = 0
-}
-
-# ------------------------------------------------------------------------------
-# Taskbar icon - DLL path and icon index for the window/taskbar icon
-# ------------------------------------------------------------------------------
-$script:TaskbarIcon = @{
-    DllPath   = (Join-Path $env:SystemRoot "System32\imageres.dll")  # Full path to DLL containing icons
-    IconIndex = 251                                                   # Icon index within the DLL
-}
 
 $script:ControlParams = 'WhatIf', 'Confirm', 'Verbose', 'Debug', 'LogPath', 'Silent', 'Sysprep', 'User', 'NoRestartExplorer', 'RunDefaults', 'RunDefaultsLite', 'RunSavedSettings', 'RunAppsListGenerator', 'CLI', 'AppRemovalTarget'
 
@@ -236,114 +142,28 @@ $script:CancelRequested = $false
 $script:ApplyProgressCallback = $null
 $script:ApplySubStepCallback = $null
 
-# Check if current powershell environment is limited by security policies
-if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
-    Write-Error "Golden Imager is unable to run on your system, powershell execution is restricted by security policies"
-    Write-Output "Press any key to exit..."
-    $null = [System.Console]::ReadKey()
-    Exit
-}
-
-Clear-Host
-Write-Host ""
-Write-Host "             Golden Imager is launching..." -ForegroundColor White
-Write-Host "               Leave this window open" -ForegroundColor DarkGray
-Write-Host ""
-
-# Log script output and errors to GoldenImager.log
-$script:LogFilePath = if ($LogPath -and (Test-Path $LogPath)) { Join-Path $LogPath "GoldenImager.log" } else { $script:DefaultLogPath }
-$logDir = Split-Path $script:LogFilePath -Parent
-if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-Start-Transcript -Path $script:LogFilePath -Append -IncludeInvocationHeader -Force | Out-Null
-
-# Trap terminating errors (transcript captures Write-Host; do not Add-Content - causes encoding corruption)
-trap {
-    $errLine = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ERROR: $($_.Exception.Message)"
-    if ($_.ScriptStackTrace) { $errLine += "`n$($_.ScriptStackTrace)" }
-    Write-Host $errLine -ForegroundColor Red
-    continue
-}
-
-# Check if script has all required files
-# GuiFork: Skip DefaultSettings.json check - we go directly to Custom Setup
-if (-not ((Test-Path $script:AppsListFilePath) -and (Test-Path $script:RegfilesPath) -and (Test-Path $script:AssetsPath) -and (Test-Path $script:AppSelectionSchema) -and (Test-Path $script:ApplyChangesWindowSchema) -and (Test-Path $script:SharedStylesSchema) -and (Test-Path $script:FeaturesFilePath))) {
-    Write-Error "Golden Imager is unable to find required files, please ensure all script files are present"
-    Write-Output ""
-    Write-Output "Press any key to exit..."
-    $null = [System.Console]::ReadKey()
-    Exit
-}
-
-# Load feature info from file
-$script:Features = @{}
-try {
-    $featuresData = Get-Content -Path $script:FeaturesFilePath -Raw | ConvertFrom-Json
-    foreach ($feature in $featuresData.Features) {
-        $script:Features[$feature.FeatureId] = $feature
-    }
-}
-catch {
-    Write-Error "Failed to load feature info from Features.json file"
-    Write-Output ""
-    Write-Output "Press any key to exit..."
-    $null = [System.Console]::ReadKey()
-    Exit
-}
-
-# Check if WinGet is installed & store full path for use in background jobs
-try {
-    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
-    if ($wingetCmd) {
-        $script:WingetInstalled = $true
-        $script:WingetPath = $wingetCmd.Source
-    }
-    else {
-        $script:WingetInstalled = $false
-        $script:WingetPath = $null
-    }
-}
-catch {
-    Write-Error "Unable to determine if WinGet is installed, winget command failed: $_"
-    $script:WingetInstalled = $false
-    $script:WingetPath = $null
-}
-
-# GoldenImager overlay uses offline-only RemoveApps (no WinGet required)
-
 ##################################################################################################################
-#                                                                                                                #
-#                                          FUNCTION IMPORTS/DEFINITIONS                                          #
-#                                                                                                                #
+#                                          COMPONENT IMPORTS                                                     #
 ##################################################################################################################
 
-# Load app removal functions (overlay RemoveApps = offline-only, no WinGet)
+# Load configuration components
+. "$PSScriptRoot/Scripts/Config/Typography.ps1"
+
+# Initialize script (Logging, Pre-flight checks, Feature loading, WinGet check)
+. "$PSScriptRoot/Scripts/Core/Initialize.ps1"
+
+# Load Core & Utility functions
+. "$PSScriptRoot/Scripts/Utils/SystemUtils.ps1"
+. "$PSScriptRoot/Scripts/Utils/WpfUtils.ps1"
+. "$PSScriptRoot/Scripts/Core/UserProfiles.ps1"
+. "$PSScriptRoot/Scripts/Core/ExecutionLogic.ps1"
+
+# Load app removal functions
 . "$script:SourceRoot/Scripts/AppRemoval/ForceRemoveEdge.ps1"
 . "$PSScriptRoot/Scripts/AppRemoval/RemoveApps.ps1"
+. "$PSScriptRoot/Scripts/AppRemoval/GetInstalledApps.ps1"
 
-# Copy log file to return path when it exists (after transcript is stopped)
-function Copy-LogToReturnPath {
-    if (-not $script:LogFilePath -or -not (Test-Path $script:LogFilePath)) { return }
-    $offlineDir = Split-Path $PSScriptRoot -Parent
-    $configPath = Join-Path $offlineDir "_offline_config.json"
-    $guestDrive = "E"
-    $returnPath = "return"
-    if (Test-Path $configPath) {
-        try {
-            $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
-            if ($cfg.GuestStagingDrive) { $guestDrive = $cfg.GuestStagingDrive.ToString().Trim().TrimEnd(':')[0] }
-            if ($cfg.ReturnPath) { $returnPath = $cfg.ReturnPath.ToString().Trim() }
-        } catch {}
-    }
-    $returnDir = Join-Path "${guestDrive}:\" $returnPath
-    if (Test-Path $returnDir) {
-        try {
-            $destPath = Join-Path $returnDir "GoldenImager.log"
-            Copy-Item -Path $script:LogFilePath -Destination $destPath -Force
-        } catch {}
-    }
-}
-
-# Load CLI functions (GoldenImager overlay required)
+# Load CLI functions
 . "$PSScriptRoot/Scripts/CLI/AwaitKeyToExit.ps1"
 . "$script:SourceRoot/Scripts/CLI/ShowCLILastUsedSettings.ps1"  
 . "$script:SourceRoot/Scripts/CLI/ShowCLIDefaultModeAppRemovalOptions.ps1"
@@ -366,7 +186,6 @@ function Copy-LogToReturnPath {
 . "$script:SourceRoot/Scripts/GUI/GetSystemUsesDarkMode.ps1"
 . "$script:SourceRoot/Scripts/GUI/SetWindowThemeResources.ps1"
 . "$script:SourceRoot/Scripts/GUI/AttachShiftClickBehavior.ps1"
-# GuiFork: Use GuiFork's ApplySettingsToUiControls (handles tristate + RevertFeatures)
 . "$PSScriptRoot/Scripts/GUI/ApplySettingsToUiControls.ps1"
 . "$script:SourceRoot/Scripts/GUI/Show-MessageBox.ps1"
 . "$script:SourceRoot/Scripts/GUI/Show-ApplyModal.ps1"
@@ -383,559 +202,14 @@ function Copy-LogToReturnPath {
 . "$script:SourceRoot/Scripts/FileIO/LoadAppsFromFile.ps1"
 . "$PSScriptRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
 
-# Returns $true if WPF GUI is available (desktop session with display); $false otherwise (Server Core, SSH, remoting, etc.)
-function Test-WpfAvailable {
-    try {
-        Add-Type -AssemblyName PresentationFramework -ErrorAction Stop
-        return $true
-    }
-    catch {
-        return $false
-    }
-}
-
-# Processes all pending WPF window messages (input, render, etc.) to keep the UI responsive
-# during long-running operations on the UI thread. Equivalent to Application.DoEvents().
-function DoEvents {
-    if (-not $script:GuiWindow) { return }
-    $frame = [System.Windows.Threading.DispatcherFrame]::new()
-    [System.Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvoke(
-        [System.Windows.Threading.DispatcherPriority]::Background,
-        [System.Windows.Threading.DispatcherOperationCallback]{
-            param($f)
-            $f.Continue = $false
-            return $null
-        },
-        $frame
-    )
-    [System.Windows.Threading.Dispatcher]::PushFrame($frame)
-}
-
-
-# Runs a scriptblock in a background PowerShell runspace while keeping the UI responsive.
-# In GUI mode, the work executes on a separate thread and the UI thread pumps messages (~60fps).
-# In CLI mode, the scriptblock runs directly in the current session.
-function Invoke-NonBlocking {
-    param(
-        [scriptblock]$ScriptBlock,
-        [object[]]$ArgumentList = @()
-    )
-
-    if (-not $script:GuiWindow) {
-        return (& $ScriptBlock @ArgumentList)
-    }
-
-    $ps = [powershell]::Create()
-    try {
-        $null = $ps.AddScript($ScriptBlock.ToString())
-        foreach ($arg in $ArgumentList) {
-            $null = $ps.AddArgument($arg)
-        }
-
-        $handle = $ps.BeginInvoke()
-
-        while (-not $handle.IsCompleted) {
-            DoEvents
-            Start-Sleep -Milliseconds 16
-        }
-
-        $result = $ps.EndInvoke($handle)
-
-        if ($result.Count -eq 0) { return $null }
-        if ($result.Count -eq 1) { return $result[0] }
-        return @($result)
-    }
-    finally {
-        $ps.Dispose()
-    }
-}
-
-
-# Add parameter to script and write to file
-function AddParameter {
-    param (
-        $parameterName,
-        $value = $true
-    )
-
-    # Add parameter or update its value if key already exists
-    if (-not $script:Params.ContainsKey($parameterName)) {
-        $script:Params.Add($parameterName, $value)
-    }
-    else {
-        $script:Params[$parameterName] = $value
-    }
-}
-
-
-# Returns a list of installed apps by scanning Appx and Registry (Fast, 100% Offline)
-function Get-OfflineInstalledApps {
-    $apps = @()
-    # 1. Get all Appx Packages (system-wide)
-    try {
-        $apps += Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
-    } catch { 
-        # Fallback to current user if AllUsers fails in Audit Mode
-        try { $apps += Get-AppxPackage | Select-Object -ExpandProperty Name } catch { }
-    }
-
-    # 2. Get Registry-based installs (64-bit and 32-bit)
-    $regPaths = @(
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
-    )
-    foreach ($path in $regPaths) {
-        try {
-            $items = Get-ItemProperty $path -ErrorAction SilentlyContinue
-            if ($items) {
-                foreach ($item in $items) {
-                    if ($item.DisplayName) { $apps += $item.DisplayName }
-                    elseif ($item.PSChildName) { $apps += $item.PSChildName }
-                }
-            }
-        } catch { }
-    }
-
-    return $apps | Where-Object { $_ } | Sort-Object -Unique
-}
-
-# Run winget list and return installed apps (sync or async)
-# Uses full path to winget because Start-Job runs in a separate process that may not have winget in PATH
-function GetInstalledAppsViaWinget {
-    param (
-        [int]$TimeOut = 15,
-        [switch]$Async
-    )
-
-    # Fast offline scan first
-    $offlineApps = Get-OfflineInstalledApps
-    $offlineResult = $offlineApps -join "`n"
-
-    if (-not $script:WingetInstalled -or -not $script:WingetPath) { 
-        return $offlineResult 
-    }
-
-    $wingetExe = $script:WingetPath
-    $scriptBlock = { 
-        param($exe, $offlineResult) 
-        $w = & $exe list --accept-source-agreements --disable-interactivity 2>$null
-        if ($w) { return $w }
-        return $offlineResult
-    }
-
-    if ($Async) {
-        $wingetListJob = Start-Job -ArgumentList $wingetExe, $offlineResult -ScriptBlock $scriptBlock
-        return @{ Job = $wingetListJob; StartTime = Get-Date }
-    }
-    else {
-        # Use Start-Process for more reliable timeout than Start-Job in Audit Mode
-        $tempFile = [System.IO.Path]::GetTempFileName()
-        try {
-            $p = Start-Process -FilePath $wingetExe -ArgumentList "list --accept-source-agreements --disable-interactivity" -NoNewWindow -PassThru -RedirectStandardOutput $tempFile -ErrorAction SilentlyContinue
-            if ($p) {
-                $p | Wait-Process -Timeout $TimeOut -ErrorAction SilentlyContinue
-                if (-not $p.HasExited) {
-                    $p | Stop-Process -Force -ErrorAction SilentlyContinue
-                } else {
-                    $result = Get-Content $tempFile -Raw
-                    if ($result -and $result.Length -gt 100) { return $result }
-                }
-            }
-        } finally {
-            if (Test-Path $tempFile) { Remove-Item $tempFile -Force -ErrorAction SilentlyContinue }
-        }
-        return $offlineResult
-    }
-}
-
-
-function GetUserName {
-    if ($script:Params.ContainsKey("User")) {
-        return $script:Params.Item("User")
-    }
-
-    return $env:USERNAME
-}
-
-
-
-# Returns the directory path of the specified user, exits script if user path can't be found
-function GetUserDirectory {
-    param (
-        $userName,
-        $fileName = "",
-        $exitIfPathNotFound = $true
-    )
-
-    try {
-        if (-not (CheckIfUserExists -userName $userName) -and $userName -ne "*") {
-            Write-Error "User $userName does not exist on this system"
-            AwaitKeyToExit
-        }
-
-        $userDirectoryExists = Test-Path "$env:SystemDrive\Users\$userName"
-        $userPath = "$env:SystemDrive\Users\$userName\$fileName"
-
-        if ((Test-Path $userPath) -or ($userDirectoryExists -and (-not $exitIfPathNotFound))) {
-            return $userPath
-        }
-
-        $userDirectoryExists = Test-Path ($env:USERPROFILE -Replace ('\\' + $env:USERNAME + '$'), "\$userName")
-        $userPath = $env:USERPROFILE -Replace ('\\' + $env:USERNAME + '$'), "\$userName\$fileName"
-
-        if ((Test-Path $userPath) -or ($userDirectoryExists -and (-not $exitIfPathNotFound))) {
-            return $userPath
-        }
-    }
-    catch {
-        Write-Error "Something went wrong when trying to find the user directory path for user $userName. Please ensure the user exists on this system"
-        AwaitKeyToExit
-    }
-
-    Write-Error "Unable to find user directory path for user $userName"
-    AwaitKeyToExit
-}
-
-
-function CheckIfUserExists {
-    param (
-        $userName
-    )
-
-    if ($userName -match '[<>:"|?*]') {
-        return $false
-    }
-
-    if ([string]::IsNullOrWhiteSpace($userName)) {
-        return $false
-    }
-
-    try {
-        $userExists = Test-Path "$env:SystemDrive\Users\$userName"
-
-        if ($userExists) {
-            return $true
-        }
-
-        $userExists = Test-Path ($env:USERPROFILE -Replace ('\\' + $env:USERNAME + '$'), "\$userName")
-
-        if ($userExists) {
-            return $true
-        }
-    }
-    catch {
-        Write-Error "Something went wrong when trying to find the user directory path for user $userName. Please ensure the user exists on this system"
-    }
-
-    return $false
-}
-
-
-# Target is determined from $script:Params["AppRemovalTarget"] or defaults to "AllUsers"
-# Target values: "AllUsers" (removes for all users + from image), "CurrentUser", or a specific username
-function GetTargetUserForAppRemoval {
-    if ($script:Params.ContainsKey("AppRemovalTarget")) {
-        return $script:Params["AppRemovalTarget"]
-    }
-    
-    return "AllUsers"
-}
-
-
-function GetFriendlyTargetUserName {
-    $target = GetTargetUserForAppRemoval
-
-    switch ($target) {
-        "AllUsers" { return "all users" }
-        "CurrentUser" { return "the current user" }
-        default { return "user $target" }
-    }
-}
-
-
-# Check if this machine supports S0 Modern Standby power state. Returns true if S0 Modern Standby is supported, false otherwise.
-function CheckModernStandbySupport {
-    $count = 0
-
-    try {
-        switch -Regex (powercfg /a) {
-            ':' {
-                $count += 1
-            }
-
-            '(.*S0.{1,}\))' {
-                if ($count -eq 1) {
-                    return $true
-                }
-            }
-        }
-    }
-    catch {
-        Write-Host "Error: Unable to check for S0 Modern Standby support, powercfg command failed" -ForegroundColor Red
-        Write-Host ""
-        Write-Host "Press any key to continue..."
-        $null = [System.Console]::ReadKey()
-        return $true
-    }
-
-    return $false
-}
-
-
-# Generates a list of apps to remove based on the Apps parameter
-function GenerateAppsList {
-    if (-not ($script:Params["Apps"] -and $script:Params["Apps"] -is [string])) {
-        return @()
-    }
-
-    $appMode = $script:Params["Apps"].toLower()
-
-    switch ($appMode) {
-        'default' {
-            $appsList = LoadAppsFromFile $script:AppsListFilePath
-            return $appsList
-        }
-        default {
-            $appsList = $script:Params["Apps"].Split(',') | ForEach-Object { $_.Trim() }
-            $validatedAppsList = ValidateAppslist $appsList
-            return $validatedAppsList
-        }
-    }
-}
-
-# Executes a single parameter/feature based on its key
-# Parameters:
-#   $paramKey - The parameter name to execute
-function ExecuteParameter {
-    param (
-        [string]$paramKey
-    )
-    
-    # GuiFork: Handle revert (system-applied tweak unchecked in 3-state UI)
-    if ($paramKey -match '^Revert_(.+)$') {
-        $featureId = $matches[1]
-        $feature = $null
-        if ($script:Features.ContainsKey($featureId)) {
-            $feature = $script:Features[$featureId]
-        }
-        if ($feature -and $feature.RegistryUndoKey -and $feature.UndoAction) {
-            ImportRegistryFileForRevert "> $($feature.UndoAction) $($feature.Label)..." $feature.RegistryUndoKey
-            return
-        }
-    }
-    
-    # Check if this feature has metadata in Features.json
-    $feature = $null
-    if ($script:Features.ContainsKey($paramKey)) {
-        $feature = $script:Features[$paramKey]
-    }
-    
-    # If feature has RegistryKey and ApplyText, use dynamic ImportRegistryFile
-    if ($feature -and $feature.RegistryKey -and $feature.ApplyText) {
-        ImportRegistryFile "> $($feature.ApplyText)" $feature.RegistryKey
-        
-        # Handle special cases that have additional logic after ImportRegistryFile
-        switch ($paramKey) {
-            'DisableBing' {
-                # Also remove the app package for Bing search
-                RemoveApps 'Microsoft.BingSearch'
-            }
-            'DisableCopilot' {
-                # Also remove the app package for Copilot
-                RemoveApps 'Microsoft.Copilot'
-            }
-            'DisableWidgets' {
-                # Also remove the app package for Widgets
-                RemoveApps 'Microsoft.StartExperiencesApp'
-            }
-        }
-        return
-    }
-    
-    # Handle features without RegistryKey or with special logic
-    switch ($paramKey) {
-        'RemoveApps' {
-            Write-Host "> Removing selected apps for $(GetFriendlyTargetUserName)..."
-            $appsList = GenerateAppsList
-
-            if ($appsList.Count -eq 0) {
-                Write-Host "No valid apps were selected for removal" -ForegroundColor Yellow
-                Write-Host ""
-                return
-            }
-
-            Write-Host "$($appsList.Count) apps selected for removal"
-            RemoveApps $appsList
-        }
-        'RemoveAppsCustom' {
-            Write-Host "> Removing selected apps..."
-            $appsList = LoadAppsFromFile $script:CustomAppsListFilePath
-
-            if ($appsList.Count -eq 0) {
-                Write-Host "No valid apps were selected for removal" -ForegroundColor Yellow
-                Write-Host ""
-                return
-            }
-
-            Write-Host "$($appsList.Count) apps selected for removal"
-            RemoveApps $appsList
-        }
-        'RemoveCommApps' {
-            $appsList = 'Microsoft.windowscommunicationsapps', 'Microsoft.People'
-            Write-Host "> Removing Mail, Calendar and People apps..."
-            RemoveApps $appsList
-            return
-        }
-        'RemoveW11Outlook' {
-            $appsList = 'Microsoft.OutlookForWindows'
-            Write-Host "> Removing new Outlook for Windows app..."
-            RemoveApps $appsList
-            return
-        }
-        'RemoveGamingApps' {
-            $appsList = 'Microsoft.GamingApp', 'Microsoft.XboxGameOverlay', 'Microsoft.XboxGamingOverlay'
-            Write-Host "> Removing gaming related apps..."
-            RemoveApps $appsList
-            return
-        }
-        'RemoveHPApps' {
-            $appsList = 'AD2F1837.HPAIExperienceCenter', 'AD2F1837.HPJumpStarts', 'AD2F1837.HPPCHardwareDiagnosticsWindows', 'AD2F1837.HPPowerManager', 'AD2F1837.HPPrivacySettings', 'AD2F1837.HPSupportAssistant', 'AD2F1837.HPSureShieldAI', 'AD2F1837.HPSystemInformation', 'AD2F1837.HPQuickDrop', 'AD2F1837.HPWorkWell', 'AD2F1837.myHP', 'AD2F1837.HPDesktopSupportUtilities', 'AD2F1837.HPQuickTouch', 'AD2F1837.HPEasyClean', 'AD2F1837.HPConnectedMusic', 'AD2F1837.HPFileViewer', 'AD2F1837.HPRegistration', 'AD2F1837.HPWelcome', 'AD2F1837.HPConnectedPhotopoweredbySnapfish', 'AD2F1837.HPPrinterControl'
-            Write-Host "> Removing HP apps..."
-            RemoveApps $appsList
-            return
-        }
-        "EnableWindowsSandbox" {
-            Write-Host "> Enabling Windows Sandbox..."
-            EnableWindowsFeature "Containers-DisposableClientVM"
-            Write-Host ""
-            return
-        }
-        "EnableWindowsSubsystemForLinux" {
-            Write-Host "> Enabling Windows Subsystem for Linux..."
-            EnableWindowsFeature "VirtualMachinePlatform"
-            EnableWindowsFeature "Microsoft-Windows-Subsystem-Linux"
-            Write-Host ""
-            return
-        }
-        'ClearStart' {
-            Write-Host "> Removing all pinned apps from the start menu for user $(GetUserName)..."
-            ReplaceStartMenu
-            Write-Host ""
-            return
-        }
-        'ReplaceStart' {
-            Write-Host "> Replacing the start menu for user $(GetUserName)..."
-            ReplaceStartMenu $script:Params.Item("ReplaceStart")
-            Write-Host ""
-            return
-        }
-        'ClearStartAllUsers' {
-            ReplaceStartMenuForAllUsers
-            return
-        }
-        'ReplaceStartAllUsers' {
-            ReplaceStartMenuForAllUsers $script:Params.Item("ReplaceStartAllUsers")
-            return
-        }
-        'DisableStoreSearchSuggestions' {
-            if ($script:Params.ContainsKey("Sysprep")) {
-                Write-Host "> Disabling Microsoft Store search suggestions in the start menu for all users..."
-                DisableStoreSearchSuggestionsForAllUsers
-                Write-Host ""
-                return
-            }
-
-            Write-Host "> Disabling Microsoft Store search suggestions for user $(GetUserName)..."
-            DisableStoreSearchSuggestions
-            Write-Host ""
-            return
-        }
-    }
-}
-
-
-# Executes all selected parameters/features
-# Parameters:
-function ExecuteAllChanges {    
-    # Build list of actionable parameters (skip control params and data-only params)
-    $actionableKeys = @()
-    foreach ($paramKey in $script:Params.Keys) {
-        if ($script:ControlParams -contains $paramKey) { continue }
-        if ($paramKey -eq 'Apps') { continue }
-        if ($paramKey -eq 'CreateRestorePoint') { continue }
-        $actionableKeys += $paramKey
-    }
-    
-    $totalSteps = $actionableKeys.Count
-    if ($script:Params.ContainsKey("CreateRestorePoint")) { $totalSteps++ }
-    $currentStep = 0
-    
-    # Create restore point if requested (CLI only - GUI handles this separately)
-    if ($script:Params.ContainsKey("CreateRestorePoint")) {
-        $currentStep++
-        if ($script:ApplyProgressCallback) {
-            & $script:ApplyProgressCallback $currentStep $totalSteps "Creating system restore point"
-        }
-        Write-Host "> Attempting to create a system restore point..."
-        CreateSystemRestorePoint
-        Write-Host ""
-    }
-    
-    # Execute all parameters
-    foreach ($paramKey in $actionableKeys) {
-        if ($script:CancelRequested) { 
-            return
-        }
-
-        $currentStep++
-        
-        # Get friendly name for the step
-        $stepName = $paramKey
-        if ($paramKey -match '^Revert_(.+)$') {
-            $featureId = $matches[1]
-            if ($script:Features.ContainsKey($featureId)) {
-                $feature = $script:Features[$featureId]
-                $stepName = "$($feature.UndoAction) $($feature.Label)"
-            }
-        }
-        elseif ($script:Features.ContainsKey($paramKey)) {
-            $feature = $script:Features[$paramKey]
-            if ($feature.ApplyText) {
-                # Prefer explicit ApplyText when provided
-                $stepName = $feature.ApplyText
-            } elseif ($feature.Label) {
-                # Fallback: construct a name from Action and Label, or just Label
-                if ($feature.Action) {
-                    $stepName = "$($feature.Action) $($feature.Label)"
-                } else {
-                    $stepName = $feature.Label
-                }
-            }
-        }
-        
-        if ($script:ApplyProgressCallback) {
-            & $script:ApplyProgressCallback $currentStep $totalSteps $stepName
-        }
-        
-        ExecuteParameter -paramKey $paramKey
-    }
-}
-
-
-
 ##################################################################################################################
-#                                                                                                                #
 #                                                  SCRIPT START                                                  #
-#                                                                                                                #
 ##################################################################################################################
-
-
 
 # Get current Windows build version
 $WinVersion = Get-ItemPropertyValue 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' CurrentBuild
 
-# Check if the machine supports Modern Standby, this is used to determine if the DisableModernStandbyNetworking option can be used
+# Check if the machine supports Modern Standby
 $script:ModernStandbySupported = CheckModernStandbySupport
 
 $script:Params = $PSBoundParameters
@@ -946,8 +220,6 @@ if ((-not $script:Params.ContainsKey("Apps")) -and $script:Params.ContainsKey("R
 }
 
 $controlParamsCount = 0
-
-# Count how many control parameters are set, to determine if any changes were selected by the user during runtime
 foreach ($Param in $script:ControlParams) {
     if ($script:Params.ContainsKey($Param)) {
         $controlParamsCount++
@@ -963,14 +235,11 @@ else {
     Write-Output ""
     Write-Output "Press any key to continue..."
     $null = [System.Console]::ReadKey()
-
     $ProgressPreference = 'Continue'
 }
 
 if ($script:Params.ContainsKey("Sysprep")) {
     $null = GetUserDirectory -userName "Default"
-
-    # Exit script if run in Sysprep mode on Windows 10
     if ($WinVersion -lt 22000) {
         Write-Error "Golden Imager Sysprep mode is not supported on Windows 10"
         AwaitKeyToExit
@@ -993,10 +262,7 @@ if ((Test-Path $script:SavedSettingsFilePath) -and ([String]::IsNullOrWhiteSpace
 # Only run the app selection form if the 'RunAppsListGenerator' parameter was passed to the script
 if ($RunAppsListGenerator) {
     PrintHeader "Custom Apps List Generator"
-
     $result = Show-AppSelectionWindow
-
-    # Show different message based on whether the app selection was saved or cancelled
     if ($result -ne $true) {
         Write-Host "Application selection window was closed without saving." -ForegroundColor Red
     }
@@ -1004,7 +270,6 @@ if ($RunAppsListGenerator) {
         Write-Output "Your app selection was saved to the 'CustomAppsList' file, found at:"
         Write-Host "$script:SourceRoot" -ForegroundColor Yellow
     }
-
     AwaitKeyToExit
 }
 
@@ -1019,7 +284,6 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
             Write-Error "Unable to find LastUsedSettings.json file, no changes were made"
             AwaitKeyToExit
         }
-
         ShowCLILastUsedSettings
     }
     else {
@@ -1027,7 +291,7 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
             $Mode = ShowCLIMenuOptions 
         }
         elseif (-not (Test-WpfAvailable)) {
-            Write-Host "WPF GUI is not available in this environment (e.g. Server Core, SSH, remoting). Using CLI mode." -ForegroundColor Yellow
+            Write-Host "WPF GUI is not available in this environment. Using CLI mode." -ForegroundColor Yellow
             if (-not $Silent) {
                 Write-Host ""
                 Write-Host "Press any key to continue..."
@@ -1038,7 +302,6 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
         else {
             try {
                 $result = Show-MainWindow
-
                 Stop-Transcript -ErrorAction SilentlyContinue
                 Copy-LogToReturnPath
                 Exit
@@ -1050,7 +313,6 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
                     Write-Host "Press any key to continue..."
                     $null = [System.Console]::ReadKey()
                 }
-
                 $Mode = ShowCLIMenuOptions
             }
         }
@@ -1058,37 +320,23 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
 
     # Add execution parameters based on the mode
     switch ($Mode) {
-        # Default mode, loads defaults and app removal options
-        '1' { 
-            ShowCLIDefaultModeOptions
-        }
-
-        # App removal, remove apps based on user selection
-        '2' {
-            ShowCLIAppRemoval
-        }
-
-        # Load last used options from the "LastUsedSettings.json" file
-        '3' {
-            ShowCLILastUsedSettings
-        }
+        '1' { ShowCLIDefaultModeOptions }
+        '2' { ShowCLIAppRemoval }
+        '3' { ShowCLILastUsedSettings }
     }
 }
 else {
     PrintHeader 'Configuration'
 }
 
-# If the number of keys in ControlParams equals the number of keys in Params then no modifications/changes were selected
-#  or added by the user, and the script can exit without making any changes.
+# Exit if no modifications/changes were selected
 if (($controlParamsCount -eq $script:Params.Keys.Count) -or ($script:Params.Keys.Count -eq 1 -and ($script:Params.Keys -contains 'CreateRestorePoint' -or $script:Params.Keys -contains 'Apps'))) {
     Write-Output "The script completed without making any changes."
     AwaitKeyToExit
 }
 
-# Execute all selected/provided parameters using the consolidated function
-# (This also handles restore point creation if requested)
+# Execute all selected/provided parameters
 ExecuteAllChanges
-
 RestartExplorer
 
 Write-Output ""

@@ -1,31 +1,6 @@
 # 🏁 Golden Image: ULTRA-THIN Zero-Hour Safety Script
 # Run this script as ADMINISTRATOR inside the VM immediately before Sysprep.
 
-# --- ENVIRONMENT DISCOVERY ---
-# Scripts are in _offline/Imaging_Scripts, so VHD Root is typically two levels up.
-$VhdRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$InstallersDir = Join-Path $VhdRoot "installers"
-$OfflineDir = Join-Path $VhdRoot "_offline"
-
-# Fallback: Search for "installers" folder on all drives if not found relative to script
-if (-not (Test-Path $InstallersDir)) {
-    foreach ($d in [char[]](90..65)) {
-        if (Test-Path "${d}:\installers") {
-            $VhdRoot = "${d}:\"
-            $InstallersDir = "${d}:\installers"
-            $OfflineDir = "${d}:\_offline"
-            break
-        }
-    }
-}
-
-if (-not (Test-Path $InstallersDir)) {
-    Write-Host "[FAIL] Could not locate 'installers' directory." -ForegroundColor Red
-    exit 1
-}
-
-$VhdDrive = $VhdRoot
-
 Write-Host "--- STAGE 1: COMPONENT & STORAGE CLEANUP ---" -ForegroundColor Cyan
 
 # 1. Component Store Cleanup (Takes 5-10 mins)
@@ -98,7 +73,7 @@ Write-Host "`n--- STAGE 5: FINAL VERIFICATION ---" -ForegroundColor Cyan
 
 # 13. Verify Unattend.xml exists (copy from _config if missing, then recheck)
 $UnattendPath = "C:\Windows\System32\Sysprep\unattend.xml"
-$UnattendSource = Join-Path $OfflineDir "_config\unattend.xml"
+$UnattendSource = "E:\_offline\_config\unattend.xml"
 if (-not (Test-Path $UnattendPath) -and (Test-Path $UnattendSource)) {
     Copy-Item -LiteralPath $UnattendSource -Destination $UnattendPath -Force
     Write-Host "[*] Copied unattend.xml from $UnattendSource." -ForegroundColor Gray

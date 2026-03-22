@@ -5,34 +5,30 @@
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# --- ENVIRONMENT DISCOVERY ---
-# Scripts are in _offline/Imaging_Scripts, so VHD Root is typically two levels up.
-$VhdRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$InstallersDir = Join-Path $VhdRoot "installers"
-$OfflineDir = Join-Path $VhdRoot "_offline"
-
-# Fallback: Search for "installers" folder on all drives if not found relative to script
-if (-not (Test-Path $InstallersDir)) {
+Write-Host "`n>>> [1/5] DETECTING VHD STORAGE" -ForegroundColor Cyan
+# 1) Label "Golden Imaging" 2) Fallback: Z..A reverse search for installers or _offline
+$StagingDrive = $null
+$StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq "Golden Imaging" -and $_.DriveLetter -ne $null } | Select-Object -First 1
+if ($StagingVolume) { $StagingDrive = $StagingVolume.DriveLetter }
+if (-not $StagingDrive) {
     foreach ($d in [char[]](90..65)) {
-        if (Test-Path "${d}:\installers") {
-            $VhdRoot = "${d}:\"
-            $InstallersDir = "${d}:\installers"
-            $OfflineDir = "${d}:\_offline"
+        $root = "${d}:\"
+        if ((Test-Path (Join-Path $root "installers")) -or (Test-Path (Join-Path $root "_offline"))) {
+            $StagingDrive = $d
             break
         }
     }
 }
+$VhdDrive = if ($StagingDrive) { "${StagingDrive}:\" } else { $null }
 
-if (-not (Test-Path $InstallersDir)) {
-    Write-Host "[FAIL] Could not locate 'installers' directory." -ForegroundColor Red
-    exit 1
+if (-not $VhdDrive) {
+    Write-Host "[ERROR] Staging drive not found (label 'Golden Imaging' or drive with installers/_offline)." -ForegroundColor Red
+    return
 }
 
-$VhdDrive = $VhdRoot
-$LayoutSource = Join-Path $InstallersDir "VS_Offline"
-$ReturnPath = Join-Path $VhdDrive "return"
+$LayoutSource = Join-Path $VhdDrive "installers\VS_Offline"
+$ReturnPath   = Join-Path $VhdDrive "return"
 
-Write-Host "`n>>> [1/5] VHD STORAGE DETECTED" -ForegroundColor Cyan
 Write-Host "[*] VHD Drive detected: $VhdDrive" -ForegroundColor Gray
 Write-Host "[*] Layout Source: $LayoutSource" -ForegroundColor Gray
 
@@ -54,7 +50,7 @@ if (-not (Test-Path $ReturnPath)) { New-Item -Path $ReturnPath -ItemType Directo
 # --- CRITICAL: TRUST CERTIFICATES ---
 $CertFolders = @(
     (Join-Path $LayoutSource "certificates"),
-    $InstallersDir
+    (Join-Path $VhdDrive "installers")
 )
 
 foreach ($folder in $CertFolders) {

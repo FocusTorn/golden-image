@@ -59,32 +59,10 @@ function Invoke-RegistryAction {
 
 # --- ENVIRONMENT DISCOVERY ---
 
-# Scripts are in _offline/Imaging_Scripts, so VHD Root is typically two levels up.
-$VhdRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$InstallersDir = Join-Path $VhdRoot "installers"
-$OfflineDir = Join-Path $VhdRoot "_offline"
-
-# Fallback: Search for "installers" folder on all drives if not found relative to script
-if (-not (Test-Path $InstallersDir)) {
-    foreach ($d in [char[]](90..65)) {
-        if (Test-Path "${d}:\installers") {
-            $VhdRoot = "${d}:\"
-            $InstallersDir = "${d}:\installers"
-            $OfflineDir = "${d}:\_offline"
-            break
-        }
-    }
-}
-
-if (-not (Test-Path $InstallersDir)) {
-    Write-Host "[FAIL] Could not locate 'installers' directory." -ForegroundColor Red
-    exit 1
-}
-
-$VhdDrive = $VhdRoot
+$OfflineDir = Split-Path $PSScriptRoot -Parent
 $Ps7Path = "C:\Program Files\PowerShell\7\pwsh.exe"
 
-# 1. Staging Drive Discovery (From Config) - Used for persistence later
+# 1. Staging Drive Discovery (From Config)
 $OfflineConfigPath = Join-Path $OfflineDir "_offline_config.json"
 if (-not (Test-Path $OfflineConfigPath)) {
     Write-Host "[FAIL] _offline_config.json not found in $OfflineDir." -ForegroundColor Red
@@ -96,10 +74,20 @@ $Cfg = Get-Content $OfflineConfigPath | ConvertFrom-Json
 $TargetDrive = if ($Cfg.GuestStagingDrive) { $Cfg.GuestStagingDrive.ToString().Trim().TrimEnd(':')[0] } else { "F" }
 $Label = if ($Cfg.StagingVolumeLabel) { $Cfg.StagingVolumeLabel } else { "Golden Imaging" }
 
-# Extract current drive letter for persistence logic
-$StagingDrive = $VhdRoot.TrimEnd('\').TrimEnd(':')
+# Locate current drive by Label
+$StagingVolume = Get-Volume | Where-Object { $_.FileSystemLabel -eq $Label -and $null -ne $_.DriveLetter } | Select-Object -First 1
+if (-not $StagingVolume) {
+    Write-Host "[FAIL] Staging drive with label '$Label' not found." -ForegroundColor Red
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+
+$StagingDrive = $StagingVolume.DriveLetter
 
 # 2. Path Initialization
+$VhdDrive = "${StagingDrive}:\"
+$OfflineDir = Join-Path $VhdDrive "_offline"
+$InstallersDir = Join-Path $VhdDrive "installers"
 $LogFile = Join-Path $OfflineDir "stage1_customize.log"
 
 # --- HEADER & LOGGING ---
