@@ -9,3 +9,6 @@ return/genersate-apps.txt
 logs/
 .tmp/
 
+
+# Ignored by F-UX Notes Hub
+/.fux_note-hub/

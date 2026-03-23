@@ -403,7 +403,9 @@ try {
         try {
             Save-HostVmSettingsToMaster -VMProfileKey $pk -OsVhdPath $osVhd
         } catch {
-            Write-Warning "Could not save VMDetails.OsVhdPath to _master_config.json: $_"
+            $msg = $_.Exception.Message
+            if ($_.ScriptStackTrace) { $msg += " at " + $_.ScriptStackTrace.Split("`n")[0].Trim() }
+            Write-Warning "Could not save VMDetails.OsVhdPath to _master_config.json: $msg"
         }
     }
 
@@ -419,13 +421,7 @@ try {
     Write-Host ""
 
 } catch {
-    Write-Host ""
-    Write-Host "[ERROR] Failed to create virtual machine." -ForegroundColor Red
-    Write-Host "  Message: $($_.Exception.Message)" -ForegroundColor Yellow
-    if ($_.ScriptStackTrace) {
-        Write-Host "  Location: $($_.ScriptStackTrace.Split("`n")[0])" -ForegroundColor DarkGray
-    }
-    Write-Host ""
+    Write-DetailedError $_ "Failed to create virtual machine"
     exit 1
 }
 

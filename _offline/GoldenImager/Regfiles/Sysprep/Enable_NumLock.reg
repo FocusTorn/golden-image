@@ -1,0 +1,4 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_USERS\Default\Control Panel\Keyboard]
+"InitialKeyboardIndicators"="2"

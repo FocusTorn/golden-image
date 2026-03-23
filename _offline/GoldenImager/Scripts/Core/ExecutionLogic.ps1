@@ -183,6 +183,20 @@ function ExecuteParameter {
             Write-Host ""
             return
         }
+        'DeleteTemporaryFiles' { Invoke-DeleteTemporaryFiles; return }
+        'DisableHibernation' { Invoke-DisableHibernation; return }
+        'RunDiskCleanup' { Invoke-RunDiskCleanup; return }
+        'SetServicesToManual' { Invoke-SetServicesToManual; return }
+        'AdobeNetworkBlock' { Invoke-AdobeNetworkBlock; return }
+        'DisableIPv6' { Invoke-DisableIPv6; return }
+        'DisableTeredo' { Invoke-DisableTeredo; return }
+        'SetDisplayForPerformance' { Invoke-SetDisplayForPerformance; return }
+        'AddUltimatePerformancePlan' { Invoke-AddUltimatePerformancePlan; return }
+        'InstallFeatures' { Invoke-InstallHyperVAndNFS; return }
+        'SetUpAutologin' { Invoke-SetUpAutologin; return }
+        'SystemCorruptionScan' { Invoke-SystemCorruptionScan; return }
+        'ResetWindowsUpdate' { Invoke-ResetWindowsUpdate; return }
+        'WinGetReinstall' { Invoke-WinGetReinstall; return }
     }
 }
 

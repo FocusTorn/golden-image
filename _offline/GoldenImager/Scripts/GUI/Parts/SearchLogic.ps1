@@ -32,13 +32,13 @@ function Initialize-AppSearch {
     $scriptScope.appSearchBox.Add_TextChanged({
         $searchText = $scriptScope.appSearchBox.Text.ToLower().Trim()
         $scriptScope.appSearchPlaceholder.Visibility = if ([string]::IsNullOrWhiteSpace($scriptScope.appSearchBox.Text)) { 'Visible' } else { 'Collapsed' }
-        foreach ($child in $scriptScope.appsPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox]) { $child.Background = [System.Windows.Media.Brushes]::Transparent } }
+        foreach ($child in $scriptScope.AppSelectionPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox]) { $child.Background = [System.Windows.Media.Brushes]::Transparent } }
         $script:AppSearchMatches = @()
         $script:AppSearchMatchIndex = -1
         if ([string]::IsNullOrWhiteSpace($searchText)) { return }
         $highlightBrush = $window.Resources["SearchHighlightColor"]
         $activeHighlightBrush = $window.Resources["SearchHighlightActiveColor"]
-        foreach ($child in $scriptScope.appsPanel.Children) {
+        foreach ($child in $scriptScope.AppSelectionPanel.Children) {
             if ($child -is [System.Windows.Controls.CheckBox] -and $child.Visibility -eq 'Visible') {
                 $appName = if ($child.AppName) { $child.AppName } else { '' }
                 $appId = if ($child.Tag) { $child.Tag.ToString() } else { '' }
@@ -52,8 +52,8 @@ function Initialize-AppSearch {
         if ($script:AppSearchMatches.Count -gt 0) {
             $script:AppSearchMatchIndex = 0
             $script:AppSearchMatches[0].Background = $activeHighlightBrush
-            $scrollViewer = FindParentScrollViewer -element $scriptScope.appsPanel
-            if ($scrollViewer) { ScrollToItemIfNotVisible -scrollViewer $scrollViewer -item $script:AppSearchMatches[0] -container $scriptScope.appsPanel }
+            $scrollViewer = FindParentScrollViewer -element $scriptScope.AppSelectionPanel
+            if ($scrollViewer) { ScrollToItemIfNotVisible -scrollViewer $scrollViewer -item $script:AppSearchMatches[0] -container $scriptScope.AppSelectionPanel }
         }
     })
     $scriptScope.appSearchBox.Add_KeyDown({
@@ -62,8 +62,8 @@ function Initialize-AppSearch {
             $script:AppSearchMatches[$script:AppSearchMatchIndex].Background = $window.Resources["SearchHighlightColor"]
             $script:AppSearchMatchIndex = ($script:AppSearchMatchIndex + 1) % $script:AppSearchMatches.Count
             $script:AppSearchMatches[$script:AppSearchMatchIndex].Background = $window.Resources["SearchHighlightActiveColor"]
-            $scrollViewer = FindParentScrollViewer -element $scriptScope.appsPanel
-            if ($scrollViewer) { ScrollToItemIfNotVisible -scrollViewer $scrollViewer -item $script:AppSearchMatches[$script:AppSearchMatchIndex] -container $scriptScope.appsPanel }
+            $scrollViewer = FindParentScrollViewer -element $scriptScope.AppSelectionPanel
+            if ($scrollViewer) { ScrollToItemIfNotVisible -scrollViewer $scrollViewer -item $script:AppSearchMatches[$script:AppSearchMatchIndex] -container $scriptScope.AppSelectionPanel }
             $e.Handled = $true
         }
     })

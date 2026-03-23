@@ -3,9 +3,9 @@ function UpdateSortArrows {
     $ease = New-Object System.Windows.Media.Animation.QuadraticEase
     $ease.EasingMode = 'EaseOut'
     $arrows = @{
-        'Name'        = $scriptScope.sortArrowName
-        'Description' = $scriptScope.sortArrowDescription
-        'AppId'       = $scriptScope.sortArrowAppId
+        'Name'        = $scriptScope.SortArrowName
+        'Description' = $scriptScope.SortArrowDescription
+        'AppId'       = $scriptScope.SortArrowAppId
     }
     foreach ($col in $arrows.Keys) {
         $tb = $arrows[$col]
@@ -26,16 +26,16 @@ function UpdateSortArrows {
 
 function SortApps {
     param($scriptScope)
-    $children = @($scriptScope.appsPanel.Children)
+    $children = @($scriptScope.AppSelectionPanel.Children)
     $key = switch ($script:SortColumn) {
         'Name'        { { $_.AppName } }
         'Description' { { $_.AppDescription } }
         'AppId'       { { $_.Tag } }
     }
     $sorted = $children | Sort-Object $key -Descending:(-not $script:SortAscending)
-    $scriptScope.appsPanel.Children.Clear()
+    $scriptScope.AppSelectionPanel.Children.Clear()
     foreach ($checkbox in $sorted) {
-        $scriptScope.appsPanel.Children.Add($checkbox) | Out-Null
+        $scriptScope.AppSelectionPanel.Children.Add($checkbox) | Out-Null
     }
     UpdateSortArrows -scriptScope $scriptScope
 }
@@ -53,11 +53,12 @@ function SetSortColumn {
 
 function SyncColumnWidthsToRows {
     param($scriptScope)
+    if ($null -eq $script:HeaderColName -or $null -eq $script:HeaderColDesc -or $null -eq $script:HeaderColId) { return }
     $nameW  = $script:HeaderColName.ActualWidth
     $descW  = $script:HeaderColDesc.ActualWidth
     $idW    = $script:HeaderColId.ActualWidth
     if ($nameW -le 0) { return }
-    foreach ($child in $scriptScope.appsPanel.Children) {
+    foreach ($child in $scriptScope.AppSelectionPanel.Children) {
         if ($child -is [System.Windows.Controls.CheckBox] -and $child.Content -is [System.Windows.Controls.Grid]) {
             $grid = $child.Content
             if ($grid.ColumnDefinitions.Count -ge 4) {
@@ -72,12 +73,12 @@ function SyncColumnWidthsToRows {
 function UpdateAppSelectionStatus {
     param($scriptScope)
     $selectedCount = 0
-    foreach ($child in $scriptScope.appsPanel.Children) {
+    foreach ($child in $scriptScope.AppSelectionPanel.Children) {
         if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) {
             $selectedCount++
         }
     }
-    $scriptScope.appSelectionStatus.Text = "$selectedCount app(s) selected for removal"
+    $scriptScope.AppSelectionStatus.Text = "$selectedCount app(s) selected for removal"
 }
 
 function AddAppsToPanel {
@@ -151,16 +152,18 @@ function AddAppsToPanel {
 
         $checkbox.Add_Checked({ UpdateAppSelectionStatus -scriptScope $scriptScope })
         $checkbox.Add_Unchecked({ UpdateAppSelectionStatus -scriptScope $scriptScope })
-        AttachShiftClickBehavior -checkbox $checkbox -appsPanel $scriptScope.appsPanel -lastSelectedCheckboxRef ([ref]$script:MainWindowLastSelectedCheckbox) -updateStatusCallback { UpdateAppSelectionStatus -scriptScope $scriptScope }
+        AttachShiftClickBehavior -checkbox $checkbox -appsPanel $scriptScope.AppSelectionPanel -lastSelectedCheckboxRef ([ref]$script:MainWindowLastSelectedCheckbox) -updateStatusCallback { UpdateAppSelectionStatus -scriptScope $scriptScope }
 
-        $scriptScope.appsPanel.Children.Add($checkbox) | Out-Null
+        $scriptScope.AppSelectionPanel.Children.Add($checkbox) | Out-Null
         $idx++
         if ($idx % $batchSize -eq 0) { DoEvents }
     }
     SortApps -scriptScope $scriptScope
     SyncColumnWidthsToRows -scriptScope $scriptScope
-    $scriptScope.loadingAppsIndicator.Visibility = 'Collapsed'
-    if ($scriptScope.exportAppListLink) { $scriptScope.exportAppListLink.Visibility = 'Visible' }
+    if ($null -ne $scriptScope.LoadingAppsIndicator) {
+        $scriptScope.LoadingAppsIndicator.Visibility = 'Collapsed'
+    }
+    if ($scriptScope.ExportAppListLink) { $scriptScope.ExportAppListLink.Visibility = 'Visible' }
     UpdateNavigationButtons
     UpdateAppSelectionStatus -scriptScope $scriptScope
 }
@@ -168,17 +171,20 @@ function AddAppsToPanel {
 function LoadAppsWithList {
     param($scriptScope, $window)
     $onlyInstalledVal = $false
-    if ($scriptScope.onlyInstalledAppsBox) { $onlyInstalledVal = $scriptScope.onlyInstalledAppsBox.IsChecked }
+    if ($scriptScope.OnlyInstalledAppsBox) { $onlyInstalledVal = $scriptScope.OnlyInstalledAppsBox.IsChecked }
     $viewMode = 'FromJson'
-    if ($scriptScope.showAllNotListedBox -and $scriptScope.showAllNotListedBox.IsChecked) { $viewMode = 'AllNotListed' }
-    elseif ($scriptScope.showProvisionedNotListedBox -and $scriptScope.showProvisionedNotListedBox.IsChecked) { $viewMode = 'ProvisionedNotListed' }
-    elseif ($scriptScope.showUserNotListedBox -and $scriptScope.showUserNotListedBox.IsChecked) { $viewMode = 'UserNotListed' }
+    if ($scriptScope.ShowAllNotListedBox -and $scriptScope.ShowAllNotListedBox.IsChecked) { $viewMode = 'AllNotListed' }
+    elseif ($scriptScope.ShowProvisionedNotListedBox -and $scriptScope.ShowProvisionedNotListedBox.IsChecked) { $viewMode = 'ProvisionedNotListed' }
+    elseif ($scriptScope.ShowUserNotListedBox -and $scriptScope.ShowUserNotListedBox.IsChecked) { $viewMode = 'UserNotListed' }
 
     $appsListPath = [System.IO.Path]::GetFullPath($script:AppsListFilePath)
     $loaderPath = [System.IO.Path]::GetFullPath($script:LoadAppsDetailsScriptPath)
     $overlayPath = if ($script:OverlayAppsListFilePath) { [System.IO.Path]::GetFullPath($script:OverlayAppsListFilePath) } else { '' }
 
     try {
+        if ($null -ne $scriptScope.LoadingAppsIndicator) {
+            $scriptScope.LoadingAppsIndicator.Visibility = 'Visible'
+        }
         $appsToAdd = Invoke-NonBlocking -ScriptBlock {
             param($loaderScriptPath, $appsListFilePath, $onlyInstalled, $viewMode, $overlayAppsPath)
             $script:AppsListFilePath = $appsListFilePath
@@ -190,8 +196,8 @@ function LoadAppsWithList {
         AddAppsToPanel -appsToAdd $appsToAdd -scriptScope $scriptScope -window $window
     }
     catch {
-        $scriptScope.loadingAppsIndicator.Visibility = 'Collapsed'
-        if ($scriptScope.exportAppListLink) { $scriptScope.exportAppListLink.Visibility = 'Collapsed' }
+        if ($scriptScope.LoadingAppsIndicator) { $scriptScope.LoadingAppsIndicator.Visibility = 'Collapsed' }
+        if ($scriptScope.ExportAppListLink) { $scriptScope.ExportAppListLink.Visibility = 'Collapsed' }
         UpdateNavigationButtons
         Show-MessageBox -Message "Unable to load app list.`n`n$($_.Exception.Message)" -Title 'Error' -Button 'OK' -Icon 'Error' | Out-Null
     }

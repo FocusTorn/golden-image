@@ -1,16 +1,37 @@
 function UpdateNavigationButtons {
     param($scriptScope)
-    $currentIndex = $scriptScope.tabControl.SelectedIndex
-    $totalTabs = $scriptScope.tabControl.Items.Count
-    $homeIndex = 0; $overviewIndex = $totalTabs - 1
-    if ($currentIndex -eq $homeIndex) { $scriptScope.nextBtn.Visibility = 'Visible'; $scriptScope.previousBtn.Visibility = 'Collapsed' }
-    elseif ($currentIndex -eq $overviewIndex) { $scriptScope.nextBtn.Visibility = 'Collapsed'; $scriptScope.previousBtn.Visibility = 'Visible' }
-    else { $scriptScope.nextBtn.Visibility = 'Visible'; $scriptScope.previousBtn.Visibility = 'Visible' }
-    $blueColor = "#0067c0"; $greyColor = "#808080"
-    $scriptScope.bottomNavGrid.Visibility = 'Visible'
-    $scriptScope.progressIndicator1.Fill = if ($currentIndex -ge 0) { $blueColor } else { $greyColor }
-    $scriptScope.progressIndicator2.Fill = if ($currentIndex -ge 1) { $blueColor } else { $greyColor }
-    $scriptScope.progressIndicator3.Fill = if ($currentIndex -ge 2) { $blueColor } else { $greyColor }
+    $tabControl = $scriptScope.MainTabControl
+    if ($null -eq $tabControl) { return }
+    
+    $currentIndex = $tabControl.SelectedIndex
+    $totalTabs = $tabControl.Items.Count
+    $homeIndex = 0
+    $overviewIndex = $totalTabs - 1
+    
+    # Update Back/Next buttons at the bottom
+    if ($null -ne $scriptScope.NextBtn -and $null -ne $scriptScope.PreviousBtn) {
+        if ($currentIndex -eq $homeIndex) {
+            $scriptScope.NextBtn.Visibility = 'Visible'
+            $scriptScope.PreviousBtn.Visibility = 'Collapsed'
+        }
+        elseif ($currentIndex -eq $overviewIndex) {
+            $scriptScope.NextBtn.Visibility = 'Collapsed'
+            $scriptScope.PreviousBtn.Visibility = 'Visible'
+        }
+        else {
+            $scriptScope.NextBtn.Visibility = 'Visible'
+            $scriptScope.PreviousBtn.Visibility = 'Visible'
+        }
+    }
+    
+    $blueColor = "#0067c0"
+    $greyColor = "#808080"
+    
+    # Update progress indicators (illumination)
+    if ($null -ne $scriptScope.ProgressIndicator1) { $scriptScope.ProgressIndicator1.Fill = $(if ($currentIndex -eq 0) { $blueColor } else { $greyColor }) }
+    if ($null -ne $scriptScope.ProgressIndicator2) { $scriptScope.ProgressIndicator2.Fill = $(if ($currentIndex -eq 1) { $blueColor } else { $greyColor }) }
+    if ($null -ne $scriptScope.ProgressIndicator3) { $scriptScope.ProgressIndicator3.Fill = $(if ($currentIndex -eq 2) { $blueColor } else { $greyColor }) }
+    if ($null -ne $scriptScope.ProgressIndicator4) { $scriptScope.ProgressIndicator4.Fill = $(if ($currentIndex -eq 3) { $blueColor } else { $greyColor }) }
 }
 
 function ValidateOtherUsername {
@@ -30,7 +51,7 @@ function GenerateOverview {
     $featuresJson = LoadJsonFile -filePath $script:FeaturesFilePath -expectedVersion "1.0"
     $changesList = @()
     $selectedAppsCount = 0
-    foreach ($child in $scriptScope.appsPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) { $selectedAppsCount++ } }
+    foreach ($child in $scriptScope.AppSelectionPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) { $selectedAppsCount++ } }
     if ($selectedAppsCount -gt 0) { $changesList += "Remove $selectedAppsCount application(s)" }
     if ($selectedAppsCount -gt 0) { if ($scriptScope.userSelectionCombo.SelectedIndex -ne 2) { $scriptScope.appRemovalScopeCombo.IsEnabled = $true }; $scriptScope.appRemovalScopeSection.Opacity = 1.0; UpdateAppRemovalScopeDescription -scriptScope $scriptScope }
     else { $scriptScope.appRemovalScopeCombo.IsEnabled = $false; $scriptScope.appRemovalScopeSection.Opacity = 0.5; $scriptScope.appRemovalScopeDescription.Text = "No apps selected for removal." }

@@ -359,13 +359,17 @@ while ($true) {
             "w" { & "$scriptsDir\New-WimFromVhd.ps1" -NoPause; Wait-AutoContinue }
             "iw" { & "$scriptsDir\New-WimFromVhd.ps1" -NoPause; Wait-AutoContinue }
             "in" { & "$scriptsDir\Boot-WimInNewVm.ps1" -NoPause; Wait-AutoContinue }
-            "ch" { $p = Read-Host "VHD Path"; if ($p) { Save-HostVmSettingsToMaster -VhdPath $p } }
-            "cv" { $n = Read-Host "VM Name"; if ($n) { Save-HostVmSettingsToMaster -VMName $n } }
-            "cg" { $dr = Read-Host "Drive Letter"; if ($dr) { Save-HostVmSettingsToMaster -GuestStagingDrive $dr[0] } }
+            "ch" { try { $p = Read-Host "VHD Path"; if ($p) { Save-HostVmSettingsToMaster -VhdPath $p } } catch { Write-DetailedError $_ "Update VHD Path failed" } }
+            "cv" { try { $n = Read-Host "VM Name"; if ($n) { Save-HostVmSettingsToMaster -VMName $n } } catch { Write-DetailedError $_ "Update VM Name failed" } }
+            "cg" { try { $dr = Read-Host "Drive Letter"; if ($dr) { Save-HostVmSettingsToMaster -GuestStagingDrive $dr[0] } } catch { Write-DetailedError $_ "Update Drive Letter failed" } }
             "ca" { 
-                $newVal = -not ($Cfg.UsePasswordCreds -eq $true -or $Cfg.UsePasswordCreds -eq "true")
-                Save-HostVmSettingsToMaster -UsePasswordCreds $newVal
-                Write-Host "Credentials toggled to: $(if($newVal){'Password'}else{'Empty (Audit Mode)'})" -ForegroundColor Cyan
+                try {
+                    $newVal = -not ($Cfg.UsePasswordCreds -eq $true -or $Cfg.UsePasswordCreds -eq "true")
+                    Save-HostVmSettingsToMaster -UsePasswordCreds $newVal
+                    Write-Host "Credentials toggled to: $(if($newVal){'Password'}else{'Empty (Audit Mode)'})" -ForegroundColor Cyan
+                } catch {
+                    Write-DetailedError $_ "Toggle credentials failed"
+                }
                 Start-Sleep -Seconds 1 
             }
             "pl" {
@@ -529,7 +533,7 @@ while ($true) {
             Default { Write-Host "Invalid option" -ForegroundColor Yellow; Start-Sleep -Seconds 1 }
         }
     } catch {
-        Write-Host "`n[ERROR] Command failed: $($_.Exception.Message)" -ForegroundColor Red
+        Write-DetailedError $_ "Dashboard main loop encountered a critical error"
         Wait-AutoContinue
     }
 }

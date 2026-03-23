@@ -67,8 +67,8 @@ function Update-AppProfileCombo {
 
 function Set-AppProfileToUi {
     param([string[]]$AppIds, [switch]$Replace, $scriptScope)
-    if ($Replace) { foreach ($child in $scriptScope.appsPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox]) { $child.IsChecked = $AppIds -contains $child.Tag } } }
-    else { foreach ($child in $scriptScope.appsPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and ($AppIds -contains $child.Tag)) { $child.IsChecked = $true } } }
+    if ($Replace) { foreach ($child in $scriptScope.AppSelectionPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox]) { $child.IsChecked = $AppIds -contains $child.Tag } } }
+    else { foreach ($child in $scriptScope.AppSelectionPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and ($AppIds -contains $child.Tag)) { $child.IsChecked = $true } } }
     UpdateAppSelectionStatus -scriptScope $scriptScope
 }
 
@@ -99,19 +99,6 @@ function Show-OptionsDialog {
     if ($Owner) { try { $overlay = $Owner.FindName('ModalOverlay'); if ($overlay) { $overlayWasAlreadyVisible = ($overlay.Visibility -eq 'Visible'); if (-not $overlayWasAlreadyVisible) { $Owner.Dispatcher.Invoke([action]{ $overlay.Visibility = 'Visible' }) } } } catch { } }
     $optionsSchema = Join-Path $script:GoldenImagerRoot "Schemas/OptionsWindow.xaml"
     $xaml = Get-Content -Path $optionsSchema -Raw
-    $reader = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml))
-    try { $optWindow = [System.Windows.Markup.XamlReader]::Load($reader) } finally { $reader.Close() }
-    if ($Owner) { $optWindow.Owner = $Owner }
-    SetWindowThemeResources -window $optWindow -usesDarkMode $usesDarkMode
-    $toggle = $optWindow.FindName('OptionsHideLauncherToggle'); $okBtn = $optWindow.FindName('OptionsOkButton'); $titleBar = $optWindow.FindName('TitleBar')
-    $toggle.IsChecked = $opts.HideLauncherWindow
-    $okBtn.Add_Click({ $newOpts = @{ HideLauncherWindow = $toggle.IsChecked -eq $true }; Set-Options $newOpts; Set-OptionHideLauncher -Hide $newOpts.HideLauncherWindow; $optWindow.Close() })
-    $titleBar.Add_MouseLeftButtonDown({ $optWindow.DragMove() })
-    $optWindow.Add_KeyDown({ param($s, $e) if ($e.Key -eq 'Escape') { $optWindow.Close() } })
-    $optWindow.ShowDialog() | Out-Null
-    if ($overlay -and -not $overlayWasAlreadyVisible) { try { $Owner.Dispatcher.Invoke([action]{ $overlay.Visibility = 'Collapsed' }) } catch { } }
-}
-
     $reader = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml))
     try { $optWindow = [System.Windows.Markup.XamlReader]::Load($reader) } finally { $reader.Close() }
     if ($Owner) { $optWindow.Owner = $Owner }

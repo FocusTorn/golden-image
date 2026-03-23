@@ -73,6 +73,10 @@ $script:Typography = @{
     HelpLinkFontSize = 12
     HelpLinkFontWeight = "Bold"
 
+    # Custom Setup link text
+    CustomSetupFontSize = 16
+    CustomSetupFontWeight = "SemiBold"
+
     # Character spacing (hundredths of em, 0 = default, 100 = 0.1em wider)
     CharacterSpacing = 0
 }

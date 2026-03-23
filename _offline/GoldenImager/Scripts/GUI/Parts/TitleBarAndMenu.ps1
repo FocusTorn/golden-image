@@ -12,7 +12,7 @@ function Initialize-TitleBarAndMenu {
 
     $scriptScope.menuExportSettings.Add_Click({
         $settingsJson = Get-CurrentTweakSettingsFromUi
-        $selectedApps = @(); foreach ($child in $scriptScope.appsPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) { $selectedApps += $child.Tag } }
+        $selectedApps = @(); foreach ($child in $scriptScope.AppSelectionPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) { $selectedApps += $child.Tag } }
         if ($selectedApps.Count -gt 0) { $settingsJson.Settings += @{ Name = 'RemoveApps'; Value = $true }; $settingsJson.Settings += @{ Name = 'Apps'; Value = ($selectedApps -join ',') } }
         if ($scriptScope.restorePointCheckBox -and $scriptScope.restorePointCheckBox.IsChecked) { $settingsJson.Settings += @{ Name = 'CreateRestorePoint'; Value = $true } }
         if ($scriptScope.userSelectionCombo.SelectedIndex -eq 1) { if ($scriptScope.otherUsernameTextBox -and $scriptScope.otherUsernameTextBox.Text.Trim()) { $settingsJson.Settings += @{ Name = 'User'; Value = $scriptScope.otherUsernameTextBox.Text.Trim() } } }
@@ -30,7 +30,7 @@ function Initialize-TitleBarAndMenu {
                 if (-not $imported.Settings) { Show-MessageBox -Message "Invalid settings file format." -Title "Import" -Button 'OK' -Icon 'Warning' | Out-Null; return }
                 $settingsObj = @{ Version = $imported.Version; Settings = @() }; foreach ($s in $imported.Settings) { $settingsObj.Settings += @{ Name = $s.Name; Value = $s.Value } }
                 ApplySettingsToUiControls -window $window -settingsJson $settingsObj -uiControlMappings $script:UiControlMappings
-                if ($settingsObj.Settings | Where-Object { $_.Name -eq 'Apps' }) { $appsSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'Apps' } | Select-Object -First 1; $appIds = $appsSetting.Value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }; foreach ($child in $scriptScope.appsPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and $child.Tag) { $child.IsChecked = $appIds -contains $child.Tag } } }
+                if ($settingsObj.Settings | Where-Object { $_.Name -eq 'Apps' }) { $appsSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'Apps' } | Select-Object -First 1; $appIds = $appsSetting.Value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }; foreach ($child in $scriptScope.AppSelectionPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and $child.Tag) { $child.IsChecked = $appIds -contains $child.Tag } } }
                 if ($scriptScope.restorePointCheckBox -and ($settingsObj.Settings | Where-Object { $_.Name -eq 'CreateRestorePoint' })) { $scriptScope.restorePointCheckBox.IsChecked = $true }
                 $userSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'User' } | Select-Object -First 1; $sysprepSetting = $settingsObj.Settings | Where-Object { $_.Name -eq 'Sysprep' } | Select-Object -First 1
                 if ($sysprepSetting) { $scriptScope.userSelectionCombo.SelectedIndex = 2 } elseif ($userSetting) { $scriptScope.userSelectionCombo.SelectedIndex = 1; if ($scriptScope.otherUsernameTextBox) { $scriptScope.otherUsernameTextBox.Text = $userSetting.Value } } else { $scriptScope.userSelectionCombo.SelectedIndex = 0 }

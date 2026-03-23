@@ -6,12 +6,12 @@ function Get-RestartMarkerSuffix {
         $allFids = $featureOrGroup.Values | ForEach-Object { $_.FeatureIds } | ForEach-Object { $_ }
         foreach ($fid in $allFids) {
             $f = $featuresJson.Features | Where-Object { $_.FeatureId -eq $fid } | Select-Object -First 1
-            $r = if ($f.RequiresRestart) { $f.RequiresRestart } elseif ($fid -match '^Remove|^ForceRemove' -or $fid -in @('EnableWindowsSandbox','EnableWindowsSubsystemForLinux','DisableCopilot')) { 'reboot' } elseif ($f.RegistryKey) { 'explorer' } else { 'explorer' }
+            $r = $(if ($f.RequiresRestart) { $f.RequiresRestart } elseif ($fid -match '^Remove|^ForceRemove' -or $fid -in @('EnableWindowsSandbox','EnableWindowsSubsystemForLinux','DisableCopilot')) { 'reboot' } elseif ($f.RegistryKey) { 'explorer' } else { 'explorer' })
             if ($r -eq 'reboot') { $req = 'reboot'; break }
             if ($r -eq 'explorer' -and $req -eq 'none') { $req = 'explorer' }
         }
     } else {
-        $req = if ($featureOrGroup.RequiresRestart) { $featureOrGroup.RequiresRestart } elseif ($featureOrGroup.FeatureId -match '^Remove|^ForceRemove' -or $featureOrGroup.FeatureId -in @('EnableWindowsSandbox','EnableWindowsSubsystemForLinux','DisableCopilot')) { 'reboot' } elseif ($featureOrGroup.RegistryKey) { 'explorer' } else { 'explorer' }
+        $req = $(if ($featureOrGroup.RequiresRestart) { $featureOrGroup.RequiresRestart } elseif ($featureOrGroup.FeatureId -match '^Remove|^ForceRemove' -or $featureOrGroup.FeatureId -in @('EnableWindowsSandbox','EnableWindowsSubsystemForLinux','DisableCopilot')) { 'reboot' } elseif ($featureOrGroup.RegistryKey) { 'explorer' } else { 'explorer' })
     }
     switch ($req) { 'reboot' { ' [reboot]' } 'explorer' { ' [restart]' } default { '' } }
 }
@@ -153,6 +153,62 @@ function BuildDynamicTweaks {
         Exit
     }
 
+    # Overlay Logic: Merge root Features.json if it exists
+    if ($script:OverlayFeaturesFilePath -and (Test-Path $script:OverlayFeaturesFilePath)) {
+        try {
+            $overlayJson = LoadJsonFile -filePath $script:OverlayFeaturesFilePath -expectedVersion "1.0"
+            if ($overlayJson) {
+                # Merge Categories (Append unique)
+                if ($overlayJson.Categories) {
+                    $existingCats = @{}
+                    if ($featuresJson.Categories) { foreach ($c in $featuresJson.Categories) { $n = $(if ($c -is [string]) { $c } else { $c.Name }); $existingCats[$n] = $true } }
+                    else { $featuresJson.Categories = @() }
+                    
+                    foreach ($cat in $overlayJson.Categories) {
+                        $n = $(if ($cat -is [string]) { $cat } else { $cat.Name })
+                        if (-not $existingCats.ContainsKey($n)) {
+                            $featuresJson.Categories += $cat
+                        }
+                    }
+                }
+
+                # Merge UiGroups (Override or Append)
+                if ($overlayJson.UiGroups) {
+                    $groupMap = @{}
+                    if ($featuresJson.UiGroups) { 
+                        for ($i=0; $i -lt $featuresJson.UiGroups.Count; $i++) { $groupMap[$featuresJson.UiGroups[$i].GroupId] = $i }
+                    } else { $featuresJson.UiGroups = @() }
+
+                    foreach ($g in $overlayJson.UiGroups) {
+                        if ($groupMap.ContainsKey($g.GroupId)) {
+                            $featuresJson.UiGroups[$groupMap[$g.GroupId]] = $g
+                        } else {
+                            $featuresJson.UiGroups += $g
+                        }
+                    }
+                }
+
+                # Merge Features (Override or Append)
+                if ($overlayJson.Features) {
+                    $featMap = @{}
+                    if ($featuresJson.Features) { 
+                        for ($i=0; $i -lt $featuresJson.Features.Count; $i++) { $featMap[$featuresJson.Features[$i].FeatureId] = $i }
+                    } else { $featuresJson.Features = @() }
+
+                    foreach ($f in $overlayJson.Features) {
+                        if ($featMap.ContainsKey($f.FeatureId)) {
+                            $featuresJson.Features[$featMap[$f.FeatureId]] = $f
+                        } else {
+                            $featuresJson.Features += $f
+                        }
+                    }
+                }
+            }
+        } catch {
+            Write-Warning "Failed to load overlay features: $_"
+        }
+    }
+
     # Column containers
     $col0 = $window.FindName('Column0Panel')
     $col1 = $window.FindName('Column1Panel')
@@ -177,9 +233,9 @@ function BuildDynamicTweaks {
     $orderedCategories = @()
     if ($featuresJson.Categories) {
         foreach ($c in $featuresJson.Categories) {
-            $categoryName = if ($c -is [string]) { $c } else { $c.Name }
+            $categoryName = $(if ($c -is [string]) { $c } else { $c.Name })
             if ($categoriesPresent.ContainsKey($categoryName)) {
-                $categoryObj = if ($c -is [string]) { @{Name = $c; Icon = '&#xE712;'} } else { $c }
+                $categoryObj = $(if ($c -is [string]) { @{Name = $c; Icon = '&#xE712;'} } else { $c })
                 $orderedCategories += $categoryObj
             }
         }
@@ -199,7 +255,7 @@ function BuildDynamicTweaks {
             $groupIndex = 0
             foreach ($group in $featuresJson.UiGroups) {
                 if ($group.Category -ne $categoryName) { $groupIndex++; continue }
-                $categoryItems += [PSCustomObject]@{ Type = 'group'; Data = $group; Priority = if ($null -ne $group.Priority) { $group.Priority } else { [int]::MaxValue }; OriginalIndex = $groupIndex }
+                $categoryItems += [PSCustomObject]@{ Type = 'group'; Data = $group; Priority = $(if ($null -ne $group.Priority) { $group.Priority } else { [int]::MaxValue }); OriginalIndex = $groupIndex }
                 $groupIndex++
             }
         }
@@ -215,7 +271,7 @@ function BuildDynamicTweaks {
                 foreach ($g in $featuresJson.UiGroups) { foreach ($val in $g.Values) { if ($val.FeatureIds -contains $feature.FeatureId) { $inGroup = $true; break } }; if ($inGroup) { break } }
             }
             if ($inGroup) { $featureIndex++; continue }
-            $categoryItems += [PSCustomObject]@{ Type = 'feature'; Data = $feature; Priority = if ($null -ne $feature.Priority) { $feature.Priority } else { [int]::MaxValue }; OriginalIndex = $featureIndex }
+            $categoryItems += [PSCustomObject]@{ Type = 'feature'; Data = $feature; Priority = $(if ($null -ne $feature.Priority) { $feature.Priority } else { [int]::MaxValue }); OriginalIndex = $featureIndex }
             $featureIndex++
         }
 

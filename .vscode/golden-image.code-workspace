@@ -1,7 +1,70 @@
+
+// "WORKSPACE_ROOT": P:/Projects/golden-image
+
 {
 	"folders": [
 		{
 			"path": ".."
 		}
-	]
+	],
+    "settings": {
+        "files.watcherExclude": {
+          
+            "**/.git/objects/**": true,
+            "**/.git/subtree-cache/**": true,
+            "**/__pycache__/**": true,
+            "**/node_modules/**": true,
+            "**/.uv/**": true,
+            "**/venv/**": true,
+            "**/.venv/**": true,
+            "**/ENV/**": true,
+            "**/env/**": true,
+            "**/build/**": true,
+            "**/dist/**": true,
+            "**/target/**": true,
+            "**/.eggs/**": true,
+            "**/*.egg-info/**": true,
+            "**/esp-idf/**": true,
+            "**/Arduino/**": true,
+            "**/__removed/**": true,
+            "**/.vscode/**": true,
+            "**/.idea/**": true,
+            "**/_shared-resources/**": false,
+            "**/___shared/**": false
+        },
+
+
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/.uv": true,
+            "**/venv": true,
+            "**/.venv": true,
+            "**/ENV": true,
+            "**/env": true,
+            "**/__pycache__": true,
+            "**/build": true,
+            "**/dist": true,
+            "**/.eggs": true,
+            "**/*.egg-info": true,
+            "**/esp-idf": true,
+            "**/Arduino": true,
+            "**/__removed": true,
+            "**/_libs": true,
+            "**/_projects": true,
+            "**/.git": true,
+            "**/.vscode": true,
+            "**/.idea": true,
+            "**/.cursor": true,
+            "**/uv.lock": true,
+            "**/_shared-resources": false,
+            "**/___shared": false
+        },
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/esp-idf": true,
+            "**/.git": true,
+            "**/.DS_Store": true,
+            "**/Thumbs.db": true
+        },
+    }
 }

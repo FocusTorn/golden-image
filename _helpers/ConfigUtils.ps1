@@ -41,6 +41,26 @@ Or use PowerShell 7+ for native JSONC support.
     [void][Reflection.Assembly]::LoadFrom((Resolve-Path -LiteralPath $dll).Path)
 }
 
+function Write-DetailedError {
+    param(
+        [Parameter(Mandatory = $true)]$ErrorRecord,
+        [string]$ContextMessage = "An error occurred"
+    )
+    $msg = $ErrorRecord.Exception.Message
+    $trace = $ErrorRecord.ScriptStackTrace
+    Write-Host "" -ForegroundColor Red
+    Write-Host "[ERROR] $ContextMessage" -ForegroundColor Red
+    Write-Host "  Message: $msg" -ForegroundColor Yellow
+    if ($trace) {
+        $lines = $trace.Split("`n") | Where-Object { $_.Trim().Length -gt 0 }
+        Write-Host "  Stack Trace:" -ForegroundColor DarkGray
+        foreach ($l in $lines) {
+            Write-Host "    $($l.Trim())" -ForegroundColor DarkGray
+        }
+    }
+    Write-Host ""
+}
+
 function Read-JsonCFile {
     param([Parameter(Mandatory = $true)][string]$Path)
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -282,13 +302,13 @@ function Get-ProfileVmDetailsEditable {
             if ($null -eq $pfs[$ProfileKey]['VMDetails']) {
                 $pfs[$ProfileKey]['VMDetails'] = [System.Text.Json.Nodes.JsonObject]::Create()
             }
-            return $pfs[$ProfileKey]['VMDetails']
+            return , $pfs[$ProfileKey]['VMDetails']
         }
         if ($null -ne $r[$ProfileKey]) {
             if ($null -eq $r[$ProfileKey]['VMDetails']) {
                 $r[$ProfileKey]['VMDetails'] = [System.Text.Json.Nodes.JsonObject]::Create()
             }
-            return $r[$ProfileKey]['VMDetails']
+            return , $r[$ProfileKey]['VMDetails']
         }
         throw "Profile '$ProfileKey' not found under VMProfiles or as a top-level profile object."
     }
@@ -297,12 +317,12 @@ function Get-ProfileVmDetailsEditable {
     if ($null -ne $vmProfiles -and $null -ne $vmProfiles[$ProfileKey]) {
         $prof = $vmProfiles[$ProfileKey]
         if ($null -eq $prof['VMDetails']) { $prof['VMDetails'] = New-Object Newtonsoft.Json.Linq.JObject }
-        return $prof['VMDetails']
+        return , $prof['VMDetails']
     }
     if ($null -ne $jo[$ProfileKey]) {
         $prof = $jo[$ProfileKey]
         if ($null -eq $prof['VMDetails']) { $prof['VMDetails'] = New-Object Newtonsoft.Json.Linq.JObject }
-        return $prof['VMDetails']
+        return , $prof['VMDetails']
     }
     throw "Profile '$ProfileKey' not found under VMProfiles or as a top-level profile object."
 }

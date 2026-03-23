@@ -73,8 +73,7 @@ catch {
 # Copy log file to return path when it exists (after transcript is stopped)
 function Copy-LogToReturnPath {
     if (-not $script:LogFilePath -or -not (Test-Path $script:LogFilePath)) { return }
-    $offlineDir = Split-Path $PSScriptRoot -Parent
-    $configPath = Join-Path $offlineDir "_offline_config.json"
+    $configPath = Join-Path $script:OfflineRoot "_offline_config.json"
     $guestDrive = "E"
     $returnPath = "return"
     if (Test-Path $configPath) {

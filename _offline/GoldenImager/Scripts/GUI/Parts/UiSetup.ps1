@@ -71,7 +71,7 @@ function Apply-TypographyResources {
         Bold = [System.Windows.FontWeights]::Bold
         ExtraBold = [System.Windows.FontWeights]::ExtraBold
     }
-    $getFw = { param($k, $d) if ($fwMap[$k]) { $fwMap[$k] } else { $d } }
+    $getFw = { param($k, $d) if ($k -and $fwMap[$k]) { $fwMap[$k] } else { $d } }
     $fgBrush = $window.Resources["FgColor"]
     $brush = { param($c) if ($c) { [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString($c)) } else { $fgBrush } }
     $add = { param($k, $v) if (-not $window.Resources.Contains($k)) { $window.Resources.Add($k, $v) } }

@@ -8,12 +8,14 @@ Golden Imager is built as a **non-destructive overlay** on an upstream project (
 
 ### 1. Foundation (Upstream)
 - **Path**: `Foundation/Win11Debloat/`
-- **Rule**: **NEVER** modify files in this directory. It is treated as a read-only dependency.
+- **Rule**: **ABSOLUTELY NEVER** modify files in this directory. It is treated as a read-only dependency.
+- **Rule**: Do not add new files (like `.reg` files) here.
 - **Purpose**: Allows for easy upstream updates by simply replacing this folder.
 
 ### 2. Overlay (Customizations)
 - **Path**: Project Root (`/`)
 - **Rule**: All project-specific logic, UI changes, and configurations must live here.
+- **Rule**: New registry files for tweaks MUST be placed in `/Regfiles` (root), NOT in `Foundation`.
 - **Mechanism**: The entry script `GoldenImager.ps1` orchestrates the loading of both layers.
 
 ## Implementation Details for Agents
@@ -38,11 +40,18 @@ Example from `GoldenImager.ps1`:
 
 ### Config & Data
 - `Config/Apps.json` (root) overrides `Foundation/Config/Apps.json` in specific logic (`LoadAppsDetailsFromJson.ps1`).
+- `Config/Features.json` (root) is an **overlay** that is merged with `Foundation/Config/Features.json`.
 - App and Tweak profiles always live in the root `Config/AppProfiles/` and `Config/TweakProfiles/`.
 
 ## Critical Operational Constraints
 
-### 1. Offline-First (No WinGet)
+### 1. Foundation Integrity (Overlay Pattern)
+- The `Foundation/` directory must be kept **pristine, intact, and fully functional**.
+- **NEVER** copy, duplicate, or replace Foundation configuration files (like `Features.json`) into the root.
+- **ALWAYS** create a partial overlay file containing *only* your changes (new categories, new features, overrides).
+- The system logic (`TweaksPanel.ps1`, `LoadAppsDetailsFromJson.ps1`) is responsible for merging these files at runtime.
+
+### 2. Offline-First (No WinGet)
 Golden Imager is primarily used in **Windows Audit Mode** or **Offline WinPE** environments where internet access is unavailable.
 - **Constraint**: Do not introduce dependencies on `winget`, `Invoke-WebRequest`, or any network-based tools in the core `AppRemoval` or `Features` logic.
 - **Fallback**: Always use `Get-AppxPackage`, `Remove-AppxPackage`, and `DISM` commands.

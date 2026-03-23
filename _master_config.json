@@ -46,10 +46,10 @@
         "GoldenImage": {
             "HardwareTemplate": "OfflineSysprep",
             "VMDetails": {
-                "VMName": "Golden Image",
+                "VMName": "GoldenImage",
                 "OSImagePath": "N:/Win11_25H2_English_x64.iso",
                 //"VhdPath": "N:/VHD/Golden-Imaging.vhdx",
-                "OsVhdPath": "N:/VM/Golden Image/Virtual Hard Disks/Golden_Image_OS.vhdx",
+                "OsVhdPath": "N:/VM/GoldenImage/Virtual Hard Disks/Golden_Image_OS.vhdx",
                 "VMHostname": "DESKTOP-GoldenImage",
                 "WimDestination": "N:/Win_11_GoldenImage.wim"
             }

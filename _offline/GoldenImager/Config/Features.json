@@ -1,0 +1,306 @@
+{
+  "Version": "1.0",
+  "Categories": [
+    {
+      "Name": "Titus Essentials",
+      "Icon": "&#xE9E9;"
+    },
+    {
+      "Name": "Titus Advanced",
+      "Icon": "&#xE7BA;"
+    },
+    {
+      "Name": "System Modifications",
+      "Icon": "&#xE90F;"
+    }
+  ],
+  "Features": [
+    {
+      "FeatureId": "DisableExplorerAutomaticFolderDiscovery",
+      "Label": "Disable Explorer Automatic Folder Discovery",
+      "ToolTip": "Prevents Explorer from automatically changing the view type based on folder content (e.g., Music, Pictures). Sets all folders to 'General Items'.",
+      "Category": "Titus Essentials",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Explorer_Automatic_Folder_Discovery.reg",
+      "ApplyText": "Disabling Explorer automatic folder discovery...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DisableWPBT",
+      "Label": "Disable Windows Platform Binary Table (WPBT)",
+      "ToolTip": "Prevents the execution of WPBT, which allows vendors to force-install software/drivers at boot.",
+      "Category": "Titus Essentials",
+      "Action": "Disable",
+      "RegistryKey": "Disable_WPBT.reg",
+      "ApplyText": "Disabling Windows Platform Binary Table (WPBT)...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DisablePowershell7Telemetry",
+      "Label": "Disable PowerShell 7 Telemetry",
+      "ToolTip": "Disables telemetry collection for PowerShell 7 via environment variable.",
+      "Category": "Titus Essentials",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Powershell7_Telemetry.reg",
+      "ApplyText": "Disabling PowerShell 7 telemetry...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "BlockRazerSoftware",
+      "Label": "Block Razer Software Installs",
+      "ToolTip": "Prevents the automatic installation of Razer Synapse and other Razer software.",
+      "Category": "Titus Advanced",
+      "Action": "Block",
+      "RegistryKey": "Block_Razer_Software.reg",
+      "ApplyText": "Blocking automatic Razer software installation...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DisableBackgroundApps",
+      "Label": "Disable Background Apps",
+      "ToolTip": "Prevents apps from running in the background to save resources.",
+      "Category": "Titus Advanced",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Background_Apps.reg",
+      "ApplyText": "Disabling background apps...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DisableFullscreenOptimizations",
+      "Label": "Disable Fullscreen Optimizations",
+      "ToolTip": "Disables Fullscreen Optimizations globally, which can help with stuttering in some games.",
+      "Category": "Titus Advanced",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Fullscreen_Optimizations.reg",
+      "ApplyText": "Disabling Fullscreen Optimizations...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DisableNotifications",
+      "Label": "Disable Notification Tray/Calendar",
+      "ToolTip": "Disables the Notification Center and Toast notifications.",
+      "Category": "Titus Advanced",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Notifications.reg",
+      "ApplyText": "Disabling Notification Center and Toasts...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "PreferIPv4OverIPv6",
+      "Label": "Prefer IPv4 over IPv6",
+      "ToolTip": "Configures Windows to prefer IPv4 addresses over IPv6.",
+      "Category": "Titus Advanced",
+      "Action": "Enable",
+      "RegistryKey": "Prefer_IPv4_Over_IPv6.reg",
+      "ApplyText": "Setting preference to IPv4 over IPv6...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "RequiresReboot": true
+    },
+    {
+      "FeatureId": "DisableCrossDeviceResume",
+      "Label": "Cross-Device Resume",
+      "ToolTip": "Disables the 'Resume' feature that links activity with mobile devices.",
+      "Category": "Privacy & Suggested Content",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Cross_Device_Resume.reg",
+      "ApplyText": "Disabling Cross-Device Resume...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "EnableDetailedBSOD",
+      "Label": "Detailed BSOD",
+      "ToolTip": "Shows more detailed information on the Blue Screen of Death.",
+      "Category": "System",
+      "Action": "Enable",
+      "RegistryKey": "Enable_Detailed_BSOD.reg",
+      "ApplyText": "Enabling detailed BSOD messages...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DisableMultiplaneOverlay",
+      "Label": "Disable Multiplane Overlay (MPO)",
+      "ToolTip": "Disables MPO, which can fix flickering and stuttering issues on some GPU configurations.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Multiplane_Overlay.reg",
+      "ApplyText": "Disabling Multiplane Overlay (MPO)...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "EnableNumLockOnStartup",
+      "Label": "Num Lock on Startup",
+      "ToolTip": "Forces Num Lock to be ON at the login screen and for the user.",
+      "Category": "System",
+      "Action": "Enable",
+      "RegistryKey": "Enable_NumLock.reg",
+      "ApplyText": "Enabling Num Lock on startup...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "EnableS3Sleep",
+      "Label": "S3 Sleep (Disable Modern Standby)",
+      "ToolTip": "Forces the system to use traditional S3 Sleep instead of Modern Standby (S0 Low Power Idle). WARNING: May not work on all hardware.",
+      "Category": "System",
+      "Action": "Enable",
+      "RegistryKey": "Enable_S3_Sleep.reg",
+      "ApplyText": "Enabling S3 Sleep (Disabling Modern Standby)...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "EnableVerboseLogonMessages",
+      "Label": "Verbose Messages During Logon",
+      "ToolTip": "Shows detailed status messages during startup, shutdown, logon, and logoff.",
+      "Category": "System",
+      "Action": "Enable",
+      "RegistryKey": "Enable_Verbose_Logon_Messages.reg",
+      "ApplyText": "Enabling verbose logon messages...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DeleteTemporaryFiles",
+      "Label": "Delete Temporary Files",
+      "ToolTip": "Clears the user and system TEMP folders.",
+      "Category": "Titus Essentials",
+      "Action": "Delete",
+      "ApplyText": "Deleting temporary files...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableHibernation",
+      "Label": "Disable Hibernation",
+      "ToolTip": "Disables system hibernation to save disk space (removes hiberfil.sys).",
+      "Category": "Titus Essentials",
+      "Action": "Disable",
+      "ApplyText": "Disabling hibernation...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "RunDiskCleanup",
+      "Label": "Run Disk Cleanup",
+      "ToolTip": "Runs the Windows Disk Cleanup utility in silent mode.",
+      "Category": "Titus Essentials",
+      "Action": "Run",
+      "ApplyText": "Running Disk Cleanup...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "SetServicesToManual",
+      "Label": "Set Services to Manual",
+      "ToolTip": "Sets a predefined list of non-essential services to 'Manual' startup to improve boot time and performance.",
+      "Category": "Titus Essentials",
+      "Action": "Set",
+      "ApplyText": "Setting non-essential services to Manual startup...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "AdobeNetworkBlock",
+      "Label": "Adobe Network Block",
+      "ToolTip": "Updates the HOSTS file to block Adobe telemetry and activation servers.",
+      "Category": "Titus Advanced",
+      "Action": "Block",
+      "ApplyText": "Blocking Adobe network connections in HOSTS file...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableIPv6",
+      "Label": "Disable IPv6",
+      "ToolTip": "Completely disables IPv6 on all network adapters.",
+      "Category": "Titus Advanced",
+      "Action": "Disable",
+      "ApplyText": "Disabling IPv6...",
+      "RequiresReboot": true,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableTeredo",
+      "Label": "Disable Teredo",
+      "ToolTip": "Disables the Teredo tunneling interface.",
+      "Category": "Titus Advanced",
+      "Action": "Disable",
+      "ApplyText": "Disabling Teredo...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "SetDisplayForPerformance",
+      "Label": "Set Display for Performance",
+      "ToolTip": "Adjusts visual effects settings for maximum performance (disables animations, shadows, etc.).",
+      "Category": "Titus Advanced",
+      "Action": "Optimize",
+      "ApplyText": "Optimizing display settings for performance...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "AddUltimatePerformancePlan",
+      "Label": "Ultimate Performance Plan",
+      "ToolTip": "Adds and activates the 'Ultimate Performance' power plan.",
+      "Category": "System Modifications",
+      "Action": "Enable",
+      "ApplyText": "Adding and activating Ultimate Performance power plan...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "InstallFeatures",
+      "Label": "Install Hyper-V & NFS",
+      "ToolTip": "Installs Hyper-V virtualization and NFS (Network File System) client features.",
+      "Category": "System Modifications",
+      "Action": "Install",
+      "ApplyText": "Installing Hyper-V and NFS features...",
+      "RequiresReboot": true,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "SetUpAutologin",
+      "Label": "Set Up Autologin",
+      "ToolTip": "Configures the system to automatically log in the current user on boot. (Prompts for password).",
+      "Category": "System Modifications",
+      "Action": "Configure",
+      "ApplyText": "Configuring Autologin...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "SystemCorruptionScan",
+      "Label": "System Corruption Scan",
+      "ToolTip": "Runs DISM and SFC to scan for and repair system corruption.",
+      "Category": "System Modifications",
+      "Action": "Run",
+      "ApplyText": "Running System Corruption Scan (DISM & SFC)...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "WinGetReinstall",
+      "Label": "WinGet Reinstall",
+      "ToolTip": "Reinstalls/Updates the Windows Package Manager (WinGet).",
+      "Category": "System Modifications",
+      "Action": "Run",
+      "ApplyText": "Reinstalling WinGet...",
+      "MinVersion": null,
+      "MaxVersion": null
+    }
+  ]
+}

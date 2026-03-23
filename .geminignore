@@ -1,0 +1,50 @@
+
+
+
+
+# Token/Request Conservation List
+ 
+# 1. Dependency Directories (Massive token hogs)
+node_modules/
+vendor/
+.venv/
+env/
+__pycache__/
+
+# 2. Build Outputs & Compiled Code
+dist/
+build/
+out/
+.next/
+.nuxt/
+coverage/
+
+# 3. Lock Files (Never let the AI read these, force it to read package.json)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+poetry.lock
+Gemfile.lock
+
+# 4. Massive Static Assets & Media (Raw text representations burn tokens)
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.mp4
+*.pdf
+
+# 5. Databases, Logs, & Caches
+*.log
+*.sqlite
+*.db
+*.sql
+.eslintcache
+
+# 6. Environment & Secret Files (For Security)
+.env
+.env.*
+*.pem
+*.key

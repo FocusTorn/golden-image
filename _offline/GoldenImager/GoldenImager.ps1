@@ -101,6 +101,8 @@ param (
 )
 
 # Define script-level variables & paths
+$script:GoldenImagerRoot = $PSScriptRoot
+$script:OfflineRoot = Split-Path $PSScriptRoot -Parent
 $script:SourceRoot = Join-Path $PSScriptRoot 'Foundation/Win11Debloat'
 if (-not $script:SourceRoot -or -not (Test-Path $script:SourceRoot)) {
     $displayPath = if ($script:SourceRoot) { $script:SourceRoot } else { "(empty - check script path)" }
@@ -116,11 +118,13 @@ $script:SpinnerStyle = "OldWinBars1"
 $script:AppsListFilePath = "$script:SourceRoot/Config/Apps.json"
 $script:DefaultSettingsFilePath = "$script:SourceRoot/Config/DefaultSettings.json"
 $script:FeaturesFilePath = "$script:SourceRoot/Config/Features.json"
+$script:OverlayFeaturesFilePath = "$PSScriptRoot/Config/Features.json"
 $script:SavedSettingsFilePath = "$script:SourceRoot/Config/LastUsedSettings.json"
 $script:CustomAppsListFilePath = "$script:SourceRoot/Config/CustomAppsList"
 $script:OverlayAppsListFilePath = "$PSScriptRoot/Config/Apps.json"
 $script:LoadAppsDetailsScriptPath = "$PSScriptRoot/Scripts/FileIO/LoadAppsDetailsFromJson.ps1"
 $script:RegfilesPath = "$script:SourceRoot/Regfiles"
+$script:CustomRegfilesPath = "$PSScriptRoot/Regfiles"
 $script:AssetsPath = "$script:SourceRoot/Assets"
 $script:AppSelectionSchema = "$script:SourceRoot/Schemas/AppSelectionWindow.xaml"
 $script:MessageBoxSchema = "$script:SourceRoot/Schemas/MessageBoxWindow.xaml"
@@ -177,8 +181,9 @@ $script:ApplySubStepCallback = $null
 . "$script:SourceRoot/Scripts/Features/CreateSystemRestorePoint.ps1"
 . "$script:SourceRoot/Scripts/Features/DisableStoreSearchSuggestions.ps1"
 . "$script:SourceRoot/Scripts/Features/EnableWindowsFeature.ps1"
-. "$script:SourceRoot/Scripts/Features/ImportRegistryFile.ps1"
+. "$PSScriptRoot/Scripts/Features/ImportRegistryFile.ps1"
 . "$PSScriptRoot/Scripts/Features/ImportRegistryFileForRevert.ps1"
+. "$PSScriptRoot/Scripts/Features/TitusTweaks.ps1"
 . "$script:SourceRoot/Scripts/Features/ReplaceStartMenu.ps1"
 . "$script:SourceRoot/Scripts/Features/RestartExplorer.ps1"
 
@@ -307,7 +312,7 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunDefaultsLite -or $RunSa
                 Exit
             }
             catch {
-                Write-Warning "Unable to load WPF GUI: $($_.Exception.Message). Falling back to CLI mode."
+                Write-Warning "Unable to load WPF GUI: $($_.Exception.Message)`n$($_.ScriptStackTrace). Falling back to CLI mode."
                 if (-not $Silent) {
                     Write-Host ""
                     Write-Host "Press any key to continue..."

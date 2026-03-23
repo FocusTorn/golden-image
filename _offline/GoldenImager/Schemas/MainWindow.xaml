@@ -308,6 +308,15 @@
             <Setter Property="Margin" Value="0,0,0,2"/>
         </Style>
 
+        <!-- Label text block style for sections -->
+        <Style x:Key="LabelTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource LabelColor}"/>
+            <Setter Property="FontSize" Value="{DynamicResource LabelFontSize}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource LabelFontFamily}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource LabelFontWeight}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
         <!-- Label Border Style for ComboBox labels -->
         <Style x:Key="LabelBorderStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="4"/>
@@ -1029,8 +1038,23 @@
                                 </Border>
                             </StackPanel>
                             
-                            <!-- Column 3: Stage Install (Execution Options) -->
+                            <!-- Column 3: System Modifications & Stage Install -->
                             <StackPanel Grid.Column="4" VerticalAlignment="Top">
+                                <Border Style="{StaticResource CategoryCardBorderStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="System Modifications" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                        
+                                        <TextBlock Text="Features" Style="{StaticResource LabelTextBlockStyle}" Margin="0,0,0,4" FontWeight="SemiBold"/>
+                                        <CheckBox x:Name="HomeModUltimatePerf" Style="{StaticResource FeatureCheckboxStyle}" Content="Ultimate Performance plan" AutomationProperties.Name="Ultimate Performance plan"/>
+                                        <CheckBox x:Name="HomeModHyperVNFS" Style="{StaticResource FeatureCheckboxStyle}" Content="Hyper-V &amp; NFS Features" AutomationProperties.Name="Hyper-V and NFS"/>
+                                        
+                                        <TextBlock Text="Fixes" Style="{StaticResource LabelTextBlockStyle}" Margin="0,8,0,4" FontWeight="SemiBold"/>
+                                        <CheckBox x:Name="HomeModClearTemp" Style="{StaticResource FeatureCheckboxStyle}" Content="Clear Temporary Files" AutomationProperties.Name="Clear Temp"/>
+                                        <CheckBox x:Name="HomeModResetUpdates" Style="{StaticResource FeatureCheckboxStyle}" Content="Reset Windows Updates" AutomationProperties.Name="Reset Updates"/>
+                                        <CheckBox x:Name="HomeModCorruptionScan" Style="{StaticResource FeatureCheckboxStyle}" Content="System Corruption Scan" AutomationProperties.Name="Corruption Scan"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <Border Style="{StaticResource CategoryCardBorderStyle}">
                                     <StackPanel>
                                         <TextBlock Text="Stage Install" Style="{StaticResource CategoryHeaderTextBlock}"/>
@@ -1038,14 +1062,9 @@
                                         <CheckBox x:Name="HomeExec2" Style="{StaticResource FeatureCheckboxStyle}" Content="2. Scoop (inc. Basic Tools &amp; Search)" AutomationProperties.Name="Scoop"/>
                                         <CheckBox x:Name="HomeExec3" Style="{StaticResource FeatureCheckboxStyle}" Content="3. MSVC Build Tools" AutomationProperties.Name="MSVC"/>
                                         <CheckBox x:Name="HomeExec4" Style="{StaticResource FeatureCheckboxStyle}" Content="4. ALL System Apps" AutomationProperties.Name="ALL System Apps"/>
-                                        <CheckBox x:Name="HomeExec41" Style="{StaticResource FeatureCheckboxStyle}" Content="    41. Chrome" Margin="8,-2,-4,10" AutomationProperties.Name="Chrome"/>
-                                        <CheckBox x:Name="HomeExec42" Style="{StaticResource FeatureCheckboxStyle}" Content="    42. VS Code" Margin="8,-2,-4,10" AutomationProperties.Name="VS Code"/>
-                                        <CheckBox x:Name="HomeExec43" Style="{StaticResource FeatureCheckboxStyle}" Content="    43. Go" Margin="8,-2,-4,10" AutomationProperties.Name="Go"/>
-                                        <CheckBox x:Name="HomeExec44" Style="{StaticResource FeatureCheckboxStyle}" Content="    44. Git" Margin="8,-2,-4,10" AutomationProperties.Name="Git"/>
-                                        <CheckBox x:Name="HomeExec45" Style="{StaticResource FeatureCheckboxStyle}" Content="    45. Git CLI" Margin="8,-2,-4,10" AutomationProperties.Name="Git CLI"/>
-                                        <CheckBox x:Name="HomeExec46" Style="{StaticResource FeatureCheckboxStyle}" Content="    46. UniGetUI" Margin="8,-2,-4,10" AutomationProperties.Name="UniGetUI"/>
-                                        <CheckBox x:Name="HomeExec5" Style="{StaticResource FeatureCheckboxStyle}" Content="5. Rust (w/ Cargo Helpers)" AutomationProperties.Name="Rust"/>
-                                        <CheckBox x:Name="HomeExec6" Style="{StaticResource FeatureCheckboxStyle}" Content="6. Finalize" AutomationProperties.Name="Finalize"/>
+                                        <CheckBox x:Name="HomeExec5" Style="{StaticResource FeatureCheckboxStyle}" Content="5. Rust Finish &amp; Tooling" AutomationProperties.Name="Rust Finish"/>
+                                        <CheckBox x:Name="HomeExec6" Style="{StaticResource FeatureCheckboxStyle}" Content="6. Service &amp; OS Optimization" AutomationProperties.Name="Optimization"/>
+                                        <CheckBox x:Name="HomeExec7" Style="{StaticResource FeatureCheckboxStyle}" Content="7. Finalize &amp; Cleanup" AutomationProperties.Name="Finalize"/>
                                         <Button x:Name="HomeExecRunBtn" Content="Execute" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Margin="0,16,0,0" HorizontalAlignment="Stretch" AutomationProperties.Name="Execute selected"/>
                                     </StackPanel>
                                 </Border>
@@ -1205,24 +1224,33 @@
                                 </Border>
                             </Grid>
 
-                            <!-- Status Info -->
-                            <Grid Grid.Row="1" Margin="20,0,20,0">
-                                <TextBlock x:Name="AppSelectionStatus" Text="" FontSize="{DynamicResource BodyFontSize}" Foreground="{DynamicResource BodyColor}" Margin="10,0,0,5" HorizontalAlignment="Left"/>
-                                <TextBlock x:Name="ExportAppListLink" Text="Export App List" HorizontalAlignment="Right" Margin="0,0,10,5"
-                                           FontSize="{DynamicResource BodyFontSize}" Foreground="{DynamicResource BodyColor}" Cursor="Hand" TextDecorations="Underline" Visibility="Collapsed">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Opacity" Value="0.7"/>
-                                            <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Opacity" Value="1.0"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Grid>
-                        </Grid>
+                            <!-- Review & Apply Section -->
+                            <Border Grid.Row="1" HorizontalAlignment="Stretch" Background="{DynamicResource BgColor}" Padding="0,15,0,0">
+                                <StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                                    <Button x:Name="AppRemovalReviewBtn" Background="Transparent" BorderThickness="0" Cursor="Hand" AutomationProperties.Name="Review selected changes">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <TextBlock x:Name="LinkText" Text="Review selected changes" FontSize="{DynamicResource ButtonSecondaryFontSize}" Foreground="{DynamicResource AccentColor}" FontWeight="{DynamicResource ButtonSecondaryFontWeight}" TextDecorations="Underline"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="LinkText" Property="Foreground" Value="{DynamicResource ButtonHover}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </StackPanel>
+                                <Button x:Name="AppRemovalApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="350" Height="44" HorizontalAlignment="Center" AutomationProperties.Name="Apply Changes">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource IconFontFamily}" FontSize="20" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="{DynamicResource ButtonPrimaryFontSize}" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" Margin="8,0,0,4"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock x:Name="AppSelectionStatus" Text="0 apps selected" FontSize="{DynamicResource BodyFontSize}" Foreground="{DynamicResource BodyColor}" HorizontalAlignment="Center" Margin="0,5,0,5"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                     </DockPanel>
                 </TabItem>
 
@@ -1290,44 +1318,78 @@
                             </StackPanel>
                         </Border>
                         <Grid>
-                            <ScrollViewer x:Name="TweaksScrollViewer" VerticalScrollBarVisibility="Auto" Margin="0,0,0,0" Padding="20,10,20,0">
-                                <Grid x:Name="TweaksGrid" Margin="0,10,0,5">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                                    <!-- Column 1: Dynamically populated -->
-                                    <StackPanel Grid.Column="0" x:Name="Column0Panel" Margin="0,0,15,0"/>
+                            <Grid Grid.Row="0">
+                                <ScrollViewer x:Name="TweaksScrollViewer" VerticalScrollBarVisibility="Auto" Margin="0,0,0,0" Padding="20,10,20,0">
+                                    <Grid x:Name="TweaksGrid" Margin="0,10,0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
 
-                                    <!-- Column 2: Dynamically populated -->
-                                    <StackPanel Grid.Column="1" x:Name="Column1Panel" Margin="0,0,15,0"/>
+                                        <!-- Column 1: Dynamically populated -->
+                                        <StackPanel Grid.Column="0" x:Name="Column0Panel" Margin="0,0,15,0"/>
 
-                                    <!-- Column 3: Dynamically populated -->
-                                    <StackPanel Grid.Column="2" x:Name="Column2Panel"/>
-                                </Grid>
-                            </ScrollViewer>
-                            <!-- Top fade gradient -->
-                            <Border IsHitTestVisible="False" VerticalAlignment="Top" Height="10" Margin="0,-12,20,0" Background="{DynamicResource BgColor}">
-                                <Border.OpacityMask>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                        <GradientStop Color="Black" Offset="0"/>
-                                        <GradientStop Color="Black" Offset="0.5"/>
-                                        <GradientStop Color="Transparent" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.OpacityMask>
-                            </Border>
-                            <!-- Bottom fade gradient -->
-                            <Border IsHitTestVisible="False" VerticalAlignment="Bottom" Height="20" Margin="0,0,20,0" Background="{DynamicResource BgColor}">
-                                <Border.OpacityMask>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                        <GradientStop Color="Transparent" Offset="0"/>
-                                        <GradientStop Color="Black" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.OpacityMask>
-                            </Border>
-                        </Grid>
+                                        <!-- Column 2: Dynamically populated -->
+                                        <StackPanel Grid.Column="1" x:Name="Column1Panel" Margin="0,0,15,0"/>
+
+                                        <!-- Column 3: Dynamically populated -->
+                                        <StackPanel Grid.Column="2" x:Name="Column2Panel"/>
+                                    </Grid>
+                                </ScrollViewer>
+                                <!-- Top fade gradient -->
+                                <Border IsHitTestVisible="False" VerticalAlignment="Top" Height="10" Margin="0,-12,20,0" Background="{DynamicResource BgColor}">
+                                    <Border.OpacityMask>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="Black" Offset="0"/>
+                                            <GradientStop Color="Black" Offset="0.5"/>
+                                            <GradientStop Color="Transparent" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.OpacityMask>
+                                </Border>
+                                <!-- Bottom fade gradient -->
+                                <Border IsHitTestVisible="False" VerticalAlignment="Bottom" Height="20" Margin="0,0,20,0" Background="{DynamicResource BgColor}">
+                                    <Border.OpacityMask>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="Transparent" Offset="0"/>
+                                            <GradientStop Color="Black" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.OpacityMask>
+                                </Border>
+                            </Grid>
+
+                            <!-- Review & Apply Section -->
+                            <Border Grid.Row="1" HorizontalAlignment="Stretch" Background="{DynamicResource BgColor}" Padding="0,15,0,0">
+                                <StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                                    <Button x:Name="TweaksReviewBtn" Background="Transparent" BorderThickness="0" Cursor="Hand" AutomationProperties.Name="Review selected changes">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <TextBlock x:Name="LinkText" Text="Review selected changes" FontSize="{DynamicResource ButtonSecondaryFontSize}" Foreground="{DynamicResource AccentColor}" FontWeight="{DynamicResource ButtonSecondaryFontWeight}" TextDecorations="Underline"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="LinkText" Property="Foreground" Value="{DynamicResource ButtonHover}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </StackPanel>
+                                <Button x:Name="TweaksApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="350" Height="44" HorizontalAlignment="Center" AutomationProperties.Name="Apply Changes">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource IconFontFamily}" FontSize="20" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="{DynamicResource ButtonPrimaryFontSize}" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" Margin="8,0,0,4"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Text="System tweaks selected from curated list" FontSize="{DynamicResource BodyFontSize}" Foreground="{DynamicResource BodyColor}" HorizontalAlignment="Center" Margin="0,5,0,5"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                     </DockPanel>
                 </TabItem>
 
@@ -1445,38 +1507,44 @@
                             </Grid>
 
                             <!-- Review & Apply Section -->
-                            <StackPanel Grid.Row="1" HorizontalAlignment="Stretch" Background="{DynamicResource BgColor}">
-                                <Button x:Name="ReviewChangesBtn" Background="Transparent" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Center" Margin="0,4,0,8" AutomationProperties.Name="Review selected changes">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <TextBlock x:Name="LinkText" Text="Review selected changes" FontSize="{DynamicResource ButtonSecondaryFontSize}" Foreground="{DynamicResource ButtonBg}" FontWeight="{DynamicResource ButtonSecondaryFontWeight}" HorizontalAlignment="Center"/>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="LinkText" Property="Foreground" Value="{DynamicResource ButtonHover}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="LinkText" Property="Foreground" Value="{DynamicResource ButtonPressed}"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button x:Name="DeploymentApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="190" Height="44" Margin="0,0,8,0" AutomationProperties.Name="Apply Changes">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource IconFontFamily}" FontSize="20" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" VerticalAlignment="Center"/>
-                                            <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="{DynamicResource ButtonPrimaryFontSize}" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" Margin="8,0,0,4"/>
-                                        </StackPanel>
+                            <Border Grid.Row="1" HorizontalAlignment="Stretch" Background="{DynamicResource BgColor}" Padding="0,15,0,0">
+                                <StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                                    <Button x:Name="ReviewChangesBtn" Background="Transparent" BorderThickness="0" Cursor="Hand" AutomationProperties.Name="Review selected changes">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <TextBlock x:Name="LinkText" Text="Review selected changes" FontSize="{DynamicResource ButtonSecondaryFontSize}" Foreground="{DynamicResource AccentColor}" FontWeight="{DynamicResource ButtonSecondaryFontWeight}" TextDecorations="Underline"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="LinkText" Property="Foreground" Value="{DynamicResource ButtonHover}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
                                     </Button>
-                                    <Button x:Name="DeploymentExportCliBtn" Style="{DynamicResource SecondaryButtonStyle}" Width="140" Height="44" AutomationProperties.Name="Export CLI" ToolTip="Copy CLI command to apply current selections">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}" FontSize="16" VerticalAlignment="Center"/>
-                                            <TextBlock Text="Export CLI" VerticalAlignment="Center" FontSize="{DynamicResource ButtonSecondaryFontSize}" Margin="6,0,0,2"/>
-                                        </StackPanel>
+                                    <TextBlock Text="|" Foreground="{DynamicResource LabelColor}" Margin="10,0" VerticalAlignment="Center"/>
+                                    <Button x:Name="DeploymentExportCliBtn" Background="Transparent" BorderThickness="0" Cursor="Hand" AutomationProperties.Name="Export CLI">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <TextBlock x:Name="LinkText" Text="Export CLI command" FontSize="{DynamicResource ButtonSecondaryFontSize}" Foreground="{DynamicResource AccentColor}" FontWeight="{DynamicResource ButtonSecondaryFontWeight}" TextDecorations="Underline"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="LinkText" Property="Foreground" Value="{DynamicResource ButtonHover}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
                                     </Button>
                                 </StackPanel>
+                                <Button x:Name="DeploymentApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="350" Height="44" HorizontalAlignment="Center" AutomationProperties.Name="Apply Changes">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource IconFontFamily}" FontSize="20" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="{DynamicResource ButtonPrimaryFontSize}" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" Margin="8,0,0,4"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
-                        </Grid>
+                        </Border>
+                    </Grid>
                     </DockPanel>
                 </TabItem>
             </TabControl>
@@ -1508,11 +1576,11 @@
                 
                 <!-- Progress Indicators - Centered independently -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Ellipse x:Name="ProgressIndicator1" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="App Removal"/>
-                    <Ellipse x:Name="ProgressIndicator2" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="System Tweaks"/>
-                    <Ellipse x:Name="ProgressIndicator3" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="Deployment Settings"/>
-                </StackPanel>
-            </Grid>
+                    <Ellipse x:Name="ProgressIndicator1" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="Home"/>
+                    <Ellipse x:Name="ProgressIndicator2" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="App Removal"/>
+                    <Ellipse x:Name="ProgressIndicator3" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="System Tweaks"/>
+                    <Ellipse x:Name="ProgressIndicator4" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="Deployment Settings"/>
+                </StackPanel>            </Grid>
             
             <!-- Modal Overlay for MessageBoxes -->
             <Rectangle x:Name="ModalOverlay" 
