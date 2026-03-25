@@ -14,3 +14,9 @@
 * **Robust Replacement Strategy:** For sensitive file types like XAML, favor using `write_file` for the entire block or the whole file if it fits within context limits. When using `replace`, use the shortest unique "surgical anchors" to avoid whitespace mismatches.
 * **Turn-Intensive Delegation:** Delegate batch tasks (license headers, multi-file refactoring) or exhaustive audits (checking all XAML resources) to the `generalist` sub-agent to compress internal trial-and-error turns into a single session update.
 * **Error-Driven Scanning:** If a specific error message or unique identifier is provided, you are encouraged to search the entire workspace immediately to find the root cause, bypassing the "Ask Before Scanning" restriction for vague prompts.
+
+
+## 4. Proactive Verification & Discovery
+*   **XAML/XML Validation:** After any modification to XAML or XML files, immediately run a `run_shell_command` to validate the file structure (e.g., using `[Windows.Markup.XamlReader]::Load()` in PowerShell STA mode) before reporting success.
+*   **Exhaustive Discovery:** When asked to find system state (registry keys, paths, files), never probe one-by-one. Write a single PowerShell script to search all common locations (HKLM, HKCU, Program Files, User Profiles) and return a complete map in one turn.
+*   **Macro-Editing:** For complex UI changes involving multiple related containers, prefer reading the entire file and using `write_file` to apply the complete layout at once, rather than performing multiple surgical `replace` calls which are prone to whitespace/context failures.

@@ -1,11 +1,11 @@
 # Stage 5: Optimization & Privacy (Offline Version)
-# Location: _offline\Install_Stage_5_Optimization.ps1
+# Location: _offline\GoldenImager\Imaging_Scripts\6_Optimization.ps1
 
 $ErrorActionPreference = "Stop"
 
 # --- ENVIRONMENT DISCOVERY ---
-# Scripts are in _offline/Imaging_Scripts, so VHD Root is typically two levels up.
-$VhdRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+# Scripts are in _offline/GoldenImager/Imaging_Scripts, so VHD Root is typically three levels up.
+$VhdRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
 $InstallersDir = Join-Path $VhdRoot "installers"
 $OfflineDir = Join-Path $VhdRoot "_offline"
 

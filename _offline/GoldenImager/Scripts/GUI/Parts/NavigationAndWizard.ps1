@@ -47,33 +47,74 @@ function ValidateOtherUsername {
 }
 
 function GenerateOverview {
-    param($scriptScope)
+    param($scriptScope, $panelIndex = $null)
     $featuresJson = LoadJsonFile -filePath $script:FeaturesFilePath -expectedVersion "1.0"
     $changesList = @()
-    $selectedAppsCount = 0
-    foreach ($child in $scriptScope.AppSelectionPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) { $selectedAppsCount++ } }
-    if ($selectedAppsCount -gt 0) { $changesList += "Remove $selectedAppsCount application(s)" }
-    if ($selectedAppsCount -gt 0) { if ($scriptScope.userSelectionCombo.SelectedIndex -ne 2) { $scriptScope.appRemovalScopeCombo.IsEnabled = $true }; $scriptScope.appRemovalScopeSection.Opacity = 1.0; UpdateAppRemovalScopeDescription -scriptScope $scriptScope }
-    else { $scriptScope.appRemovalScopeCombo.IsEnabled = $false; $scriptScope.appRemovalScopeSection.Opacity = 0.5; $scriptScope.appRemovalScopeDescription.Text = "No apps selected for removal." }
-    if ($script:UiControlMappings) {
-        foreach ($mappingKey in $script:UiControlMappings.Keys) {
-            $control = $scriptScope.window.FindName($mappingKey); $mapping = $script:UiControlMappings[$mappingKey]; $isSelected = $false; $isRevert = $false
-            if ($control -is [System.Windows.Controls.CheckBox]) { if ($mapping.IsSystemApplied) { $isSelected = $control.IsChecked -eq $true; $isRevert = $control.IsChecked -eq $false } else { $isSelected = $control.IsChecked -eq $true } }
-            elseif ($control -is [System.Windows.Controls.ComboBox]) { $isSelected = $control.SelectedIndex -gt 0 -and (-not $mapping.IsSystemApplied -or $control.SelectedIndex -ne $mapping.AppliedIndex) }
-            if ($control -and $isSelected) {
-                if ($mapping.Type -eq 'group') { $selectedValue = $mapping.Values[$control.SelectedIndex - 1]; foreach ($fid in $selectedValue.FeatureIds) { $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $fid }; if ($feature) { $changesList += ($feature.Action + ' ' + $feature.Label) } } }
-                elseif ($mapping.Type -eq 'feature') { $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1; if ($feature) { $changesList += ($feature.Action + ' ' + $feature.Label) } }
+    
+    # 1. App Removal Changes (Panel Index 1)
+    if ($null -eq $panelIndex -or $panelIndex -eq 1) {
+        $selectedAppsCount = 0
+        foreach ($child in $scriptScope.AppSelectionPanel.Children) { if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) { $selectedAppsCount++ } }
+        if ($selectedAppsCount -gt 0) { $changesList += "Remove $selectedAppsCount application(s)" }
+        
+        # Update sidebar state if we are on the App Removal panel
+        if ($scriptScope.MainTabControl.SelectedIndex -eq 1) {
+            if ($selectedAppsCount -gt 0) { 
+                if ($scriptScope.userSelectionCombo.SelectedIndex -ne 2) { $scriptScope.appRemovalScopeCombo.IsEnabled = $true }; 
+                $scriptScope.appRemovalScopeSection.Opacity = 1.0; 
+                UpdateAppRemovalScopeDescription -scriptScope $scriptScope 
             }
-            if ($control -and $isRevert -and $mapping.Type -eq 'feature') { $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1; if ($feature -and $feature.RegistryUndoKey) { $changesList += ("Revert " + $feature.Action + ' ' + $feature.Label) } }
+            else { 
+                $scriptScope.appRemovalScopeCombo.IsEnabled = $false; 
+                $scriptScope.appRemovalScopeSection.Opacity = 0.5; 
+                $scriptScope.appRemovalScopeDescription.Text = "No apps selected for removal." 
+            }
         }
     }
+
+    # 2. Tweaks Changes (Panel Index 2)
+    if ($null -eq $panelIndex -or $panelIndex -eq 2) {
+        if ($script:UiControlMappings) {
+            foreach ($mappingKey in $script:UiControlMappings.Keys) {
+                $control = $scriptScope.window.FindName($mappingKey); $mapping = $script:UiControlMappings[$mappingKey]; $isSelected = $false; $isRevert = $false
+                if ($control -is [System.Windows.Controls.CheckBox]) { if ($mapping.IsSystemApplied) { $isSelected = $control.IsChecked -eq $true; $isRevert = $control.IsChecked -eq $false } else { $isSelected = $control.IsChecked -eq $true } }
+                elseif ($control -is [System.Windows.Controls.ComboBox]) { $isSelected = $control.SelectedIndex -gt 0 -and (-not $mapping.IsSystemApplied -or $control.SelectedIndex -ne $mapping.AppliedIndex) }
+                if ($control -and $isSelected) {
+                    if ($mapping.Type -eq 'group') { $selectedValue = $mapping.Values[$control.SelectedIndex - 1]; foreach ($fid in $selectedValue.FeatureIds) { $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $fid }; if ($feature) { $changesList += ($feature.Action + ' ' + $feature.Label) } } }
+                    elseif ($mapping.Type -eq 'feature') { $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1; if ($feature) { $changesList += ($feature.Action + ' ' + $feature.Label) } }
+                }
+                if ($control -and $isRevert -and $mapping.Type -eq 'feature') { $feature = $featuresJson.Features | Where-Object { $_.FeatureId -eq $mapping.FeatureId } | Select-Object -First 1; if ($feature -and $feature.RegistryUndoKey) { $changesList += ("Revert " + $feature.Action + ' ' + $feature.Label) } }
+            }
+        }
+    }
+
+    # 3. Deployment / Home Changes (Panel Index 0 or 3)
+    if ($null -eq $panelIndex -or $panelIndex -eq 3 -or $panelIndex -eq 0) {
+        if ($scriptScope.HomeModUltimatePerf.IsChecked) { $changesList += "Add Ultimate Performance plan" }
+        if ($scriptScope.HomeModHyperVNFS.IsChecked) { $changesList += "Install Hyper-V & NFS Features" }
+        if ($scriptScope.HomeModClearTemp.IsChecked) { $changesList += "Clear Temporary Files" }
+        if ($scriptScope.HomeModResetUpdates.IsChecked) { $changesList += "Reset Windows Updates" }
+        if ($scriptScope.HomeModCorruptionScan.IsChecked) { $changesList += "System Corruption Scan" }
+        
+        if ($null -eq $panelIndex -or $panelIndex -eq 3) {
+            if ($scriptScope.RestorePointCheckBox.IsChecked) { $changesList += "Create System Restore Point" }
+            if ($scriptScope.RestartExplorerCheckBox.IsChecked) { $changesList += "Restart Windows Explorer" }
+        }
+    }
+
     return $changesList
 }
 
 function ShowChangesOverview {
     param($scriptScope)
-    $changesList = GenerateOverview -scriptScope $scriptScope
-    if ($changesList.Count -eq 0) { Show-MessageBox -Message 'No changes have been selected.' -Title 'Selected Changes' -Button 'OK' -Icon 'Information'; return }
+    $currentIndex = $scriptScope.MainTabControl.SelectedIndex
+    $totalTabs = $scriptScope.MainTabControl.Items.Count
+    
+    # If not the last panel, filter to current panel's changes
+    $filterIndex = if ($currentIndex -lt $totalTabs - 1) { $currentIndex } else { $null }
+    
+    $changesList = GenerateOverview -scriptScope $scriptScope -panelIndex $filterIndex
+    if ($changesList.Count -eq 0) { Show-MessageBox -Message 'No changes have been selected for this section.' -Title 'Selected Changes' -Button 'OK' -Icon 'Information'; return }
     $message = ($changesList | ForEach-Object { "$([char]0x2022) $_" }) -join "`n"
     Show-MessageBox -Message $message -Title 'Selected Changes' -Button 'OK' -Icon 'None' -Width 600
 }

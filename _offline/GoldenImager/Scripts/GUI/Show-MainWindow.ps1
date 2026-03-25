@@ -179,6 +179,10 @@ function Show-MainWindow {
     if ($scriptScope.AppRemovalApplyBtn) { $scriptScope.AppRemovalApplyBtn.Add_Click($applyLogic) }
     if ($scriptScope.TweaksApplyBtn) { $scriptScope.TweaksApplyBtn.Add_Click($applyLogic) }
 
+    if ($scriptScope.ToggleUnsafeAppsBtn) {
+        $scriptScope.ToggleUnsafeAppsBtn.Add_Click({ Toggle-UnsafeApps -scriptScope $scriptScope })
+    }
+
     if ($scriptScope.DeploymentExportCliBtn) {
         $scriptScope.DeploymentExportCliBtn.Add_Click({
             Show-MessageBox -Message "CLI Export functionality not fully implemented in this prototype yet." -Title "Export CLI" -Button 'OK' -Icon 'Information'
@@ -198,7 +202,7 @@ function Show-MainWindow {
     $window.Add_ContentRendered({
         DoEvents
         Initialize-HomeTab -scriptScope $scriptScope
-        BuildDynamicTweaks -window $window -WinVersion $WinVersion
+        BuildDynamicTweaks -window $window -WinVersion $WinVersion -scriptScope $scriptScope
         Update-AppProfileCombo -scriptScope $scriptScope
         LoadAppsWithList -scriptScope $scriptScope -window $window
         UpdateNavigationButtons -scriptScope $scriptScope

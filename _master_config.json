@@ -1,10 +1,8 @@
 {
     // Master config (JSONC). Active VM profile: $env:GOLDEN_IMAGE_VM_PROFILE, or defaultVMProfile / activeVMProfile below.
-    
     // Shared by all profiles unless a profile overrides VhdPath in VMDetails.
     "VMFileSystem": { //>
         "HostVhdPath": "N:/VHD/Golden-Imaging.vhdx",
-        
         "MainOSDrive": "C",
         "DVDBootDrive": "D",
         "GuestStagingDrive": "E",
@@ -12,25 +10,13 @@
         "OfflinePath": "_offline",
         "InstallersPath": "installers",
         "ReturnPath": "return"
-        
-        
-        
-        
-        
     }, //<
     "VMCredentials": { //>
         "VMUser": "Administrator",
         "VMPassword": "654654",
         "UsePasswordCreds": false
     }, //<
-    
-
-    
-    
-    
-    "defaultVMProfile": "GoldenImage",
-
-    
+    "defaultVMProfile": "GoldenAuto",
     "VMProfiles": {
         "Windows 11 Master": {
             "HardwareTemplate": "OfflineSysprep",
@@ -54,18 +40,18 @@
                 "WimDestination": "N:/Win_11_GoldenImage.wim"
             }
         },
-        "TrialVM": {
-            "HardwareTemplate": "StandardWindows",
+        "GoldenAuto": {
+            "HardwareTemplate": "OfflineSysprep",
             "VMDetails": {
-                "VMName": "Trial VM",
+                "VMName": "Golden Auto",
                 "OSImagePath": "N:/Win11_25H2_English_x64.iso",
-                // "VhdPath": "N:/VHD/Golden-Imaging.vhdx",
-                "OsVhdPath": "Z:/Virtuals/Hyper-V/Trial VM/Virtual Hard Disks/Trial_VM_OS.vhdx",
-                "VMHostname": "DESKTOP-TRIAL01"
+                "OsVhdPath": "N:/VM/Golden Auto/Virtual Hard Disks/Golden_Auto_OS.vhdx",
+                "VMHostname": "DESKTOP-GoldenAuto",
+                "WimDestination": "N:/Win_11_GoldenAuto.wim",
+                "MemoryStartupGB": 6
             }
         }
     },
-    
     "VMProvisioningTemplates": {
         "OfflineSysprep": { //>
             "NewOsVhdSizeGB": 80,
@@ -78,7 +64,7 @@
             "EnableEnhancedSession": true,
             "DisableAutomaticCheckpoints": true,
             "DynamicMemoryEnabled": false,
-            "MemoryStartupBytes": 8589934592,
+            "MemoryStartupGB": 6,
             "MemoryPriority": 50,
             "ExposeVirtualizationExtensions": false,
             "EnableSecureBoot": true,
@@ -96,7 +82,7 @@
             "EnableEnhancedSession": true,
             "DisableAutomaticCheckpoints": true,
             "DynamicMemoryEnabled": false,
-            "MemoryStartupBytes": 8589934592,
+            "MemoryStartupGB": 6,
             "MemoryPriority": 50,
             "ExposeVirtualizationExtensions": false,
             "EnableSecureBoot": true,
@@ -104,5 +90,4 @@
             "TpmEnabled": true
         } //<
     }
-    
 }

@@ -1,12 +1,12 @@
 # Stage 1: Scoop Offline Setup
-# Location: _offline\Install_Stage_1_Scoop.ps1
+# Location: _offline\GoldenImager\Imaging_Scripts\1_Scoop.ps1
 
 $ErrorActionPreference = "Stop"
 $TargetScoopRoot = "C:\Scoop"
 
 # --- ENVIRONMENT DISCOVERY ---
-# Scripts are in _offline/Imaging_Scripts, so VHD Root is typically two levels up.
-$VhdRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+# Scripts are in _offline/GoldenImager/Imaging_Scripts, so VHD Root is typically three levels up.
+$VhdRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
 $InstallersDir = Join-Path $VhdRoot "installers"
 $OfflineDir = Join-Path $VhdRoot "_offline"
 

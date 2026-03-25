@@ -2,7 +2,6 @@ function Initialize-TitleBarAndMenu {
     param($scriptScope, $window, $usesDarkMode)
 
     $scriptScope.titleBar.Add_MouseLeftButtonDown({ if ($_.OriginalSource -is [System.Windows.Controls.Grid] -or $_.OriginalSource -is [System.Windows.Controls.Border] -or $_.OriginalSource -is [System.Windows.Controls.TextBlock]) { $window.DragMove() } })
-    $scriptScope.kofiBtn.Add_Click({ Start-Process "https://ko-fi.com/raphire" })
     $scriptScope.menuBtn.Add_Click({ $scriptScope.menuBtn.ContextMenu.PlacementTarget = $scriptScope.menuBtn; $scriptScope.menuBtn.ContextMenu.Placement = [System.Windows.Controls.Primitives.PlacementMode]::Bottom; $scriptScope.menuBtn.ContextMenu.IsOpen = $true })
     $scriptScope.menuDocumentation.Add_Click({ Start-Process "https://github.com/Raphire/Win11Debloat/wiki" })
     $scriptScope.menuReportBug.Add_Click({ Start-Process "https://github.com/Raphire/Win11Debloat/issues" })

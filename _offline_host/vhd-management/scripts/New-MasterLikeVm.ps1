@@ -51,6 +51,7 @@ try {
 
     $pk = if ($VMProfile) { $VMProfile.Trim() } else { Get-ActiveVmProfileKey -Master $master }
     $ctx = Build-MergedHostVmConfig -Master $master -ProfileKey $pk
+    $vd = (Get-VmProfileSection -Master $master -ProfileKey $pk).VMDetails
 
     $tplKey = $ProvisioningTemplateKey
     if ([string]::IsNullOrWhiteSpace($tplKey)) {
@@ -161,9 +162,11 @@ try {
     }
 
     function ConvertTo-Bytes {
-        param([Parameter(Mandatory = $true)]$Value)
+        param(
+            [Parameter(Mandatory = $true)]$Value,
+            [string]$Unit = 'b'
+        )
         if ($null -eq $Value) { return $null }
-        if ($Value -is [int] -or $Value -is [long] -or $Value -is [double]) { return [long]$Value }
         $s = $Value.ToString().Trim()
         if ($s -match '^\s*([\d\.]+)\s*(b|kb|mb|gb)\s*$') {
             $n = [double]$Matches[1]
@@ -175,18 +178,35 @@ try {
                 'gb' { return [long]($n * 1GB) }
             }
         }
-        if ($s -match '^\d+$') { return [long]$s }
-        return $null
+        
+        if ($Value -is [int] -or $Value -is [long] -or $Value -is [double]) { $n = [double]$Value }
+        elseif ($s -match '^\s*([\d\.]+)\s*$') { $n = [double]$Matches[1] }
+        else { return $null }
+
+        switch ($Unit.ToLower()) {
+            'b' { return [long]$n }
+            'kb' { return [long]($n * 1KB) }
+            'mb' { return [long]($n * 1MB) }
+            'gb' { return [long]($n * 1GB) }
+            default { return [long]$n }
+        }
     }
 
     $memStartup = $null
-    if ($prov.PSObject.Properties['MemoryStartupBytes'] -and $null -ne $prov.MemoryStartupBytes) { $memStartup = ConvertTo-Bytes $prov.MemoryStartupBytes }
-    elseif ($prov.PSObject.Properties['MemoryStartupGB'] -and $null -ne $prov.MemoryStartupGB) { $memStartup = ConvertTo-Bytes $prov.MemoryStartupGB }
-    elseif ($prov.PSObject.Properties['MemoryStartupMB'] -and $null -ne $prov.MemoryStartupMB) { $memStartup = ConvertTo-Bytes $prov.MemoryStartupMB }
-    else { throw "VMProvisioningTemplates.$tplKey.MemoryStartupBytes (or MemoryStartupGB/MB) is required." }
-    if ($null -eq $memStartup) { throw "VMProvisioningTemplates.$tplKey.MemoryStartup value could not be parsed to bytes." }
+    $memStartup = $null
+    if ($vd.PSObject.Properties['MemoryStartupBytes'] -and $null -ne $vd.MemoryStartupBytes) { $memStartup = ConvertTo-Bytes $vd.MemoryStartupBytes -Unit 'b' }
+    elseif ($vd.PSObject.Properties['MemoryStartupGB'] -and $null -ne $vd.MemoryStartupGB) { $memStartup = ConvertTo-Bytes $vd.MemoryStartupGB -Unit 'gb' }
+    elseif ($vd.PSObject.Properties['MemoryStartupMB'] -and $null -ne $vd.MemoryStartupMB) { $memStartup = ConvertTo-Bytes $vd.MemoryStartupMB -Unit 'mb' }
+    elseif ($prov.PSObject.Properties['MemoryStartupBytes'] -and $null -ne $prov.MemoryStartupBytes) { $memStartup = ConvertTo-Bytes $prov.MemoryStartupBytes -Unit 'b' }
+    elseif ($prov.PSObject.Properties['MemoryStartupGB'] -and $null -ne $prov.MemoryStartupGB) { $memStartup = ConvertTo-Bytes $prov.MemoryStartupGB -Unit 'gb' }
+    elseif ($prov.PSObject.Properties['MemoryStartupMB'] -and $null -ne $prov.MemoryStartupMB) { $memStartup = ConvertTo-Bytes $prov.MemoryStartupMB -Unit 'mb' }
+    else { throw "MemoryStartupBytes (or GB/MB) is required in profile VMDetails or template." }
+    if ($null -eq $memStartup) { throw "MemoryStartup value could not be parsed to bytes." }
 
-    $procCount = if ($prov.PSObject.Properties['ProcessorCount'] -and $null -ne $prov.ProcessorCount) { [int]$prov.ProcessorCount } else { [int]$prov.ProcCount }
+    $procCount = if ($vd.PSObject.Properties['ProcessorCount'] -and $null -ne $vd.ProcessorCount) { [int]$vd.ProcessorCount }
+    elseif ($vd.PSObject.Properties['ProcCount'] -and $null -ne $vd.ProcCount) { [int]$vd.ProcCount }
+    elseif ($prov.PSObject.Properties['ProcessorCount'] -and $null -ne $prov.ProcessorCount) { [int]$prov.ProcessorCount }
+    else { [int]$prov.ProcCount }
 
     $rawSwitchName = if ($prov.PSObject.Properties['SwitchName']) { $prov.SwitchName } else { $prov.VMSwitch }
     if ($null -eq $rawSwitchName) { $switchName = 'Not Connected' } else { $switchName = $rawSwitchName.ToString().Trim() }
@@ -290,21 +310,21 @@ try {
     try {
         $dynamicEnabled = [bool]$prov.DynamicMemoryEnabled
         if ($dynamicEnabled) {
-            $dynStartup = if ($prov.PSObject.Properties['DynamicMemoryStartupBytes'] -and $null -ne $prov.DynamicMemoryStartupBytes) { ConvertTo-Bytes $prov.DynamicMemoryStartupBytes }
-                elseif ($prov.PSObject.Properties['DynamicMemoryStartupGB'] -and $null -ne $prov.DynamicMemoryStartupGB) { ConvertTo-Bytes $prov.DynamicMemoryStartupGB }
-                elseif ($prov.PSObject.Properties['DynamicMemoryStartupMB'] -and $null -ne $prov.DynamicMemoryStartupMB) { ConvertTo-Bytes $prov.DynamicMemoryStartupMB }
+            $dynStartup = if ($prov.PSObject.Properties['DynamicMemoryStartupBytes'] -and $null -ne $prov.DynamicMemoryStartupBytes) { ConvertTo-Bytes $prov.DynamicMemoryStartupBytes -Unit 'b' }
+                elseif ($prov.PSObject.Properties['DynamicMemoryStartupGB'] -and $null -ne $prov.DynamicMemoryStartupGB) { ConvertTo-Bytes $prov.DynamicMemoryStartupGB -Unit 'gb' }
+                elseif ($prov.PSObject.Properties['DynamicMemoryStartupMB'] -and $null -ne $prov.DynamicMemoryStartupMB) { ConvertTo-Bytes $prov.DynamicMemoryStartupMB -Unit 'mb' }
                 else { $null }
             if ($null -eq $dynStartup) { throw "VMProvisioningTemplates.$tplKey.DynamicMemoryStartupBytes (or GB/MB) is required when DynamicMemoryEnabled=true." }
 
-            $dynMin = if ($prov.PSObject.Properties['DynamicMemoryMinimumBytes'] -and $null -ne $prov.DynamicMemoryMinimumBytes) { ConvertTo-Bytes $prov.DynamicMemoryMinimumBytes }
-                elseif ($prov.PSObject.Properties['DynamicMemoryMinimumGB'] -and $null -ne $prov.DynamicMemoryMinimumGB) { ConvertTo-Bytes $prov.DynamicMemoryMinimumGB }
-                elseif ($prov.PSObject.Properties['DynamicMemoryMinimumMB'] -and $null -ne $prov.DynamicMemoryMinimumMB) { ConvertTo-Bytes $prov.DynamicMemoryMinimumMB }
+            $dynMin = if ($prov.PSObject.Properties['DynamicMemoryMinimumBytes'] -and $null -ne $prov.DynamicMemoryMinimumBytes) { ConvertTo-Bytes $prov.DynamicMemoryMinimumBytes -Unit 'b' }
+                elseif ($prov.PSObject.Properties['DynamicMemoryMinimumGB'] -and $null -ne $prov.DynamicMemoryMinimumGB) { ConvertTo-Bytes $prov.DynamicMemoryMinimumGB -Unit 'gb' }
+                elseif ($prov.PSObject.Properties['DynamicMemoryMinimumMB'] -and $null -ne $prov.DynamicMemoryMinimumMB) { ConvertTo-Bytes $prov.DynamicMemoryMinimumMB -Unit 'mb' }
                 else { $null }
             if ($null -eq $dynMin) { throw "VMProvisioningTemplates.$tplKey.DynamicMemoryMinimumBytes (or GB/MB) is required when DynamicMemoryEnabled=true." }
 
-            $dynMax = if ($prov.PSObject.Properties['DynamicMemoryMaximumBytes'] -and $null -ne $prov.DynamicMemoryMaximumBytes) { ConvertTo-Bytes $prov.DynamicMemoryMaximumBytes }
-                elseif ($prov.PSObject.Properties['DynamicMemoryMaximumGB'] -and $null -ne $prov.DynamicMemoryMaximumGB) { ConvertTo-Bytes $prov.DynamicMemoryMaximumGB }
-                elseif ($prov.PSObject.Properties['DynamicMemoryMaximumMB'] -and $null -ne $prov.DynamicMemoryMaximumMB) { ConvertTo-Bytes $prov.DynamicMemoryMaximumMB }
+            $dynMax = if ($prov.PSObject.Properties['DynamicMemoryMaximumBytes'] -and $null -ne $prov.DynamicMemoryMaximumBytes) { ConvertTo-Bytes $prov.DynamicMemoryMaximumBytes -Unit 'b' }
+                elseif ($prov.PSObject.Properties['DynamicMemoryMaximumGB'] -and $null -ne $prov.DynamicMemoryMaximumGB) { ConvertTo-Bytes $prov.DynamicMemoryMaximumGB -Unit 'gb' }
+                elseif ($prov.PSObject.Properties['DynamicMemoryMaximumMB'] -and $null -ne $prov.DynamicMemoryMaximumMB) { ConvertTo-Bytes $prov.DynamicMemoryMaximumMB -Unit 'mb' }
                 else { $null }
             if ($null -eq $dynMax) { throw "VMProvisioningTemplates.$tplKey.DynamicMemoryMaximumBytes (or GB/MB) is required when DynamicMemoryEnabled=true." }
 
@@ -349,9 +369,12 @@ try {
         Add-VMDvdDrive -VMName $newName -Path $isoPath
         try {
             $dvd = Get-VMDvdDrive -VMName $newName | Select-Object -First 1
-            $hdd = Get-VMHardDiskDrive -VMName $newName | Select-Object -First 1
-            if ($dvd -and $hdd) {
-                Set-VMFirmware -VMName $newName -BootOrder @($dvd, $hdd)
+            if ($dvd) {
+                if ($gen -ge 2) {
+                    Set-VMFirmware -VMName $newName -FirstBootDevice $dvd
+                } else {
+                    Set-VMBios -VMName $newName -StartupOrder @("CD", "IDE", "LegacyNetworkAdapter", "Floppy")
+                }
             }
         } catch {
             Write-Warning "Boot order (DVD first): $_"
@@ -422,6 +445,6 @@ try {
 
 } catch {
     Write-DetailedError $_ "Failed to create virtual machine"
-    exit 1
+    throw $_
 }
 

@@ -78,12 +78,32 @@ function UpdateAppSelectionStatus {
             $selectedCount++
         }
     }
-    $scriptScope.AppSelectionStatus.Text = "$selectedCount app(s) selected for removal"
+    $scriptScope.AppSelectionStatus.Text = "$selectedCount app(s) selected"
+}
+
+function Toggle-UnsafeApps {
+    param($scriptScope)
+    $btn = $scriptScope.ToggleUnsafeAppsBtn
+    if ($null -eq $btn) { return }
+    
+    $script:HideUnsafeApps = -not $script:HideUnsafeApps
+    
+    $linkText = $btn.Template.FindName("LinkText", $btn)
+    if ($linkText) {
+        $linkText.Text = $(if ($script:HideUnsafeApps) { "Show unsafe apps" } else { "Hide unsafe apps" })
+    }
+
+    foreach ($child in $scriptScope.AppSelectionPanel.Children) {
+        if ($child -is [System.Windows.Controls.CheckBox] -and $child.Recommendation -eq 'unsafe') {
+            $child.Visibility = $(if ($script:HideUnsafeApps) { 'Collapsed' } else { 'Visible' })
+        }
+    }
 }
 
 function AddAppsToPanel {
     param($appsToAdd, $scriptScope, $window)
     $script:MainWindowLastSelectedCheckbox = $null
+    $script:HideUnsafeApps = $false # Reset state on load
     if (-not $appsToAdd) { $appsToAdd = @() }
 
     $brushSafe    = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#4CAF50')
@@ -149,6 +169,7 @@ function AddAppsToPanel {
         Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "AppName" -Value $app.FriendlyName
         Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "AppDescription" -Value $app.Description
         Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "SelectedByDefault" -Value $app.SelectedByDefault
+        Add-Member -InputObject $checkbox -MemberType NoteProperty -Name "Recommendation" -Value $app.Recommendation
 
         $checkbox.Add_Checked({ UpdateAppSelectionStatus -scriptScope $scriptScope })
         $checkbox.Add_Unchecked({ UpdateAppSelectionStatus -scriptScope $scriptScope })
@@ -164,7 +185,7 @@ function AddAppsToPanel {
         $scriptScope.LoadingAppsIndicator.Visibility = 'Collapsed'
     }
     if ($scriptScope.ExportAppListLink) { $scriptScope.ExportAppListLink.Visibility = 'Visible' }
-    UpdateNavigationButtons
+    UpdateNavigationButtons -scriptScope $scriptScope
     UpdateAppSelectionStatus -scriptScope $scriptScope
 }
 
@@ -198,7 +219,7 @@ function LoadAppsWithList {
     catch {
         if ($scriptScope.LoadingAppsIndicator) { $scriptScope.LoadingAppsIndicator.Visibility = 'Collapsed' }
         if ($scriptScope.ExportAppListLink) { $scriptScope.ExportAppListLink.Visibility = 'Collapsed' }
-        UpdateNavigationButtons
+        UpdateNavigationButtons -scriptScope $scriptScope
         Show-MessageBox -Message "Unable to load app list.`n`n$($_.Exception.Message)" -Title 'Error' -Button 'OK' -Icon 'Error' | Out-Null
     }
 }

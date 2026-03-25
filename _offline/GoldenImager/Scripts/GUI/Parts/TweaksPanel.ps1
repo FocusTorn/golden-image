@@ -16,8 +16,37 @@ function Get-RestartMarkerSuffix {
     switch ($req) { 'reboot' { ' [reboot]' } 'explorer' { ' [restart]' } default { '' } }
 }
 
+function UpdateTweakSelectionStatus {
+    param($scriptScope)
+    $selectedCount = 0
+    $enabledCount = 0
+    $revertCount = 0
+    
+    if ($script:UiControlMappings) {
+        foreach ($mappingKey in $script:UiControlMappings.Keys) {
+            $control = $scriptScope.window.FindName($mappingKey); $mapping = $script:UiControlMappings[$mappingKey]
+            if ($control -is [System.Windows.Controls.CheckBox]) {
+                if ($mapping.IsSystemApplied) {
+                    if ($control.IsChecked -eq $true) { $enabledCount++ }
+                    elseif ($control.IsChecked -eq $false) { $revertCount++ }
+                } elseif ($control.IsChecked -eq $true) {
+                    $selectedCount++
+                }
+            } elseif ($control -is [System.Windows.Controls.ComboBox]) {
+                if ($control.SelectedIndex -gt 0 -and (-not $mapping.IsSystemApplied -or $control.SelectedIndex -ne $mapping.AppliedIndex)) {
+                    $selectedCount++
+                }
+            }
+        }
+    }
+    
+    if ($scriptScope.TweakSelectionStatus) {
+        $scriptScope.TweakSelectionStatus.Text = "$selectedCount selected | $enabledCount enabled | $revertCount to revert"
+    }
+}
+
 function CreateLabeledCombo {
-    param($parent, $labelText, $comboName, $items, $feature, $window)
+    param($parent, $labelText, $comboName, $items, $feature, $window, $scriptScope)
     # If only 2 items (No Change + one option), use checkbox
     if ($items.Count -eq 2) {
         $checkbox = New-Object System.Windows.Controls.CheckBox
@@ -26,6 +55,9 @@ function CreateLabeledCombo {
         $checkbox.SetValue([System.Windows.Automation.AutomationProperties]::NameProperty, $labelText)
         $checkbox.IsChecked = $false
         $checkbox.Style = $window.Resources["FeatureCheckboxStyle"]
+        $checkbox.Add_Checked({ UpdateTweakSelectionStatus -scriptScope $scriptScope })
+        $checkbox.Add_Unchecked({ UpdateTweakSelectionStatus -scriptScope $scriptScope })
+        $checkbox.Add_Indeterminate({ UpdateTweakSelectionStatus -scriptScope $scriptScope })
         $parent.Children.Add($checkbox) | Out-Null
         try {
             [System.Windows.NameScope]::SetNameScope($checkbox, [System.Windows.NameScope]::GetNameScope($window))
@@ -63,6 +95,7 @@ function CreateLabeledCombo {
     $combo.SetValue([System.Windows.Automation.AutomationProperties]::NameProperty, $labelText)
     foreach ($it in $items) { $cbItem = New-Object System.Windows.Controls.ComboBoxItem; $cbItem.Content = $it; $combo.Items.Add($cbItem) | Out-Null }
     $combo.SelectedIndex = 0
+    $combo.Add_SelectionChanged({ UpdateTweakSelectionStatus -scriptScope $scriptScope })
     $parent.Children.Add($combo) | Out-Null
     
     # Register the combo box with the window's name scope
@@ -145,7 +178,7 @@ function GetOrCreateCategoryCard {
 }
 
 function BuildDynamicTweaks {
-    param($window, $WinVersion)
+    param($window, $WinVersion, $scriptScope)
     $featuresJson = LoadJsonFile -filePath $script:FeaturesFilePath -expectedVersion "1.0"
 
     if (-not $featuresJson) {
@@ -282,7 +315,7 @@ function BuildDynamicTweaks {
                 $items = @('No Change') + ($group.Values | ForEach-Object { $_.Label })
                 $comboName = 'Group_{0}Combo' -f $group.GroupId
                 $groupLabel = $group.Label + (Get-RestartMarkerSuffix -featureOrGroup $group -featuresJson $featuresJson -IsGroup)
-                $combo = CreateLabeledCombo -parent $panel -labelText $groupLabel -comboName $comboName -items $items -feature $null -window $window
+                $combo = CreateLabeledCombo -parent $panel -labelText $groupLabel -comboName $comboName -items $items -feature $null -window $window -scriptScope $scriptScope
                 if ($group.ToolTip) {
                     $tipBlock = New-Object System.Windows.Controls.TextBlock; $tipBlock.Text = $group.ToolTip; $tipBlock.TextWrapping = 'Wrap'; $tipBlock.MaxWidth = 420; $combo.ToolTip = $tipBlock
                     $lblBorderObj = $null; try { $lblBorderObj = $window.FindName("$comboName`_LabelBorder") } catch {}
@@ -296,8 +329,8 @@ function BuildDynamicTweaks {
                 if ($feature.FeatureId -match '^Disable') { $opt = 'Disable' } elseif ($feature.FeatureId -match '^Enable') { $opt = 'Enable' }
                 $items = @('No Change', $opt)
                 $comboName = ("Feature_{0}_Combo" -f $feature.FeatureId) -replace '[^a-zA-Z0-9_]',''
-                $featureLabel = $feature.Action + ' ' + $feature.Label + (Get-RestartMarkerSuffix -featureOrGroup $feature -featuresJson $featuresJson)
-                $combo = CreateLabeledCombo -parent $panel -labelText $featureLabel -comboName $comboName -items $items -feature $feature -window $window
+                $featureLabel = $feature.Label + (Get-RestartMarkerSuffix -featureOrGroup $feature -featuresJson $featuresJson)
+                $combo = CreateLabeledCombo -parent $panel -labelText $featureLabel -comboName $comboName -items $items -feature $feature -window $window -scriptScope $scriptScope
                 if ($feature.ToolTip) {
                     $tipBlock = New-Object System.Windows.Controls.TextBlock; $tipBlock.Text = $feature.ToolTip; $tipBlock.TextWrapping = 'Wrap'; $tipBlock.MaxWidth = 420; $combo.ToolTip = $tipBlock
                 }
@@ -305,4 +338,5 @@ function BuildDynamicTweaks {
             }
         }
     }
+    UpdateTweakSelectionStatus -scriptScope $scriptScope
 }

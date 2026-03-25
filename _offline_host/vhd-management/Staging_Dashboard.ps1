@@ -4,6 +4,51 @@ param([string]$Action)
 
 . (Join-Path $PSScriptRoot "scripts\VhdUtils.ps1")
 
+
+
+# function Write-ColorOutput {
+#     [CmdletBinding()]
+#     param(
+#         [Parameter(Mandatory=$true, ValueFromPipeline=$true, Position=0)]
+#         [Object]$Object,
+
+#         [System.ConsoleColor]$ForegroundColor
+#     )
+
+#     process {
+#         if ($ForegroundColor) {
+#             # Map standard PowerShell colors to ANSI escape codes
+#             $ansiColor = switch ($ForegroundColor) {
+#                 'Black'       { '30' }
+#                 'DarkRed'     { '31' }
+#                 'DarkGreen'   { '32' }
+#                 'DarkYellow'  { '33' }
+#                 'DarkBlue'    { '34' }
+#                 'DarkMagenta' { '35' }
+#                 'DarkCyan'    { '36' }
+#                 'Gray'        { '37' }
+#                 'DarkGray'    { '90' }
+#                 'Red'         { '91' }
+#                 'Green'       { '92' }
+#                 'Yellow'      { '93' }
+#                 'Blue'        { '94' }
+#                 'Magenta'     { '95' }
+#                 'Cyan'        { '96' }
+#                 'White'       { '97' }
+#                 default       { '39' } # Default terminal color
+#             }
+
+#             $esc = [char]27
+#             Write-Output "$esc[${ansiColor}m$Object$esc[0m"
+#         } else {
+#             # If no color is specified, just output normally
+#             Write-Output $Object
+#         }
+#     }
+# }
+
+
+
 # --- GUEST SERVICES AUTO-ENABLE ---
 function Enable-GuestServicesIfNeeded {
     param([string]$VMName)
@@ -47,11 +92,11 @@ function Show-VhdHeader {
     $vmObj = Get-VM -Name $Cfg.VMName -ErrorAction SilentlyContinue
     $vhdExists = Test-Path $Cfg.VhdPath
     $isAtVM = if ($vmObj) { Get-VmDriveForVhd -VhdPath $Cfg.VhdPath -VMName $Cfg.VMName }
-    
+
     $hostLetter = ""
     if ($vhdExists) {
         $vhdInfo = Get-VhdInfoSafe -VhdPath $Cfg.VhdPath
-        if ($vhdInfo -and $vhdInfo.Attached -and $null -ne $vhdInfo.DiskNumber) { 
+        if ($vhdInfo -and $vhdInfo.Attached -and $null -ne $vhdInfo.DiskNumber) {
             $hostLetter = (Get-Partition -DiskNumber $vhdInfo.DiskNumber | Get-Volume | Where-Object DriveLetter).DriveLetter
         }
     }
@@ -60,7 +105,7 @@ function Show-VhdHeader {
     $vmStatus = if ($vmObj) { if ($vmRunning) { "Running" } else { "Stopped" } } else { "-" }
     $hostStatus = if ($hostLetter) { "$($hostLetter):" } else { "-" }
     $stagingStatus = if ($isAtVM) { "VM" } elseif ($hostLetter) { "Host" } else { "-" }
-    
+
     $credsMode = if ($Cfg.UsePasswordCreds -eq $true -or $Cfg.UsePasswordCreds -eq "true") { "Password" } else { "Empty" }
 
     $headerWidth = 101
@@ -156,6 +201,7 @@ function Show-CommandHelp {
             "pc" { Write-Host "PC  Clear env override" -ForegroundColor Magenta; Write-Host "Clears `$env:GOLDEN_IMAGE_VM_PROFILE so profile resolution falls back to master." -ForegroundColor Gray; return }
             "pm" { Write-Host "PM  Resolution" -ForegroundColor Magenta; Write-Host "Shows how the active profile key is resolved (env, activeVMProfile, defaultVMProfile, etc.)." -ForegroundColor Gray; return }
             "pv" { Write-Host "PV  New VM from template" -ForegroundColor Magenta; Write-Host "Creates a VM using the active VM profile for VM details, but a selected provisioning template for hardware/network." -ForegroundColor Gray; return }
+            "pa" { Write-Host "PA  Sysprep Audit Auto Install" -ForegroundColor Magenta; Write-Host "Creates a VM from template and copies autounattend.xml to the staging drive root." -ForegroundColor Gray; return }
             "ch" { Write-Host "CH  Set Config VHD" -ForegroundColor Magenta; Write-Host "Updates the active profile's VhdPath in _master_config.json." -ForegroundColor Gray; return }
             "cv" { Write-Host "CV  Set Config VM" -ForegroundColor Magenta; Write-Host "Updates the active profile's VMName in _master_config.json." -ForegroundColor Gray; return }
             "cg" { Write-Host "CG  Set Config Guest" -ForegroundColor Magenta; Write-Host "Updates GuestStagingDrive (shared + VMFileSystem) in _master_config.json." -ForegroundColor Gray; return }
@@ -190,11 +236,12 @@ function Show-CommandHelp {
     Write-Host ""
     Write-Host "Profiles:" -ForegroundColor Magenta
     Write-Host "  PL List                     List VM profile keys from _master_config.json" -ForegroundColor Gray
-    Write-Host "  PF Session profile          Set \`$env:GOLDEN_IMAGE_VM_PROFILE for this session only" -ForegroundColor Gray
+    Write-Host "  PF Session profile          Set `$env:GOLDEN_IMAGE_VM_PROFILE for this session only" -ForegroundColor Gray
     Write-Host "  PD Set default profile      Save defaultVMProfile in master (session env still overrides)" -ForegroundColor Gray
-    Write-Host "  PC Clear env override       Clear \`$env:GOLDEN_IMAGE_VM_PROFILE for this session" -ForegroundColor Gray
+    Write-Host "  PC Clear env override       Clear `$env:GOLDEN_IMAGE_VM_PROFILE for this session" -ForegroundColor Gray
     Write-Host "  PM Resolution               Show how the active profile key is resolved" -ForegroundColor Gray
     Write-Host "  PV New VM from template     Run New-MasterLikeVm.ps1 using the active profile + a selected provisioning template" -ForegroundColor Gray
+    Write-Host "  PA Sysprep Audit Auto Inst  Run New-MasterLikeVm.ps1 and copy autounattend.xml to staging drive root" -ForegroundColor Gray
     Write-Host "Config (_master_config.json):" -ForegroundColor Magenta
     Write-Host "  CH Set Config VHD          Update the active profile's VHD path in master config" -ForegroundColor Gray
     Write-Host "  CV Set Config VM           Update the active profile's VM name in master config" -ForegroundColor Gray
@@ -261,7 +308,7 @@ while ($true) {
     Write-Host ""
     Write-Host (& $fmt3 -Col1 "VM PROFILE:" -Col2 "VM CREATION:" -Col3 "CONFIG:") -ForegroundColor Magenta
     Write-Host (& $fmt3 -Col1 "  [PL] List" -Col2 "  [PV] New VM from template" -Col3 "  [CH] Set Config VHD") -ForegroundColor Gray
-    Write-Host (& $fmt3 -Col1 "  [PF] Session profile" -Col2 "" -Col3 "  [CV] Set Config VM") -ForegroundColor Gray
+    Write-Host (& $fmt3 -Col1 "  [PF] Session profile" -Col2 "  [PA] Sysprep Audit Auto Install" -Col3 "  [CV] Set Config VM") -ForegroundColor Gray
     Write-Host (& $fmt3 -Col1 "  [PC] Clear env override" -Col2 "" -Col3 "  [CG] Set Config Guest") -ForegroundColor Gray
     Write-Host (& $fmt3 -Col1 "  [PM] Resolution" -Col2 "" -Col3 "  [CA] Toggle Creds") -ForegroundColor Gray
     Write-Host ""
@@ -289,7 +336,7 @@ while ($true) {
             "help" { Show-CommandHelp -GuestDrive $guestDrive; [void](Read-Host "Press Enter to continue") }
             "1" { & "$scriptsDir\Invoke-VhdSwoop.ps1" -Sources @("$LocalProjectRoot\_offline") -NoPause; Wait-AutoContinue }
             "2" { & "$scriptsDir\Invoke-VhdSwoop.ps1" -Sources @("$LocalProjectRoot\_offline", "$LocalProjectRoot\installers") -NoPause; Wait-AutoContinue }
-            "6" { 
+            "6" {
                 $creds = Get-VMCreds $Cfg.VMUser $Cfg
                 Invoke-Command -VMName $Cfg.VMName -Credential $creds -ScriptBlock { Get-Content "${using:guestDrive}:\shit.txt" }
                 Wait-AutoContinue
@@ -302,7 +349,7 @@ while ($true) {
             "r" { & "$scriptsDir\Invoke-VhdPullReturn.ps1" -TargetHostDir $localReturnDir -NoPause; Wait-AutoContinue }
             "x" {
                 Write-Host "`n>>> CLEAN EXIT & RESOURCE RELEASE" -ForegroundColor Cyan
-                
+
                 # 1. VHD Release
                 Write-Host "[1/4] Releasing VHD infrastructure..." -ForegroundColor Gray
                 Invoke-SmartRelease $Cfg.VhdPath $Cfg.VMName
@@ -328,7 +375,7 @@ while ($true) {
                 } else {
                     Write-Host "      No background jobs found." -ForegroundColor DarkGray
                 }
-                
+
                 # 4. Ghost Processes
                 Write-Host "[4/4] Scanning for ghost processes..." -ForegroundColor Gray
                 $targets = @("dism", "robocopy", "diskpart")
@@ -362,7 +409,7 @@ while ($true) {
             "ch" { try { $p = Read-Host "VHD Path"; if ($p) { Save-HostVmSettingsToMaster -VhdPath $p } } catch { Write-DetailedError $_ "Update VHD Path failed" } }
             "cv" { try { $n = Read-Host "VM Name"; if ($n) { Save-HostVmSettingsToMaster -VMName $n } } catch { Write-DetailedError $_ "Update VM Name failed" } }
             "cg" { try { $dr = Read-Host "Drive Letter"; if ($dr) { Save-HostVmSettingsToMaster -GuestStagingDrive $dr[0] } } catch { Write-DetailedError $_ "Update Drive Letter failed" } }
-            "ca" { 
+            "ca" {
                 try {
                     $newVal = -not ($Cfg.UsePasswordCreds -eq $true -or $Cfg.UsePasswordCreds -eq "true")
                     Save-HostVmSettingsToMaster -UsePasswordCreds $newVal
@@ -370,7 +417,7 @@ while ($true) {
                 } catch {
                     Write-DetailedError $_ "Toggle credentials failed"
                 }
-                Start-Sleep -Seconds 1 
+                Start-Sleep -Seconds 1
             }
             "pl" {
                 try {
@@ -477,6 +524,162 @@ while ($true) {
                 }
                 Wait-AutoContinue
             }
+            "pa" {
+                try {
+                    $m = Read-JsonCFile -Path $MasterConfigPath
+                    $activePk = Get-ActiveVmProfileKey -Master $m
+                    $ctx = Build-MergedHostVmConfig -Master $m -ProfileKey $activePk
+
+                    $tplKey = $ctx.HardwareTemplateKey
+                    if ([string]::IsNullOrWhiteSpace($tplKey)) { throw "No HardwareTemplate defined in active profile $activePk" }
+
+                    Write-Host "`nCreate a NEW VM (Sysprep Audit mode auto install)." -ForegroundColor Yellow
+                    Write-Host "Active VM profile: $activePk" -ForegroundColor DarkGray
+                    Write-Host "Using provisioning template: $tplKey" -ForegroundColor DarkGray
+
+                    $existingVm = Get-VM -Name $ctx.VMName -ErrorAction SilentlyContinue
+                    $osPath = if ($ctx.OsVhdPath) { $ctx.OsVhdPath -replace '/', '\' } else { $null }
+                    $hasStrandedFiles = ($osPath -and (Test-Path -LiteralPath $osPath))
+
+                    if ($existingVm -or $hasStrandedFiles) {
+                        Write-Host "`n======================================================================================================" -ForegroundColor Red
+                        if ($existingVm) {
+                            Write-Host "[!] VM '$($ctx.VMName)' already exists." -ForegroundColor Red
+                        } else {
+                            Write-Host "[!] Orphaned VHD files for '$($ctx.VMName)' detected." -ForegroundColor Red
+                        }
+                        $ans = Read-Host "    Do you want to securely REPLACE it? (Stops, deletes from manager, wipes VM files) [Y/n]"
+                        Write-Host "======================================================================================================" -ForegroundColor Red
+                        if ([string]::IsNullOrWhiteSpace($ans) -or $ans -match "^y" -or $ans -match "^Y") {
+                            if ($existingVm) {
+                                Write-Host "    -> Stopping VM..." -ForegroundColor DarkGray
+                            Stop-VM -Name $ctx.VMName -TurnOff -Force -ErrorAction SilentlyContinue
+
+                            $vmDisks = Get-VMHardDiskDrive -VMName $ctx.VMName -ErrorAction SilentlyContinue
+                            $vmPathFolder = $existingVm.Path
+
+                            Write-Host "    -> Removing VM from Hyper-V Manager..." -ForegroundColor DarkGray
+                            Remove-VM -Name $ctx.VMName -Force -ErrorAction Stop
+
+                            Start-Sleep -Seconds 2
+                            Write-Host "    -> Deleting associated OS dynamic disks and folder structures..." -ForegroundColor DarkGray
+                            if ($vmDisks) {
+                                foreach ($disk in $vmDisks) {
+                                    if ($disk.Path -and (Test-Path -LiteralPath $disk.Path)) {
+                                        # Never delete the shared staging VHD or base dependencies
+                                        if ([string]::Equals($disk.Path, $ctx.VhdPath, [System.StringComparison]::InvariantCultureIgnoreCase) -or ($disk.Path -match "Golden-Imaging")) { continue }
+                                        Dismount-VHD -Path $disk.Path -ErrorAction SilentlyContinue
+                                        for ($retry = 0; $retry -lt 5; $retry++) {
+                                            try { Remove-Item -LiteralPath $disk.Path -Force -ErrorAction Stop; break }
+                                            catch { Start-Sleep -Seconds 1 }
+                                        }
+                                    }
+                                }
+                            }
+
+                            # Hyper-V often sets .Path to the specific VM folder if created with a specific path
+                            $targetFolder = $vmPathFolder
+                            if ((Split-Path $targetFolder -Leaf) -ne $ctx.VMName) {
+                                $targetFolder = Join-Path $vmPathFolder $ctx.VMName
+                            }
+                            if (Test-Path -LiteralPath $targetFolder) {
+                                Dismount-VHD -Path $osPath -ErrorAction SilentlyContinue 
+                                Start-Sleep -Seconds 1
+                                for ($retry = 0; $retry -lt 5; $retry++) {
+                                    try { Remove-Item -LiteralPath $targetFolder -Recurse -Force -ErrorAction Stop; break }
+                                    catch { Start-Sleep -Seconds 1 }
+                                }
+                            }
+                        } elseif ($hasStrandedFiles) {
+                            Write-Host "    -> No VM found in Hyper-V Manager, but orphaned files detected." -ForegroundColor DarkGray
+                                Write-Host "    -> Deleting stranded files..." -ForegroundColor DarkGray
+                                $targetFolder = Split-Path (Split-Path $osPath -Parent) -Parent
+                                Dismount-VHD -Path $osPath -ErrorAction SilentlyContinue
+                                Start-Sleep -Seconds 1
+                                if ((Split-Path $targetFolder -Leaf) -eq $ctx.VMName -and (Test-Path -LiteralPath $targetFolder)) {
+                                    for ($retry = 0; $retry -lt 5; $retry++) {
+                                        try { Remove-Item -LiteralPath $targetFolder -Recurse -Force -ErrorAction Stop; break }
+                                        catch { Start-Sleep -Seconds 1 }
+                                    }
+                                } else {
+                                    for ($retry = 0; $retry -lt 5; $retry++) {
+                                        try { Remove-Item -LiteralPath $osPath -Force -ErrorAction Stop; break }
+                                        catch { Start-Sleep -Seconds 1 }
+                                    }
+                                }
+                            }
+                            Write-Host "    [OK] Previous VM files wiped successfully." -ForegroundColor Green
+                        } else {
+                            throw "Start aborted because VM already exists."
+                        }
+                    }
+
+                    $helper = Join-Path $scriptsDir "New-MasterLikeVm.ps1"
+                        if (-not (Test-Path -LiteralPath $helper)) {
+                            Write-Host "Script missing: $helper" -ForegroundColor Red
+                        } else {
+                            try {
+                                $LASTEXITCODE = 0
+                                & $helper -VMProfile $activePk -ProvisioningTemplateKey $tplKey -NoConfigSave
+                                if ($LASTEXITCODE -ne 0) { throw "New-MasterLikeVm operation encountered a critical error sequence." }
+
+                                $osHdd = Get-VMHardDiskDrive -VMName $ctx.VMName | Where-Object Path -notmatch "Golden-Imaging" | Select-Object -First 1
+                                if ($osHdd) {
+                                    $osVhdPath = $osHdd.Path
+                                    Write-Host "`n[*] Pre-formatting OS Disk to embed Answer File..." -ForegroundColor DarkGray
+
+                                    Remove-VMHardDiskDrive -VMName $ctx.VMName -ControllerType $osHdd.ControllerType -ControllerNumber $osHdd.ControllerNumber -ControllerLocation $osHdd.ControllerLocation
+
+                                    Mount-VHD -Path $osVhdPath | Out-Null
+                                    $disk = Get-VHD -Path $osVhdPath
+                                    if ($disk -and $disk.DiskNumber) {
+                                        Initialize-Disk -Number $disk.DiskNumber -PartitionStyle MBR -PassThru | Out-Null
+                                        $part = New-Partition -DiskNumber $disk.DiskNumber -UseMaximumSize -AssignDriveLetter -IsActive
+                                        Format-Volume -DriveLetter $part.DriveLetter -FileSystem NTFS -NewFileSystemLabel "OS" -Confirm:$false -Force | Out-Null
+
+                                        $xmlSource = Join-Path $LocalProjectRoot "_offline\_config\autounattend.xml"
+                                        if (Test-Path $xmlSource) {
+                                            Copy-Item -Path $xmlSource -Destination "$($part.DriveLetter):\autounattend.xml" -Force
+                                            Write-Host "    -> Answer file embedded successfully." -ForegroundColor Green
+                                        } else {
+                                            Write-Host "    -> [WARNING] Answer file not found!" -ForegroundColor Yellow
+                                        }
+                                    }
+                                    Dismount-VHD -Path $osVhdPath | Out-Null
+
+                                    Add-VMHardDiskDrive -VMName $ctx.VMName -Path $osVhdPath -ControllerType $osHdd.ControllerType -ControllerNumber $osHdd.ControllerNumber -ControllerLocation $osHdd.ControllerLocation
+                                }
+
+                                Write-Host "`n[*] Auto-Starting VM and bypassing DVD prompt..." -ForegroundColor Cyan
+                                Start-VM -Name $ctx.VMName -ErrorAction Stop
+
+                                Write-Host "    Sending keystrokes to bypass 'Press any key'..." -ForegroundColor DarkGray
+                                try {
+                                    $vmId = (Get-VM -Name $ctx.VMName).Id.ToString()
+                                    $keyboard = Get-CimInstance -Namespace "root\virtualization\v2" -ClassName "Msvm_Keyboard" -Filter "SystemName='$vmId'" -ErrorAction Stop
+                                    if ($keyboard) {
+                                        for ($k = 0; $k -lt 6; $k++) {
+                                            Start-Sleep -Milliseconds 1000
+                                            Invoke-CimMethod -InputObject $keyboard -MethodName "TypeKey" -Arguments @{ keyCode = [uint32]32 } -ErrorAction SilentlyContinue | Out-Null
+                                        }
+                                        Write-Host "    [OK] Keystrokes sent." -ForegroundColor Green
+                                    } else {
+                                        Write-Host "    [WARNING] Could not get VM keyboard object." -ForegroundColor Yellow
+                                    }
+                                } catch {
+                                    Write-Host "    [WARNING] Failed to send keystrokes: $($_.Exception.Message)" -ForegroundColor Yellow
+                                }
+
+                                Write-Host "[OK] VM is booting and auto-installing zero-touch!" -ForegroundColor Green
+                            } catch {
+                                Write-Host "[ERROR] New VM creation or copy failed: $($_.Exception.Message)" -ForegroundColor Red
+                            }
+                        }
+                } catch {
+                    Write-Host "[ERROR] $_" -ForegroundColor Red
+                }
+                Wait-AutoContinue
+            }
             "pv" {
                 try {
                     $m = Read-JsonCFile -Path $MasterConfigPath
@@ -519,7 +722,7 @@ while ($true) {
                             Write-Host "Script missing: $helper" -ForegroundColor Red
                         } else {
                             try {
-                                & $helper -VMProfile $activePk -ProvisioningTemplateKey $tplKey
+                                & $helper -VMProfile $activePk -ProvisioningTemplateKey $tplKey -NoConfigSave
                             } catch {
                                 Write-Host "[ERROR] New-MasterLikeVm failed: $($_.Exception.Message)" -ForegroundColor Red
                             }
