@@ -346,6 +346,15 @@
             <Setter Property="Foreground" Value="{DynamicResource CardTitleColor}"/>
         </Style>
 
+        <!-- Category sub-header text style -->
+        <Style x:Key="CategorySubHeaderTextBlock" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource CardTitleFontFamily}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Foreground" Value="{DynamicResource CardTitleColor}"/>
+        </Style>
+
         <!-- Category header icon style -->
         <Style x:Key="CategoryHeaderIcon" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}"/>
@@ -887,187 +896,151 @@
 
                 <!-- Home Tab -->
                 <TabItem Header="Home" x:Name="HomeTab">
-                    <Grid Margin="20,0">
+                    <Grid Margin="20,10,20,20">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        
-                        <!-- Title at top -->
-                        <TextBlock Grid.Row="0" Text="Golden Imager" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" FontFamily="{DynamicResource PageTitleFontFamily}" Foreground="{DynamicResource PageTitleColor}" HorizontalAlignment="Center" Margin="0,24,0,20"/>
-                        
-                        <!-- Three equal columns: Col1 Load Profiles+Connection, Col2 Stages Audit, Col3 Stage Install -->
-                        <Grid Grid.Row="1" Margin="0,0,0,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="1*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <!-- Column 1: Load Profiles (first), Connection Settings (second) -->
-                            <StackPanel Grid.Column="0" VerticalAlignment="Top">
-                                <Border Style="{StaticResource CategoryCardBorderStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="Load Profiles" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                        <StackPanel>
-                                            <Grid Margin="0,0,0,8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBox x:Name="HomeImportJsonPath" Grid.Column="0" Style="{StaticResource UserTextBoxStyle}" IsReadOnly="True" Text="(No file selected)" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                <Button x:Name="HomeImportJsonBrowseBtn" Grid.Column="1" Content="Browse..." Style="{DynamicResource SecondaryButtonStyle}" Height="32" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="Browse for JSON"/>
-                                                <Button x:Name="HomeImportJsonLoadBtn" Grid.Column="2" Content="Load" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Padding="10,0" AutomationProperties.Name="Load JSON"/>
-                                            </Grid>
-                                            <Grid Margin="0,0,0,8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <ComboBox x:Name="HomeAppsProfileCombo" Grid.Column="0" MinWidth="140" Height="32" Margin="0,0,8,0" AutomationProperties.Name="Apps profile"/>
-                                                <Button x:Name="HomeAppsProfileLoadBtn" Grid.Column="1" Content="Load" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Padding="10,0" AutomationProperties.Name="Load apps profile"/>
-                                            </Grid>
-                                            <Grid Margin="0,0,0,0">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <ComboBox x:Name="HomeTweaksProfileCombo" Grid.Column="0" MinWidth="140" Height="32" Margin="0,0,8,0" AutomationProperties.Name="Tweaks profile"/>
-                                                <Button x:Name="HomeTweaksProfileLoadBtn" Grid.Column="1" Content="Load" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Padding="10,0" AutomationProperties.Name="Load tweaks profile"/>
-                                            </Grid>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource CategoryCardBorderStyle}">
-                                    <Grid MinHeight="120">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                        </Grid.RowDefinitions>
-                                        <TextBlock Text="Connection Settings" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                        <Control x:Name="HomeConnSpinner" Style="{StaticResource OldWinBars1Style}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="48" Height="48" Visibility="Visible" Panel.ZIndex="10"/>
-                                        <StackPanel x:Name="HomeConnContent" Grid.Row="1" Visibility="Collapsed">
-                                            <Grid Margin="0,0,0,0">
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="28"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <CheckBox x:Name="HomeConnLimitBlank" Grid.Row="0" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" AutomationProperties.Name="LimitBlankPasswordUse"/>
-                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="LimitBlankPasswordUse = 0" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
-                                                <CheckBox x:Name="HomeConnWinRM" Grid.Row="1" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" AutomationProperties.Name="WinRM Service"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="WinRM Service (Running, Automatic)" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
-                                                <CheckBox x:Name="HomeConnKeyIso" Grid.Row="2" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" AutomationProperties.Name="KeyIso"/>
-                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="KeyIso (Running, Automatic)" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
-                                                <CheckBox x:Name="HomeConnAdmin" Grid.Row="3" Grid.Column="0" Style="{StaticResource StagesCheckboxStyle}" AutomationProperties.Name="Built-in Admin"/>
-                                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Built-in Admin Account enabled" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}" Foreground="{DynamicResource LabelColor}" Margin="8,0,0,6" VerticalAlignment="Center"/>
-                                            </Grid>
-                                            <Button x:Name="HomeConnUpdateBtn" Content="Update Connections" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Margin="0,8,0,0" HorizontalAlignment="Stretch" ToolTip="Enable Admin, LimitBlankPasswordUse=0, KeyIso, WinRM" AutomationProperties.Name="Update Connections"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                                <!-- Audit Debug Card -->
-                                <Border x:Name="HomeAuditDebugCard" Style="{StaticResource CategoryCardBorderStyle}" Visibility="Collapsed">
-                                    <StackPanel>
-                                        <TextBlock Text="Audit Debug" Style="{StaticResource CategoryHeaderTextBlock}" Margin="0,0,0,8"/>
-                                        <Grid Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Spinner:" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}"/>
-                                            <ComboBox x:Name="HomeSpinnerSelector" Grid.Column="1" Height="32" Margin="0" SelectedIndex="1">
-                                                <ComboBoxItem Content="WinDots1"/>
-                                                <ComboBoxItem Content="OldWinBars1"/>
-                                            </ComboBox>
-                                        </Grid>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Delay (sec):" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelFontSize}"/>
-                                            <TextBox x:Name="HomeAuditDelayText" Grid.Column="1" Text="10" Style="{StaticResource UserTextBoxStyle}" IsReadOnly="True" HorizontalContentAlignment="Center"/>
-                                            <StackPanel Grid.Column="2" Margin="4,0,0,0">
-                                                <RepeatButton x:Name="HomeAuditDelayUp" Style="{StaticResource UpDownButtonStyle}" Content="&#xE70E;" FontFamily="Segoe Fluent Icons" FontSize="8"/>
-                                                <RepeatButton x:Name="HomeAuditDelayDown" Style="{StaticResource UpDownButtonStyle}" Content="&#xE70D;" FontFamily="Segoe Fluent Icons" FontSize="8" Margin="0,2,0,0"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
+                        <!-- Row 0, Column 0: Load Profiles -->
+                        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CategoryCardBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Load Profiles" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="65"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="ActiveProfileText" Text="(No file selected)" Style="{DynamicResource CardSubtitleStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <Button x:Name="HomeBrowseBtn" Content="Browse..." Style="{DynamicResource SecondaryButtonStyle}" Grid.Column="1" Height="30" Margin="4,0" AutomationProperties.Name="Browse profile"/>
+                                    <Button x:Name="HomeLoadBtn" Content="Load" Style="{DynamicResource PrimaryButtonStyle}" Grid.Column="2" Height="30" AutomationProperties.Name="Load profile"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="65"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="RecentProfilesCombo" Height="32" Margin="0" AutomationProperties.Name="Recent Profiles"/>
+                                    <Button x:Name="HomeRecentLoadBtn" Content="Load" Style="{DynamicResource PrimaryButtonStyle}" Grid.Column="1" Height="32" Margin="4,0,0,0" AutomationProperties.Name="Load recent profile"/>
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="65"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="DefaultProfilesCombo" Height="32" Margin="0" AutomationProperties.Name="Default Profiles"/>
+                                    <Button x:Name="HomeDefaultLoadBtn" Content="Load" Style="{DynamicResource PrimaryButtonStyle}" Grid.Column="1" Height="32" Margin="4,0,0,0" AutomationProperties.Name="Load default profile"/>
+                                </Grid>
                             </StackPanel>
-                            
-                            <!-- Column 2: Stages Audit -->
-                            <StackPanel Grid.Column="2" VerticalAlignment="Top">
-                                <Border Style="{StaticResource CategoryCardBorderStyle}" Padding="16,12,16,8">
-                                    <Grid MinHeight="120">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                        </Grid.RowDefinitions>
-                                        <TextBlock Text="Stages Audit" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                        <Control x:Name="HomeStagesAuditSpinner" Style="{StaticResource OldWinBars1Style}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="48" Height="48" Visibility="Visible" Panel.ZIndex="10"/>
-                                        <StackPanel x:Name="HomeStagesAuditContent" Grid.Row="1" Visibility="Collapsed">
-                                            <Grid Margin="0,8,0,6">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="18"/>
-                                                    <ColumnDefinition Width="18"/>
-                                                    <ColumnDefinition Width="18"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="R" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Registry"/>
-                                                <TextBlock Grid.Column="1" Text="P" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Path"/>
-                                                <TextBlock Grid.Column="2" Text="L" FontFamily="{DynamicResource LabelFontFamily}" FontSize="{DynamicResource LabelSmallFontSize}" FontWeight="{DynamicResource LabelSmallFontWeight}" Foreground="{DynamicResource LabelColor}" Margin="0,0,0,6" HorizontalAlignment="Center" ToolTip="Shortcut"/>
-                                            </Grid>
-                                            <ScrollViewer VerticalScrollBarVisibility="Disabled">
-                                                <StackPanel x:Name="HomeStagesAuditPanel"/>
-                                            </ScrollViewer>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </StackPanel>
-                            
-                            <!-- Column 3: System Modifications & Stage Install -->
-                            <StackPanel Grid.Column="4" VerticalAlignment="Top">
-                                <Border Style="{StaticResource CategoryCardBorderStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="System Modifications" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                        
-                                        <TextBlock Text="Features" Style="{StaticResource LabelTextBlockStyle}" Margin="0,0,0,4" FontWeight="SemiBold"/>
-                                        <CheckBox x:Name="HomeModUltimatePerf" Style="{StaticResource FeatureCheckboxStyle}" Content="Ultimate Performance plan" AutomationProperties.Name="Ultimate Performance plan"/>
-                                        <CheckBox x:Name="HomeModHyperVNFS" Style="{StaticResource FeatureCheckboxStyle}" Content="Hyper-V &amp; NFS Features" AutomationProperties.Name="Hyper-V and NFS"/>
-                                        
-                                        <TextBlock Text="Fixes" Style="{StaticResource LabelTextBlockStyle}" Margin="0,8,0,4" FontWeight="SemiBold"/>
-                                        <CheckBox x:Name="HomeModClearTemp" Style="{StaticResource FeatureCheckboxStyle}" Content="Clear Temporary Files" AutomationProperties.Name="Clear Temp"/>
-                                        <CheckBox x:Name="HomeModResetUpdates" Style="{StaticResource FeatureCheckboxStyle}" Content="Reset Windows Updates" AutomationProperties.Name="Reset Updates"/>
-                                        <CheckBox x:Name="HomeModCorruptionScan" Style="{StaticResource FeatureCheckboxStyle}" Content="System Corruption Scan" AutomationProperties.Name="Corruption Scan"/>
-                                    </StackPanel>
-                                </Border>
+                        </Border>
 
-                                <Border Style="{StaticResource CategoryCardBorderStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="Stage Install" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                        <CheckBox x:Name="HomeExec1" Style="{StaticResource FeatureCheckboxStyle}" Content="1. Scoop (inc. Basic Tools &amp; Search)" AutomationProperties.Name="Scoop"/>
-                                        <CheckBox x:Name="HomeExec2" Style="{StaticResource FeatureCheckboxStyle}" Content="2. MSVC Build Tools" AutomationProperties.Name="MSVC"/>
-                                        <CheckBox x:Name="HomeExec3" Style="{StaticResource FeatureCheckboxStyle}" Content="3. ALL System Apps" AutomationProperties.Name="ALL System Apps"/>
-                                        <CheckBox x:Name="HomeExec4" Style="{StaticResource FeatureCheckboxStyle}" Content="4. Rust Finish &amp; Tooling" AutomationProperties.Name="Rust Finish"/>
-                                        <CheckBox x:Name="HomeExec5" Style="{StaticResource FeatureCheckboxStyle}" Content="5. Finalize &amp; Cleanup" AutomationProperties.Name="Finalize"/>
-                                        <Button x:Name="HomeExecRunBtn" Content="Execute" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Margin="0,16,0,0" HorizontalAlignment="Stretch" AutomationProperties.Name="Execute selected"/>
+                        <!-- Row 0, Column 2: System Modifications -->
+                        <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource CategoryCardBorderStyle}">
+                            <Grid MinHeight="120">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="System Modifications" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                <Control x:Name="HomeModSpinner" Style="{StaticResource OldWinBars1Style}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="48" Height="48" Visibility="Visible" Panel.ZIndex="10"/>
+                                <StackPanel x:Name="HomeModContent" Grid.Row="1" Visibility="Collapsed" Margin="0,8,0,0">
+                                    <TextBlock Text="Features" Style="{StaticResource CategorySubHeaderTextBlock}"/>
+                                    <CheckBox x:Name="HomeModUltimatePerf" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Ultimate Performance Plan" IsThreeState="True" AutomationProperties.Name="UltimatePerf"/>
+                                    <CheckBox x:Name="HomeModHyperVNFS" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Install Hyper-V &amp; NFS Features" IsThreeState="True" AutomationProperties.Name="HyperVNFS"/>
+                                    <Button x:Name="HomeApplyFeaturesBtn" Content="Apply Changes" Style="{DynamicResource PrimaryButtonStyle}" Height="28" Margin="0,8,0,0" HorizontalAlignment="Stretch" Padding="12,0,12,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Row 0, Column 4: Stages Audit -->
+                        <Border Grid.Row="0" Grid.Column="4" Style="{StaticResource CategoryCardBorderStyle}">
+                            <Grid MinHeight="120">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Stages Audit" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                <TextBlock Text="R  P  L" FontSize="9" Grid.Row="0" HorizontalAlignment="Left" Margin="4,25,0,0" Foreground="{DynamicResource LabelColor}" FontFamily="Consolas"/>
+                                <Control x:Name="HomeStagesAuditSpinner" Style="{StaticResource OldWinBars1Style}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="48" Height="48" Visibility="Visible" Panel.ZIndex="10"/>
+                                <ScrollViewer x:Name="HomeStagesAuditContent" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Margin="0,8,0,0">
+                                    <StackPanel x:Name="HomeStagesAuditPanel"/>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- Row 1, Column 0: Quick Fixes -->
+                        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CategoryCardBorderStyle}">
+                            <Grid MinHeight="80">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Quick Fixes" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                <UniformGrid Grid.Row="1" Columns="1" Margin="0,8,0,0">
+                                    <Button x:Name="HomeFixClearTempBtn" Content="Clear Temporary Files" Style="{DynamicResource SecondaryButtonStyle}" Height="28" Margin="0,0,0,4" HorizontalAlignment="Stretch"/>
+                                    <Button x:Name="HomeFixResetUpdatesBtn" Content="Reset Windows Update" Style="{DynamicResource SecondaryButtonStyle}" Height="28" Margin="0,0,0,4" HorizontalAlignment="Stretch"/>
+                                    <Button x:Name="HomeFixCorruptionScanBtn" Content="System Corruption Scan" Style="{DynamicResource SecondaryButtonStyle}" Height="28" Margin="0,0,0,0" HorizontalAlignment="Stretch"/>
+                                </UniformGrid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Row 1, Column 2: Connection Settings -->
+                        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource CategoryCardBorderStyle}">
+                            <Grid MinHeight="120">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Connection Settings" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                <Control x:Name="HomeConnSpinner" Style="{StaticResource OldWinBars1Style}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="48" Height="48" Visibility="Visible" Panel.ZIndex="10"/>
+                                <StackPanel x:Name="HomeConnContent" Grid.Row="1" Visibility="Collapsed" Margin="0,8,0,0">
+                                    <CheckBox x:Name="HomeConnLimitBlank" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Limit Blank Password Use" IsThreeState="True" AutomationProperties.Name="LimitBlank"/>
+                                    <CheckBox x:Name="HomeConnWinRM" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Enable Remote Management (WinRM)" IsThreeState="True" AutomationProperties.Name="WinRM"/>
+                                    <CheckBox x:Name="HomeConnKeyIso" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Enable CNG Key Isolation (KeyIso)" IsThreeState="True" AutomationProperties.Name="KeyIso"/>
+                                    <CheckBox x:Name="HomeConnAdmin" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Enable Built-in Administrator" IsThreeState="True" AutomationProperties.Name="AdminAccount"/>
+                                    <Button x:Name="HomeApplyConnBtn" Content="Apply Settings" Style="{DynamicResource PrimaryButtonStyle}" Height="28" Margin="0,8,0,0" HorizontalAlignment="Stretch" Padding="12,0,12,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Row 1, Column 4: Stage Install -->
+                        <Border Grid.Row="1" Grid.Column="4" Style="{StaticResource CategoryCardBorderStyle}">
+                            <Grid MinHeight="120">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Stage Install" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                <Control x:Name="HomeExecSpinner" Style="{StaticResource OldWinBars1Style}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="48" Height="48" Visibility="Visible" Panel.ZIndex="10"/>
+                                <StackPanel x:Name="HomeExecContent" Grid.Row="1" Visibility="Collapsed" Margin="0,8,0,0">
+                                    <CheckBox x:Name="HomeExec1" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Scoop (inc. Basic Tools &amp; Search)" AutomationProperties.Name="Stage1"/>
+                                    <CheckBox x:Name="HomeExec2" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="MSVC Build Tools" AutomationProperties.Name="Stage2"/>
+                                    
+                                    <CheckBox x:Name="HomeExec3" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="System Apps" AutomationProperties.Name="Stage3"/>
+                                    <StackPanel Margin="16,0,0,0">
+                                        <CheckBox x:Name="HomeExec3_Chrome" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Chrome" AutomationProperties.Name="AppChrome"/>
+                                        <CheckBox x:Name="HomeExec3_VSCode" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="VS Code" AutomationProperties.Name="AppVSCode"/>
+                                        <CheckBox x:Name="HomeExec3_Git" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Git" AutomationProperties.Name="AppGit"/>
+                                        <CheckBox x:Name="HomeExec3_Go" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Go" AutomationProperties.Name="AppGo"/>
+                                        <CheckBox x:Name="HomeExec3_GitHubCLI" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="GitHub CLI" AutomationProperties.Name="AppGitHubCLI"/>
+                                        <CheckBox x:Name="HomeExec3_UniGetUI" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="UniGetUI" AutomationProperties.Name="AppUniGetUI"/>
                                     </StackPanel>
-                                </Border>
-                            </StackPanel>
+
+                                    <CheckBox x:Name="HomeExec4" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Rust Finish &amp; Tooling" AutomationProperties.Name="Stage4"/>
+                                    <CheckBox x:Name="HomeExec5" Style="{StaticResource FeatureCheckboxSystemAppliedStyle}" Content="Finalize &amp; Cleanup" AutomationProperties.Name="Stage5"/>
+                                    <Button x:Name="HomeExecRunBtn" Content="Execute" Style="{DynamicResource PrimaryButtonStyle}" Height="32" Margin="0,12,0,0" HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
                         </Grid>
-                    </Grid>
                 </TabItem>
 
                 <!-- App Removal Tab -->
@@ -1266,12 +1239,6 @@
                                     </Button>
                                     <TextBlock Grid.Column="2" x:Name="AppSelectionStatus" Text="0 apps selected" FontSize="{DynamicResource BodyFontSize}" Foreground="{DynamicResource BodyColor}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,30,0"/>
                                 </Grid>
-                                <Button x:Name="AppRemovalApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="350" Height="44" HorizontalAlignment="Center" AutomationProperties.Name="Apply Changes">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource IconFontFamily}" FontSize="20" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="{DynamicResource ButtonPrimaryFontSize}" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" Margin="8,0,0,4"/>
-                                    </StackPanel>
-                                </Button>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -1411,12 +1378,6 @@
                                     </Button>
                                     <TextBlock Grid.Column="2" x:Name="TweakSelectionStatus" Text="0 selected | 0 enabled | 0 to revert" FontSize="{DynamicResource BodyFontSize}" Foreground="{DynamicResource BodyColor}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,30,0"/>
                                 </Grid>
-                                <Button x:Name="TweaksApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="350" Height="44" HorizontalAlignment="Center" AutomationProperties.Name="Apply Changes">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource IconFontFamily}" FontSize="20" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="{DynamicResource ButtonPrimaryFontSize}" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" Margin="8,0,0,4"/>
-                                    </StackPanel>
-                                </Button>
                             </StackPanel>
                         </Border>
                     </Grid>

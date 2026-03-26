@@ -8,6 +8,9 @@ function Initialize-TitleBarAndMenu {
     $scriptScope.menuLogs.Add_Click({ $logsFolder = Join-Path $PSScriptRoot "../../Logs"; if (Test-Path $logsFolder) { Start-Process "explorer.exe" -ArgumentList $logsFolder } else { Show-MessageBox -Message "No logs folder found at: $logsFolder" -Title "Logs" -Button 'OK' -Icon 'Information' } })
     $scriptScope.menuAbout.Add_Click({ Show-AboutDialog -Owner $window })
     $scriptScope.menuOptions.Add_Click({ Show-OptionsDialog -Owner $window -usesDarkMode $usesDarkMode })
+    
+    # Close Button
+    $scriptScope.CloseBtn.Add_Click({ $window.Close() })
 
     $scriptScope.menuExportSettings.Add_Click({
         $settingsJson = Get-CurrentTweakSettingsFromUi

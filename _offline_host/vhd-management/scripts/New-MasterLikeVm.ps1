@@ -151,6 +151,15 @@ try {
         }
     }
 
+    $unattendIsoPath = $null
+    if (-not $SkipDvd -and $ctx.UnattendIsoPath) {
+        $unattendIsoPath = ($ctx.UnattendIsoPath.ToString() -replace '/', '\')
+        if (-not (Test-Path -LiteralPath $unattendIsoPath)) {
+            Write-Warning "Unattend ISO not found: $unattendIsoPath — continuing without second DVD."
+            $unattendIsoPath = $null
+        }
+    }
+
     $gen = [int]$prov.Generation
 
     if ($gen -ge 2) {
@@ -234,7 +243,7 @@ try {
     Write-Host "  Profile:      $pk" -ForegroundColor Gray
     Write-Host "  VM name:      $newName" -ForegroundColor Gray
     Write-Host "  OS VHD:       ${sizeGb} GB (new dynamic)" -ForegroundColor Gray
-    Write-Host "  ISO:          $(if ($isoPath) { $isoPath } else { '(none)' })" -ForegroundColor DarkGray
+    Write-Host "  ISO(s):       $(if ($isoPath) { $isoPath } else { '(none)' }) $(if ($unattendIsoPath) { '; ' + $unattendIsoPath })" -ForegroundColor DarkGray
     Write-Host "  Provisioning: gen=$gen vCPU=$procCount RAMStartup=$memStartup Switch=$switchName" -ForegroundColor DarkGray
     Write-Host "  Path:         $vmMachinePath" -ForegroundColor DarkGray
     Write-Host ""
@@ -365,13 +374,21 @@ try {
         }
     }
 
-    if ($isoPath) {
-        Add-VMDvdDrive -VMName $newName -Path $isoPath
+    if ($isoPath -or $unattendIsoPath) {
+        if ($isoPath) {
+            $bootDvd = Add-VMDvdDrive -VMName $newName -Path $isoPath -PassThru
+            Write-Host "[*] OS ISO attached: $isoPath" -ForegroundColor DarkGray
+        }
+
+        if ($unattendIsoPath) {
+            Add-VMDvdDrive -VMName $newName -Path $unattendIsoPath
+            Write-Host "[*] Unattend ISO attached: $unattendIsoPath" -ForegroundColor DarkGray
+        }
+
         try {
-            $dvd = Get-VMDvdDrive -VMName $newName | Select-Object -First 1
-            if ($dvd) {
+            if ($bootDvd) {
                 if ($gen -ge 2) {
-                    Set-VMFirmware -VMName $newName -FirstBootDevice $dvd
+                    Set-VMFirmware -VMName $newName -FirstBootDevice $bootDvd
                 } else {
                     Set-VMBios -VMName $newName -StartupOrder @("CD", "IDE", "LegacyNetworkAdapter", "Floppy")
                 }

@@ -44,7 +44,8 @@
             "HardwareTemplate": "OfflineSysprep",
             "VMDetails": {
                 "VMName": "Golden Auto",
-                "OSImagePath": "N:/Win11_25H2_English_x64.iso",
+                "OSImagePath": "N:/Win11_Vanilla_ZeroTouch.iso",
+                "UnattendIsoPath": "N:/unattend.iso",
                 "OsVhdPath": "N:/VM/Golden Auto/Virtual Hard Disks/Golden_Auto_OS.vhdx",
                 "VMHostname": "DESKTOP-GoldenAuto",
                 "WimDestination": "N:/Win_11_GoldenAuto.wim",

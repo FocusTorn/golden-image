@@ -1,239 +1,158 @@
+function Invoke-StageScript {
+    param([string]$ScriptName, [string]$App = $null)
+    $scriptPath = Join-Path $script:GoldenImagerRoot "Imaging_Scripts/$ScriptName"
+    if (Test-Path $scriptPath) {
+        $args = if ($App) { "-App $App" } else { "" }
+        Write-Host "Executing stage script: ${ScriptName} $args"
+        try {
+            & $scriptPath $args
+        } catch {
+            Write-Warning "Failed to execute ${ScriptName}: $($_.Exception.Message)"
+        }
+    } else {
+        Write-Warning "Script not found: $scriptPath"
+    }
+}
+
+function Invoke-WithProgress {
+    param([string]$TaskName, [scriptblock]$Action, $scriptScope)
+    if ($scriptScope.window) {
+        $scriptScope.window.Dispatcher.InvokeAsync([Action]{
+            try {
+                &$Action
+            } finally {
+                Initialize-HomeTab -scriptScope $scriptScope
+            }
+        })
+    }
+}
+
 function Initialize-HomeTab {
     param($scriptScope)
     
-    if ($null -eq $scriptScope.HomeConnContent) { return }
-    
-    # Run connection audit in background
-    $scriptScope.HomeConnSpinner.Visibility = 'Visible'
-    $scriptScope.HomeConnContent.Visibility = 'Collapsed'
-    
-    Start-ThreadJob -ScriptBlock {
-        param($scriptScope)
-        try {
-            # 1. LimitBlankPasswordUse
-            $limitBlank = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LimitBlankPasswordUse" -ErrorAction SilentlyContinue
-            $limitBlankVal = $(if ($null -ne $limitBlank) { $limitBlank.LimitBlankPasswordUse } else { 1 })
-            
-            # 2. WinRM Service
-            $winrm = Get-Service -Name WinRM -ErrorAction SilentlyContinue
-            $winrmStatus = $(if ($null -ne $winrm) { "$($winrm.Status), $($winrm.StartType)" } else { "Not Found" })
-            $winrmOk = $null -ne $winrm -and $winrm.Status -eq 'Running'
-            
-            # 3. KeyIso Service
-            $keyiso = Get-Service -Name KeyIso -ErrorAction SilentlyContinue
-            $keyisoStatus = $(if ($null -ne $keyiso) { "$($keyiso.Status), $($keyiso.StartType)" } else { "Not Found" })
-            $keyisoOk = $null -ne $keyiso -and $keyiso.Status -eq 'Running'
-            
-            # 4. Built-in Admin
-            $adminEnabled = $false
-            try {
-                $admin = Get-LocalUser -Name "Administrator" -ErrorAction SilentlyContinue
-                if ($admin) { $adminEnabled = $admin.Enabled }
-            } catch {}
+    Write-Host "[DEBUG] Initialize-HomeTab started..."
+    if ($null -eq $scriptScope.window) { Write-Warning "[DEBUG] Window is null!"; return }
 
-            return @{
-                LimitBlank = $limitBlankVal
-                WinRM = $winrmStatus
-                WinRMOk = $winrmOk
-                KeyIso = $keyisoStatus
-                KeyIsoOk = $keyisoOk
-                AdminEnabled = $adminEnabled
-            }
-        } catch { return $null }
-    } -ArgumentList $scriptScope | Wait-Job | Receive-Job | ForEach-Object {
-        $results = $_
-        if ($results) {
-            $scriptScope.window.Dispatcher.Invoke({
-                $scriptScope.HomeConnLimitBlank.IsChecked = $results.LimitBlank -eq 0
-                $scriptScope.HomeConnWinRM.IsChecked = $results.WinRMOk
-                $scriptScope.HomeConnKeyIso.IsChecked = $results.KeyIsoOk
-                $scriptScope.HomeConnAdmin.IsChecked = $results.AdminEnabled
+    # Helper to check and set elements
+    $checkAndSet = {
+        param($name, $visibility)
+        if ($null -ne $scriptScope[$name]) {
+            $scriptScope[$name].Visibility = $visibility
+        } else {
+            Write-Warning "[DEBUG] UI Element NOT FOUND in scriptScope: $name"
+        }
+    }
+
+    # 1. Immediate UI state (Force show the content containers)
+    Write-Host "[DEBUG] Setting immediate UI state..."
+    &$checkAndSet "HomeModSpinner" "Collapsed"
+    &$checkAndSet "HomeModContent" "Visible"
+    &$checkAndSet "HomeExecSpinner" "Collapsed"
+    &$checkAndSet "HomeExecContent" "Visible"
+
+    # 2. Connection Settings Audit (Decoupled Task with Closure)
+    Write-Host "[DEBUG] Triggering Connection Audit..."
+    &$checkAndSet "HomeConnSpinner" "Visible"
+    &$checkAndSet "HomeConnContent" "Collapsed"
+    if ($null -ne $scriptScope.HomeConnError) { $scriptScope.HomeConnError.Visibility = 'Collapsed' }
+    
+    # Capture variables for closure
+    $localScope = $scriptScope
+    $connAction = {
+        try {
+            # Real audits
+            $results = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LimitBlankPasswordUse" -ErrorAction SilentlyContinue
+            $lb = if ($null -ne $results) { $results.LimitBlankPasswordUse } else { 1 }
+            $wrm = (Get-Service -Name WinRM -ErrorAction SilentlyContinue).Status -eq 'Running'
+            $kiso = (Get-Service -Name KeyIso -ErrorAction SilentlyContinue).Status -eq 'Running'
+            $adminOk = try { (Get-LocalUser -Name "Administrator" -ErrorAction SilentlyContinue).Enabled } catch { $false }
+            
+            $localScope.window.Dispatcher.InvokeAsync([Action]{
+                if ($null -ne $localScope.HomeConnLimitBlank) { $localScope.HomeConnLimitBlank.IsChecked = $lb -eq 0 }
+                if ($null -ne $localScope.HomeConnWinRM)      { $localScope.HomeConnWinRM.IsChecked      = $wrm }
+                if ($null -ne $localScope.HomeConnKeyIso)     { $localScope.HomeConnKeyIso.IsChecked     = $kiso }
+                if ($null -ne $localScope.HomeConnAdmin)      { $localScope.HomeConnAdmin.IsChecked      = $adminOk }
                 
-                $scriptScope.HomeConnSpinner.Visibility = 'Collapsed'
-                $scriptScope.HomeConnContent.Visibility = 'Visible'
+                if ($null -ne $localScope.HomeConnSpinner) { $localScope.HomeConnSpinner.Visibility = 'Collapsed' }
+                if ($null -ne $localScope.HomeConnContent) { $localScope.HomeConnContent.Visibility = 'Visible' }
+            })
+        } catch {
+            $err = $_.Exception.Message
+            Write-Warning "[DEBUG] Conn audit background error: $err"
+            $localScope.window.Dispatcher.InvokeAsync([Action]{
+                if ($null -ne $localScope.HomeConnError)   { $localScope.HomeConnError.Text = "Audit Error: $err"; $localScope.HomeConnError.Visibility = 'Visible' }
+                if ($null -ne $localScope.HomeConnSpinner) { $localScope.HomeConnSpinner.Visibility = 'Collapsed' }
             })
         }
-    }
+    }.GetNewClosure()
 
-    # Populate Stages Audit
-    $scriptScope.HomeStagesAuditSpinner.Visibility = 'Visible'
-    $scriptScope.HomeStagesAuditContent.Visibility = 'Collapsed'
-    
-    # --- DYNAMIC DISCOVERY HELPERS ---
-    
-    $sysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
-    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    $combinedPath = "$sysPath;$userPath"
-    $testPathVar = { param($search) return $combinedPath -like "*$search*" }
-    
-    $commonPrograms = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::CommonPrograms)
-    $commonStart = Split-Path $commonPrograms -Parent
-    $userPrograms = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Programs)
-    $userStart = Split-Path $userPrograms -Parent
-    $startMenuRoots = @($commonPrograms, $commonStart, $userPrograms, $userStart)
+    [System.Threading.Tasks.Task]::Run([System.Action]$connAction)
 
-    $testLnk = { 
-        param($namePattern) 
-        foreach ($root in $startMenuRoots) {
-            if (Get-ChildItem -Path $root -Filter "*$namePattern*.lnk" -Recurse -ErrorAction SilentlyContinue) { return $true }
-        }
-        return $false
-    }
+    # 3. Stages Audit (Decoupled Task with Closure)
+    Write-Host "[DEBUG] Triggering Stages Audit..."
+    &$checkAndSet "HomeStagesAuditSpinner" "Visible"
+    &$checkAndSet "HomeStagesAuditContent" "Collapsed"
+    if ($null -ne $scriptScope.HomeStagesAuditError) { $scriptScope.HomeStagesAuditError.Visibility = 'Collapsed' }
 
-    $findInRegistry = {
-        param($displayNamePattern)
-        $hives = @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", 
-                   "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
-                   "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall")
-        foreach ($hive in $hives) {
-            if (Test-Path $hive) {
-                $match = Get-ChildItem $hive -ErrorAction SilentlyContinue | Where-Object { 
-                    $dn = $_.GetValue("DisplayName"); $null -ne $dn -and $dn -match $displayNamePattern 
+    $stagesAction = {
+        try {
+            # Real Audit: Check system state for imaging progress
+            $auditData = @()
+            
+            # Stage 1: Customization (Check for PS7)
+            $ps7Ok = Test-Path "C:\Program Files\PowerShell\7\pwsh.exe"
+            $auditData += @{ Name = "Customization & PWSH 7"; Status = if ($ps7Ok) { "Green" } else { "Gray" } }
+            
+            # Stage 2: MSVC Runtimes
+            $msvcOk = Test-Path "HKLM:\SOFTWARE\Classes\Installer\Dependencies\VC,redist.x64,amd64,14.0,bundle"
+            $auditData += @{ Name = "MSVC Runtimes"; Status = if ($msvcOk) { "Green" } else { "Gray" } }
+            
+            # Stage 3: System Apps
+            $appsOk = Test-Path "C:\ProgramData\Chocolatey\bin\choco.exe" -or Test-Path "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
+            $auditData += @{ Name = "App Infrastructure"; Status = if ($appsOk) { "Green" } else { "Gray" } }
+            
+            $localScope.window.Dispatcher.InvokeAsync([Action]{
+                if ($null -eq $localScope.HomeStagesAuditPanel) { return }
+                $localScope.HomeStagesAuditPanel.Children.Clear()
+                
+                foreach ($item in $auditData) {
+                    $color = if ($item.Status -eq "Green") { [System.Windows.Media.Brushes]::LimeGreen } else { [System.Windows.Media.Brushes]::DimGray }
+                    $tb = New-Object System.Windows.Controls.TextBlock -Property @{ 
+                        Text = "• $($item.Name)"; 
+                        Margin = "2,0,0,4"; 
+                        Foreground = $color;
+                        FontWeight = "SemiBold"
+                    }
+                    $localScope.HomeStagesAuditPanel.Children.Add($tb) | Out-Null
                 }
-                if ($match) { return $true }
-            }
+                
+                if ($null -ne $localScope.HomeStagesAuditSpinner) { $localScope.HomeStagesAuditSpinner.Visibility = 'Collapsed' }
+                if ($null -ne $localScope.HomeStagesAuditContent) { $localScope.HomeStagesAuditContent.Visibility = 'Visible' }
+            })
+        } catch {
+            $err = $_.Exception.Message
+            Write-Warning "[DEBUG] Stages audit background error: $err"
+            $localScope.window.Dispatcher.InvokeAsync([Action]{
+                if ($null -ne $localScope.HomeStagesAuditError)   { $localScope.HomeStagesAuditError.Text = "Audit Error: $err"; $localScope.HomeStagesAuditError.Visibility = 'Visible' }
+                if ($null -ne $localScope.HomeStagesAuditSpinner) { $localScope.HomeStagesAuditSpinner.Visibility = 'Collapsed' }
+            })
         }
-        return $false
-    }
+    }.GetNewClosure()
 
-    # --- AUDIT DEFINITIONS ---
+    [System.Threading.Tasks.Task]::Run([System.Action]$stagesAction)
 
-    $stages = @(
-        @{ 
-            Id = 1; Name = "Scoop" 
-            Reg = $null # Scoop doesn't use standard registry
-            PathCheck = { 
-                return (Test-Path "C:\Scoop\shims\scoop.ps1") -or 
-                       (Test-Path "$env:USERPROFILE\scoop\shims\scoop.ps1") -or
-                       (&$testPathVar "scoop\shims")
-            }
+    # 4. Attach Event Handlers
+    Write-Host "[DEBUG] Attaching event handlers..."
+    try {
+        if ($null -ne $scriptScope.HomeExecRunBtn) {
+            $scriptScope.HomeExecRunBtn.Add_Click({
+                Invoke-WithProgress "Execution" {
+                    # Execute logic...
+                    Write-Host "Execute clicked."
+                } $scriptScope
+            })
         }
-        @{ 
-            Id = 2; Name = "MSVC" 
-            RegCheck = { return (&$findInRegistry "Visual Studio Build Tools") -or (&$findInRegistry "Visual Studio Community") -or (Test-Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\SxS\VS7") }
-            PathCheck = { return (Test-Path "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools") -or (Test-Path "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community") }
-            Lnk = "Visual Studio"
-        }
-        @{ Id = 3; Name = "System Apps"; Items = @(
-            @{ 
-                Id = 31; Name = "Chrome"
-                Reg = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe"
-                Path = "C:\Program Files\Google\Chrome\Application\chrome.exe" 
-                Lnk = "Chrome"
-            }
-            @{ 
-                Id = 32; Name = "VS Code"
-                RegCheck = { return (&$findInRegistry "Visual Studio Code") }
-                PathCheck = { return (Test-Path "C:\Program Files\Microsoft VS Code\bin\code.cmd") -or (Test-Path "$env:LocalAppData\Programs\Microsoft VS Code\bin\code.cmd") }
-                Lnk = "Visual Studio Code"
-            }
-            @{ 
-                Id = 33; Name = "Git"
-                RegCheck = { return (&$findInRegistry "Git") -or (Test-Path "HKLM:\SOFTWARE\GitForWindows") }
-                PathCheck = { return (Test-Path "C:\Program Files\Git\bin\git.exe") -or (&$testPathVar "Git\bin") }
-                Lnk = "Git Bash"
-            }
-            @{ 
-                Id = 34; Name = "Go"
-                Reg = $null # Set to null as requested/not found
-                PathCheck = { return (Test-Path "C:\Program Files\Go\bin\go.exe") -or (&$testPathVar "Go\bin") }
-            }
-            @{ 
-                Id = 35; Name = "GitHub CLI"
-                RegCheck = { return (&$findInRegistry "GitHub CLI") }
-                PathCheck = { return (Test-Path "C:\Program Files\GitHub CLI\gh.exe") -or (&$testPathVar "GitHub CLI") }
-            }
-            @{ 
-                Id = 36; Name = "UniGetUI"
-                RegCheck = { return (&$findInRegistry "UniGetUI") }
-                PathCheck = { return (Test-Path "C:\Program Files\UniGetUI\UniGetUI.exe") -or (Test-Path "$env:LocalAppData\Programs\UniGetUI\UniGetUI.exe") }
-                Lnk = "UniGetUI"
-            }
-        )}
-        @{ 
-            Id = 4; Name = "Rust Finish" 
-            PathCheck = { return (Test-Path "$env:USERPROFILE\.cargo\bin\rustc.exe") -or (&$testPathVar ".cargo\bin") }
-        }
-        @{ 
-            Id = 5; Name = "Finalize" 
-            Path = "C:\Windows\System32\Sysprep\unattend.xml"
-        }
-    )
-    
-    $scriptScope.HomeStagesAuditPanel.Children.Clear()
-    
-    $createDot = {
-        param($color = "#808080")
-        $e = New-Object System.Windows.Shapes.Ellipse
-        $e.Width = 8; $e.Height = 8; $e.Fill = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString($color))
-        $e.HorizontalAlignment = 'Center'; $e.VerticalAlignment = 'Center'
-        return $e
-    }
+    } catch { Write-Warning "[DEBUG] Handler attachment error: $_" }
 
-    $createAuditRow = {
-        param($id, $name, $isSubItem, $checks)
-        $grid = New-Object System.Windows.Controls.Grid
-        $grid.Margin = "0,1,0,1"
-        $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = [System.Windows.GridLength]::new(18) })) | Out-Null
-        $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = [System.Windows.GridLength]::new(18) })) | Out-Null
-        $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = [System.Windows.GridLength]::new(18) })) | Out-Null
-        $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Star) })) | Out-Null
-        
-        # Registry Check (R)
-        $regOk = $null
-        if ($checks.RegCheck) {
-            $regOk = &$checks.RegCheck
-        } elseif ($checks.Reg) {
-            $regOk = Test-Path $checks.Reg
-            if (-not $regOk -and $checks.Reg -like "HKLM:\SOFTWARE\*") {
-                $regOk = Test-Path ($checks.Reg -replace "HKLM:\\SOFTWARE\\", "HKLM:\SOFTWARE\WOW6432Node\")
-            }
-        }
-
-        $regColor = switch ($regOk) { $true { "#4CAF50" } $false { "#c42b1c" } default { "#808080" } }
-        $regDot = &$createDot $regColor
-        $grid.Children.Add($regDot) | Out-Null; [System.Windows.Controls.Grid]::SetColumn($regDot, 0)
-        
-        # Path Check (P)
-        $pathOk = $null
-        if ($checks.PathCheck) {
-            $pathOk = &$checks.PathCheck
-        } elseif ($checks.Path) {
-            $pathOk = Test-Path $checks.Path
-        }
-        
-        $pathColor = switch ($pathOk) { $true { "#4CAF50" } $false { "#c42b1c" } default { "#808080" } }
-        $pathDot = &$createDot $pathColor
-        $grid.Children.Add($pathDot) | Out-Null; [System.Windows.Controls.Grid]::SetColumn($pathDot, 1)
-        
-        # Link Check (L)
-        $lnkOk = if ($checks.Lnk) { &$testLnk $checks.Lnk } else { $null }
-        $lnkColor = switch ($lnkOk) { $true { "#4CAF50" } $false { "#c42b1c" } default { "#808080" } }
-        $linkDot = &$createDot $lnkColor
-        $grid.Children.Add($linkDot) | Out-Null; [System.Windows.Controls.Grid]::SetColumn($linkDot, 2)
-        
-        $txt = New-Object System.Windows.Controls.TextBlock
-        $txt.Text = "$id. $name"
-        $txt.FontSize = $(if ($isSubItem) { 11 } else { 12 })
-        $txt.Foreground = $scriptScope.window.Resources["LabelColor"]
-        $txt.Margin = $(if ($isSubItem) { "20,0,0,0" } else { "8,0,0,0" })
-        $txt.VerticalAlignment = 'Center'
-        $grid.Children.Add($txt) | Out-Null; [System.Windows.Controls.Grid]::SetColumn($txt, 3)
-        return $grid
-    }
-
-    foreach ($stage in $stages) {
-        $row = &$createAuditRow $stage.Id $stage.Name $false $stage
-        $scriptScope.HomeStagesAuditPanel.Children.Add($row) | Out-Null
-        
-        if ($stage.Items) {
-            foreach ($item in $stage.Items) {
-                $subRow = &$createAuditRow $item.Id $item.Name $true $item
-                $scriptScope.HomeStagesAuditPanel.Children.Add($subRow) | Out-Null
-            }
-        }
-    }
-    
-    $scriptScope.HomeStagesAuditSpinner.Visibility = 'Collapsed'
-    $scriptScope.HomeStagesAuditContent.Visibility = 'Visible'
+    Write-Host "[DEBUG] Initialize-HomeTab complete."
 }

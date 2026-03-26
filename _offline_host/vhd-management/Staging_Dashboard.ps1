@@ -1,8 +1,41 @@
-# Dashboard: ROG Strix VHD Infrastructure Manager
+﻿# Dashboard: ROG Strix VHD Infrastructure Manager
 # ---------------------------------------------------------------------------
 param([string]$Action)
 
 . (Join-Path $PSScriptRoot "scripts\VhdUtils.ps1")
+
+# --- ISO HELPER BRIDGE ---
+if (-not ([System.Management.Automation.PSTypeName]'Antigravity.Iso.StreamHandler').Type) {
+    $isoCode = @"
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+
+namespace Antigravity.Iso {
+    public class StreamHandler {
+        public static void SaveComStream(object comStream, string path) {
+            IStream stream = (IStream)comStream;
+            using (FileStream fs = File.Create(path)) {
+                byte[] buffer = new byte[65536];
+                int read;
+                IntPtr pRead = Marshal.AllocHGlobal(sizeof(int));
+                try {
+                    do {
+                        stream.Read(buffer, buffer.Length, pRead);
+                        read = Marshal.ReadInt32(pRead);
+                        if (read > 0) fs.Write(buffer, 0, read);
+                    } while (read > 0);
+                } finally {
+                    Marshal.FreeHGlobal(pRead);
+                }
+            }
+        }
+    }
+}
+"@
+    Add-Type -TypeDefinition $isoCode
+}
 
 
 
@@ -201,7 +234,7 @@ function Show-CommandHelp {
             "pc" { Write-Host "PC  Clear env override" -ForegroundColor Magenta; Write-Host "Clears `$env:GOLDEN_IMAGE_VM_PROFILE so profile resolution falls back to master." -ForegroundColor Gray; return }
             "pm" { Write-Host "PM  Resolution" -ForegroundColor Magenta; Write-Host "Shows how the active profile key is resolved (env, activeVMProfile, defaultVMProfile, etc.)." -ForegroundColor Gray; return }
             "pv" { Write-Host "PV  New VM from template" -ForegroundColor Magenta; Write-Host "Creates a VM using the active VM profile for VM details, but a selected provisioning template for hardware/network." -ForegroundColor Gray; return }
-            "pa" { Write-Host "PA  Sysprep Audit Auto Install" -ForegroundColor Magenta; Write-Host "Creates a VM from template and copies autounattend.xml to the staging drive root." -ForegroundColor Gray; return }
+            "pa" { Write-Host "PA  Sysprep Audit Auto Install" -ForegroundColor Magenta; Write-Host "Creates a VM from template for auto-installation using master config ISOs." -ForegroundColor Gray; return }
             "ch" { Write-Host "CH  Set Config VHD" -ForegroundColor Magenta; Write-Host "Updates the active profile's VhdPath in _master_config.json." -ForegroundColor Gray; return }
             "cv" { Write-Host "CV  Set Config VM" -ForegroundColor Magenta; Write-Host "Updates the active profile's VMName in _master_config.json." -ForegroundColor Gray; return }
             "cg" { Write-Host "CG  Set Config Guest" -ForegroundColor Magenta; Write-Host "Updates GuestStagingDrive (shared + VMFileSystem) in _master_config.json." -ForegroundColor Gray; return }
@@ -241,7 +274,7 @@ function Show-CommandHelp {
     Write-Host "  PC Clear env override       Clear `$env:GOLDEN_IMAGE_VM_PROFILE for this session" -ForegroundColor Gray
     Write-Host "  PM Resolution               Show how the active profile key is resolved" -ForegroundColor Gray
     Write-Host "  PV New VM from template     Run New-MasterLikeVm.ps1 using the active profile + a selected provisioning template" -ForegroundColor Gray
-    Write-Host "  PA Sysprep Audit Auto Inst  Run New-MasterLikeVm.ps1 and copy autounattend.xml to staging drive root" -ForegroundColor Gray
+    Write-Host "  PA Sysprep Audit Auto Inst  Run New-MasterLikeVm.ps1 for auto-install flow" -ForegroundColor Gray
     Write-Host "Config (_master_config.json):" -ForegroundColor Magenta
     Write-Host "  CH Set Config VHD          Update the active profile's VHD path in master config" -ForegroundColor Gray
     Write-Host "  CV Set Config VM           Update the active profile's VM name in master config" -ForegroundColor Gray
@@ -319,7 +352,15 @@ while ($true) {
     Write-Host ""
     Write-Host ""
     Write-Host "[?] Help | [<command> ?] Targeted Help | [X] Exit" -ForegroundColor DarkGray
-    $rawChoice = (Read-Host "Select Action")
+    $isCliAction = $false
+    if (-not [string]::IsNullOrWhiteSpace($Action)) {
+        $rawChoice = $Action
+        $Action = $null
+        $isCliAction = $true
+        Write-Host "CLI Action Execution: $rawChoice" -ForegroundColor Cyan
+    } else {
+        $rawChoice = (Read-Host "Select Action")
+    }
     $tokens = @($rawChoice -split '\s+' | Where-Object { $_ -and $_.Trim().Length -gt 0 })
     $choice = if ($tokens.Count -gt 0) { $tokens[0].ToLower().Trim() } else { "" }
     $helpTok = if ($tokens.Count -gt 1) { $tokens[1].ToLower().Trim() } else { "" }
@@ -583,7 +624,7 @@ while ($true) {
                                 $targetFolder = Join-Path $vmPathFolder $ctx.VMName
                             }
                             if (Test-Path -LiteralPath $targetFolder) {
-                                Dismount-VHD -Path $osPath -ErrorAction SilentlyContinue 
+                                Dismount-VHD -Path $osPath -ErrorAction SilentlyContinue
                                 Start-Sleep -Seconds 1
                                 for ($retry = 0; $retry -lt 5; $retry++) {
                                     try { Remove-Item -LiteralPath $targetFolder -Recurse -Force -ErrorAction Stop; break }
@@ -623,54 +664,9 @@ while ($true) {
                                 & $helper -VMProfile $activePk -ProvisioningTemplateKey $tplKey -NoConfigSave
                                 if ($LASTEXITCODE -ne 0) { throw "New-MasterLikeVm operation encountered a critical error sequence." }
 
-                                $osHdd = Get-VMHardDiskDrive -VMName $ctx.VMName | Where-Object Path -notmatch "Golden-Imaging" | Select-Object -First 1
-                                if ($osHdd) {
-                                    $osVhdPath = $osHdd.Path
-                                    Write-Host "`n[*] Pre-formatting OS Disk to embed Answer File..." -ForegroundColor DarkGray
-
-                                    Remove-VMHardDiskDrive -VMName $ctx.VMName -ControllerType $osHdd.ControllerType -ControllerNumber $osHdd.ControllerNumber -ControllerLocation $osHdd.ControllerLocation
-
-                                    Mount-VHD -Path $osVhdPath | Out-Null
-                                    $disk = Get-VHD -Path $osVhdPath
-                                    if ($disk -and $disk.DiskNumber) {
-                                        Initialize-Disk -Number $disk.DiskNumber -PartitionStyle MBR -PassThru | Out-Null
-                                        $part = New-Partition -DiskNumber $disk.DiskNumber -UseMaximumSize -AssignDriveLetter -IsActive
-                                        Format-Volume -DriveLetter $part.DriveLetter -FileSystem NTFS -NewFileSystemLabel "OS" -Confirm:$false -Force | Out-Null
-
-                                        $xmlSource = Join-Path $LocalProjectRoot "_offline\_config\autounattend.xml"
-                                        if (Test-Path $xmlSource) {
-                                            Copy-Item -Path $xmlSource -Destination "$($part.DriveLetter):\autounattend.xml" -Force
-                                            Write-Host "    -> Answer file embedded successfully." -ForegroundColor Green
-                                        } else {
-                                            Write-Host "    -> [WARNING] Answer file not found!" -ForegroundColor Yellow
-                                        }
-                                    }
-                                    Dismount-VHD -Path $osVhdPath | Out-Null
-
-                                    Add-VMHardDiskDrive -VMName $ctx.VMName -Path $osVhdPath -ControllerType $osHdd.ControllerType -ControllerNumber $osHdd.ControllerNumber -ControllerLocation $osHdd.ControllerLocation
-                                }
-
-                                Write-Host "`n[*] Auto-Starting VM and bypassing DVD prompt..." -ForegroundColor Cyan
+                                Write-Host "`n[*] Auto-Starting VM (ZeroTouch image)..." -ForegroundColor Cyan
                                 Start-VM -Name $ctx.VMName -ErrorAction Stop
-
-                                Write-Host "    Sending keystrokes to bypass 'Press any key'..." -ForegroundColor DarkGray
-                                try {
-                                    $vmId = (Get-VM -Name $ctx.VMName).Id.ToString()
-                                    $keyboard = Get-CimInstance -Namespace "root\virtualization\v2" -ClassName "Msvm_Keyboard" -Filter "SystemName='$vmId'" -ErrorAction Stop
-                                    if ($keyboard) {
-                                        for ($k = 0; $k -lt 6; $k++) {
-                                            Start-Sleep -Milliseconds 1000
-                                            Invoke-CimMethod -InputObject $keyboard -MethodName "TypeKey" -Arguments @{ keyCode = [uint32]32 } -ErrorAction SilentlyContinue | Out-Null
-                                        }
-                                        Write-Host "    [OK] Keystrokes sent." -ForegroundColor Green
-                                    } else {
-                                        Write-Host "    [WARNING] Could not get VM keyboard object." -ForegroundColor Yellow
-                                    }
-                                } catch {
-                                    Write-Host "    [WARNING] Failed to send keystrokes: $($_.Exception.Message)" -ForegroundColor Yellow
-                                }
-
-                                Write-Host "[OK] VM is booting and auto-installing zero-touch!" -ForegroundColor Green
+                                Write-Host "[OK] VM is booting and auto-installing!" -ForegroundColor Green
                             } catch {
                                 Write-Host "[ERROR] New VM creation or copy failed: $($_.Exception.Message)" -ForegroundColor Red
                             }
@@ -735,8 +731,9 @@ while ($true) {
             }
             Default { Write-Host "Invalid option" -ForegroundColor Yellow; Start-Sleep -Seconds 1 }
         }
+        if ($isCliAction) { exit 0 }
     } catch {
         Write-DetailedError $_ "Dashboard main loop encountered a critical error"
-        Wait-AutoContinue
+        if ($isCliAction) { exit 1 } else { Wait-AutoContinue }
     }
 }

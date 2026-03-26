@@ -34,6 +34,36 @@ function UpdateNavigationButtons {
     if ($null -ne $scriptScope.ProgressIndicator4) { $scriptScope.ProgressIndicator4.Fill = $(if ($currentIndex -eq 3) { $blueColor } else { $greyColor }) }
 }
 
+function Initialize-Navigation {
+    param($scriptScope)
+
+    # Next Button Click
+    $scriptScope.NextBtn.Add_Click({
+        $tabControl = $scriptScope.MainTabControl
+        if ($tabControl.SelectedIndex -lt $tabControl.Items.Count - 1) {
+            $tabControl.SelectedIndex++
+            UpdateNavigationButtons -scriptScope $scriptScope
+        }
+    })
+
+    # Previous Button Click
+    $scriptScope.PreviousBtn.Add_Click({
+        $tabControl = $scriptScope.MainTabControl
+        if ($tabControl.SelectedIndex -gt 0) {
+            $tabControl.SelectedIndex--
+            UpdateNavigationButtons -scriptScope $scriptScope
+        }
+    })
+
+    # Tab Selection Change
+    $scriptScope.MainTabControl.Add_SelectionChanged({
+        UpdateNavigationButtons -scriptScope $scriptScope
+    })
+
+    # Initial update
+    UpdateNavigationButtons -scriptScope $scriptScope
+}
+
 function ValidateOtherUsername {
     param($scriptScope)
     if ($scriptScope.userSelectionCombo.SelectedIndex -ne 1) { return $true }

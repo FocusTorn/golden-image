@@ -15,6 +15,20 @@ function AddParameter {
 }
 
 
+# Clear all selected parameters except control parameters
+function ClearParameters {
+    $script:Params = @{}
+    # Restore control parameters if they were passed initially
+    if ($null -ne $script:ControlParams) {
+        foreach ($Param in $script:ControlParams) {
+            if ($PSBoundParameters.ContainsKey($Param)) {
+                $script:Params.Add($Param, $PSBoundParameters[$Param])
+            }
+        }
+    }
+}
+
+
 # Generates a list of apps to remove based on the Apps parameter
 function GenerateAppsList {
     if (-not ($script:Params["Apps"] -and $script:Params["Apps"] -is [string])) {

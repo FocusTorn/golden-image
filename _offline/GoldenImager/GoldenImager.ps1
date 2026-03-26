@@ -196,6 +196,15 @@ $script:ApplySubStepCallback = $null
 . "$script:SourceRoot/Scripts/GUI/Show-ApplyModal.ps1"
 . "$script:SourceRoot/Scripts/GUI/Show-AppSelectionWindow.ps1"
 . "$PSScriptRoot/Scripts/GUI/Show-MainWindow.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/UiSetup.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/WindowManagement.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/NavigationAndWizard.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/HomeTab.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/TitleBarAndMenu.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/AppRemovalPanel.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/TweaksPanel.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/AppProfileManagement.ps1"
+. "$PSScriptRoot/Scripts/GUI/Parts/SearchLogic.ps1"
 . "$script:SourceRoot/Scripts/GUI/Show-AboutDialog.ps1"
 
 # Load File I/O functions

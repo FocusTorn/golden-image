@@ -251,6 +251,7 @@ function Build-MergedHostVmConfig {
         VMPassword          = $vmPass
         UsePasswordCreds    = [bool]$usePass
         OSImagePath         = $vd.OSImagePath
+        UnattendIsoPath     = $vd.UnattendIsoPath
     }
 }
 
