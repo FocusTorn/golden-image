@@ -185,7 +185,7 @@ function AddAppsToPanel {
         $scriptScope.LoadingAppsIndicator.Visibility = 'Collapsed'
     }
     if ($scriptScope.ExportAppListLink) { $scriptScope.ExportAppListLink.Visibility = 'Visible' }
-    UpdateNavigationButtons -scriptScope $scriptScope
+    UpdateSidebarState -scriptScope $scriptScope
     UpdateAppSelectionStatus -scriptScope $scriptScope
 }
 
@@ -219,7 +219,7 @@ function LoadAppsWithList {
     catch {
         if ($scriptScope.LoadingAppsIndicator) { $scriptScope.LoadingAppsIndicator.Visibility = 'Collapsed' }
         if ($scriptScope.ExportAppListLink) { $scriptScope.ExportAppListLink.Visibility = 'Collapsed' }
-        UpdateNavigationButtons -scriptScope $scriptScope
+        UpdateSidebarState -scriptScope $scriptScope
         Show-MessageBox -Message "Unable to load app list.`n`n$($_.Exception.Message)" -Title 'Error' -Button 'OK' -Icon 'Error' | Out-Null
     }
 }

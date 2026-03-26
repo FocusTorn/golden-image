@@ -62,6 +62,176 @@
             </Setter>
         </Style>
 
+        <!-- Feature Card Style (Used in Settings Dashboard) -->
+        <Style x:Key="FeatureCardStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="{DynamicResource CardBgColor}"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Primary Button Style -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource ButtonBg}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBg}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="{DynamicResource ButtonDisabled}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonDisabled}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource ButtonTextDisabled}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ButtonHover}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonHover}"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ButtonPressed}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonPressed}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Modern Blue Button Style for Dashboard Actions -->
+        <Style x:Key="ActiveBlueButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Width" Value="150"/> 
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+
+        <!-- ToggleSwitch style: pill track + sliding thumb (Windows 11 style) -->
+        <Style x:Key="ToggleSwitchStyle" TargetType="ToggleButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Track" Width="44" Height="24" CornerRadius="12" Background="{DynamicResource ComboBgColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                            <Ellipse x:Name="Thumb" Width="18" Height="18" Margin="3" HorizontalAlignment="Left" Fill="White">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform x:Name="ThumbTransform" X="0"/>
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource ComboHoverColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource ButtonBg}"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ThumbTransform" Storyboard.TargetProperty="X" To="20" Duration="0:0:0.15">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ThumbTransform" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.15">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SecondaryButtonBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="{DynamicResource SecondaryButtonDisabled}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource SecondaryButtonTextDisabled}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SecondaryButtonHover}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderColor}"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SecondaryButtonPressed}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderColor}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Sidebar Icon Style -->
+        <Style x:Key="SidebarIconStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="50"/>
+            <Setter Property="Height" Value="50"/>
+            <Setter Property="Margin" Value="10,5"/>
+            <Setter Property="Foreground" Value="{DynamicResource LabelColor}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#25FFFFFF"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- OldWinBars1 (Classic rectangular spinning bars) -->
         <Style x:Key="OldWinBars1Style" TargetType="Control">
             <Setter Property="Template">
@@ -330,19 +500,24 @@
         <Style x:Key="CategoryCardBorderStyle" TargetType="Border">
             <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Background" Value="{DynamicResource CardBgColor}"/>
-            <Setter Property="Padding" Value="16,12,16,16"/>
-            <Setter Property="Margin" Value="0,0,0,16"/>
-            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Padding" Value="20,16,20,20"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Category header text style -->
         <Style x:Key="CategoryHeaderTextBlock" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource CardTitleFontFamily}"/>
-            <Setter Property="FontWeight" Value="{DynamicResource CardTitleFontWeight}"/>
-            <Setter Property="FontSize" Value="{DynamicResource CardTitleFontSize}"/>
-            <Setter Property="Margin" Value="{DynamicResource CardTitleMargin}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
             <Setter Property="Foreground" Value="{DynamicResource CardTitleColor}"/>
         </Style>
 
@@ -801,9 +976,9 @@
             <Rectangle x:Name="ResizeBottomLeft" Width="8" Height="8" HorizontalAlignment="Left" VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNESW" Grid.Row="2" Panel.ZIndex="101"/>
             <Rectangle x:Name="ResizeBottomRight" Width="8" Height="8" HorizontalAlignment="Right" VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNWSE" Grid.Row="2" Panel.ZIndex="101"/>
 
-            <!-- Custom Title Bar -->
+            <!-- Custom Title Bar Anchor -->
             <Grid Grid.Row="0" x:Name="TitleBar">
-                <Border Background="{DynamicResource BgColor}" CornerRadius="8,8,0,0">
+                <Border Background="{DynamicResource MediumBgColor}" CornerRadius="8,8,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -819,6 +994,23 @@
                             <Button x:Name="MenuBtn" Content="&#xE700;" FontFamily="Segoe Fluent Icons" FontSize="15" Style="{StaticResource TitlebarButton}" ToolTip="Options" AutomationProperties.Name="Options">
                                 <Button.ContextMenu>
                                     <ContextMenu x:Name="MainMenu">
+                                        <MenuItem x:Name="MenuOptions" Header="Options" AutomationProperties.Name="Options">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator/>
+                                        <MenuItem x:Name="MenuExportSettings" Header="Export settings" AutomationProperties.Name="Export settings">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="&#xE78C;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem x:Name="MenuImportSettings" Header="Import settings" AutomationProperties.Name="Import settings">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="&#xE8B5;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator/>
                                         <MenuItem x:Name="MenuDocumentation" Header="Documentation" AutomationProperties.Name="Documentation">
                                             <MenuItem.Icon>
                                                 <TextBlock Text="&#xe736;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource FgColor}"/>
@@ -839,22 +1031,6 @@
                                                 <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
                                             </MenuItem.Icon>
                                         </MenuItem>
-                                        <MenuItem x:Name="MenuOptions" Header="Options" AutomationProperties.Name="Options">
-                                            <MenuItem.Icon>
-                                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
-                                            </MenuItem.Icon>
-                                        </MenuItem>
-                                        <Separator/>
-                                        <MenuItem x:Name="MenuExportSettings" Header="Export settings..." AutomationProperties.Name="Export settings">
-                                            <MenuItem.Icon>
-                                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
-                                            </MenuItem.Icon>
-                                        </MenuItem>
-                                        <MenuItem x:Name="MenuImportSettings" Header="Import settings..." AutomationProperties.Name="Import settings">
-                                            <MenuItem.Icon>
-                                                <TextBlock Text="&#xE8B5;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource FgColor}"/>
-                                            </MenuItem.Icon>
-                                        </MenuItem>
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
@@ -864,8 +1040,48 @@
                 </Border>
             </Grid>
 
-            <!-- Main Content with Tabs -->
-            <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0" Padding="0" Name="MainTabControl">
+            <!-- Main Content Grid: Sidebar + Headless Tabs Island -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="70"/> <!-- Sidebar Column -->
+                    <ColumnDefinition Width="*"/>  <!-- Main Content Column -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Sidebar (Pinned Dark Pillar) -->
+                <Border Grid.Column="0" Background="{DynamicResource BgColor}" BorderThickness="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- Main Icons -->
+                            <RowDefinition Height="*"/>    <!-- Spacer -->
+                            <RowDefinition Height="Auto"/> <!-- Footer Icons -->
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,20">
+                            <Button x:Name="SideHomeBtn" Style="{StaticResource SidebarIconStyle}" Tag="0" ToolTip="Home Dashboard">
+                                <TextBlock Text="&#xE80F;" FontFamily="Segoe Fluent Icons" FontSize="22"/>
+                            </Button>
+                            <Button x:Name="SideAppsBtn" Style="{StaticResource SidebarIconStyle}" Tag="1" ToolTip="App Removal">
+                                <TextBlock Text="&#xE71D;" FontFamily="Segoe Fluent Icons" FontSize="22"/>
+                            </Button>
+                            <Button x:Name="SideTweaksBtn" Style="{StaticResource SidebarIconStyle}" Tag="2" ToolTip="System Tweaks">
+                                <TextBlock Text="&#xE90F;" FontFamily="Segoe Fluent Icons" FontSize="22"/>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Margin="0,0,0,20">
+                            <Button x:Name="SideSettingsBtn" Style="{StaticResource SidebarIconStyle}" Tag="Settings" ToolTip="Settings">
+                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="22"/>
+                            </Button>
+                            <Button x:Name="SideExitBtn" Style="{StaticResource SidebarIconStyle}" Tag="Exit" ToolTip="Exit Application">
+                                <TextBlock Text="&#xE7E8;" FontFamily="Segoe Fluent Icons" FontSize="22" Foreground="#FF5555"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Headless TabControl Floating Island -->
+                <Border Grid.Column="1" Background="{DynamicResource MediumBgColor}" CornerRadius="8" Margin="10,5,10,5">
+                    <TabControl Background="Transparent" BorderThickness="0" Margin="10" Padding="0" Name="MainTabControl">
                 <TabControl.Resources>
                     <Style TargetType="TabItem">
                         <Setter Property="Template">
@@ -903,14 +1119,23 @@
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="15"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="15"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Row 0, Column 0: Load Profiles -->
-                        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CategoryCardBorderStyle}">
+                        <Border Grid.Row="0" Grid.Column="0" CornerRadius="12" Padding="20,16,20,20" Margin="8" BorderThickness="1" BorderBrush="#363B40">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A2D32" Offset="0"/>
+                                    <GradientStop Color="#1E2124" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                            </Border.Effect>
                             <StackPanel>
                                 <TextBlock Text="Load Profiles" Style="{StaticResource CategoryHeaderTextBlock}"/>
                                 <Grid Margin="0,0,0,8">
@@ -943,7 +1168,16 @@
                         </Border>
 
                         <!-- Row 0, Column 2: System Modifications -->
-                        <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource CategoryCardBorderStyle}">
+                        <Border Grid.Row="0" Grid.Column="2" CornerRadius="12" Padding="20,16,20,20" Margin="8" BorderThickness="1" BorderBrush="#363B40">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A2D32" Offset="0"/>
+                                    <GradientStop Color="#1E2124" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                            </Border.Effect>
                             <Grid MinHeight="120">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -961,7 +1195,16 @@
                         </Border>
 
                         <!-- Row 0, Column 4: Stages Audit -->
-                        <Border Grid.Row="0" Grid.Column="4" Style="{StaticResource CategoryCardBorderStyle}">
+                        <Border Grid.Row="0" Grid.Column="4" CornerRadius="12" Padding="20,16,20,20" Margin="8" BorderThickness="1" BorderBrush="#363B40">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A2D32" Offset="0"/>
+                                    <GradientStop Color="#1E2124" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                            </Border.Effect>
                             <Grid MinHeight="120">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -977,7 +1220,16 @@
                         </Border>
 
                         <!-- Row 1, Column 0: Quick Fixes -->
-                        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CategoryCardBorderStyle}">
+                        <Border Grid.Row="1" Grid.Column="0" CornerRadius="12" Padding="20,16,20,20" Margin="8" BorderThickness="1" BorderBrush="#363B40">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A2D32" Offset="0"/>
+                                    <GradientStop Color="#1E2124" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                            </Border.Effect>
                             <Grid MinHeight="80">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -993,7 +1245,16 @@
                         </Border>
 
                         <!-- Row 1, Column 2: Connection Settings -->
-                        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource CategoryCardBorderStyle}">
+                        <Border Grid.Row="1" Grid.Column="2" CornerRadius="12" Padding="20,16,20,20" Margin="8" BorderThickness="1" BorderBrush="#363B40">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A2D32" Offset="0"/>
+                                    <GradientStop Color="#1E2124" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                            </Border.Effect>
                             <Grid MinHeight="120">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -1012,7 +1273,16 @@
                         </Border>
 
                         <!-- Row 1, Column 4: Stage Install -->
-                        <Border Grid.Row="1" Grid.Column="4" Style="{StaticResource CategoryCardBorderStyle}">
+                        <Border Grid.Row="1" Grid.Column="4" CornerRadius="12" Padding="20,16,20,20" Margin="8" BorderThickness="1" BorderBrush="#363B40">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A2D32" Offset="0"/>
+                                    <GradientStop Color="#1E2124" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                            </Border.Effect>
                             <Grid MinHeight="120">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -1384,194 +1654,154 @@
                     </DockPanel>
                 </TabItem>
 
-                <!-- Deployment Settings Tab -->
-                <TabItem Header="Deployment Settings" x:Name="DeploymentSettingsTab">
-                    <DockPanel>
-                        <Border DockPanel.Dock="Top" Padding="20,10,20,0">
-                            <StackPanel>
-                                <TextBlock Text="Deployment Settings" FontWeight="{DynamicResource TabTitleFontWeight}" FontSize="{DynamicResource TabTitleFontSize}" FontFamily="{DynamicResource TabTitleFontFamily}" Margin="0,0,0,5" Foreground="{DynamicResource TabTitleColor}"/>
-                                <TextBlock Text="Configure how your changes will be applied and more" FontSize="{DynamicResource CardSubtitleFontSize}" FontFamily="{DynamicResource CardSubtitleFontFamily}" Margin="0,0,0,20" Foreground="{DynamicResource CardSubtitleColor}" TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
+                <!-- Settings Dashboard Tab (NEW MASTER HUB) -->
+                <TabItem x:Name="SettingsTab">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <Grid Grid.Row="0">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,-20,0,0" Padding="20,10,20,0">
-                                    <Grid Margin="0,10,0,5">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <!-- Apply Changes To -->
-                                        <Border Grid.Row="0" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="4" Background="{DynamicResource CardBgColor}" Padding="16,12" Margin="0,0,0,16">
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="20,10,20,20">
+                                <TextBlock Text="Settings &amp; Support" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource FgColor}" Margin="0,0,0,20"/>
+                                
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="15"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="15"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <!-- Column 0: Deployment -->
+                                    <StackPanel Grid.Column="0">
+                                        <Border Style="{StaticResource FeatureCardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="Apply Changes To" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                                <ComboBox x:Name="UserSelectionCombo" Margin="0,0,0,6" AutomationProperties.Name="Apply Changes To">
-                                                    <ComboBoxItem Content="Current User" IsSelected="True"/>
-                                                    <ComboBoxItem Content="Other User"/>
-                                                    <ComboBoxItem Content="Windows Default User (Sysprep)"/>
+                                                <TextBlock Text="Deployment" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                                
+                                                <!-- Apply Changes To subgroup -->
+                                                <TextBlock Text="Apply changes to" Style="{StaticResource CategorySubHeaderTextBlock}"/>
+                                                <ComboBox x:Name="UserSelectionCombo" AutomationProperties.Name="Target User">
+                                                    <ComboBoxItem Content="All users and system" IsSelected="True"/>
+                                                    <ComboBoxItem Content="Target user account"/>
+                                                    <ComboBoxItem Content="Sysprep (audit mode)"/>
                                                 </ComboBox>
-                                                <StackPanel x:Name="OtherUserPanel" Visibility="Collapsed" Margin="0,0,0,6">
-                                                    <TextBlock x:Name="UsernameValidationMessage" Text="" FontStyle="Italic" Foreground="{DynamicResource CloseHover}" FontSize="{DynamicResource LabelSmallFontSize}" Margin="3,0,0,4" TextWrapping="Wrap"/>
-                                                    <Border IsEnabled="{Binding ElementName=OtherUsernameTextBox, Path=IsEnabled}">
-                                                        <Border.Style>
-                                                            <Style TargetType="Border" BasedOn="{StaticResource UserTextBoxBorderStyle}">
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding ElementName=OtherUsernameTextBox, Path=IsFocused}" Value="True">
-                                                                        <Setter Property="Background" Value="{DynamicResource InputFocusColor}"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Border.Style>
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Grid.Column="0" Text="&#xE77B;" FontFamily="{DynamicResource IconFontFamily}" FontSize="14" VerticalAlignment="Center" Margin="4,0,8,0" Foreground="{DynamicResource FgColor}"/>
-                                                            <TextBlock x:Name="UsernameTextBoxPlaceholder" Grid.Column="1" Text="Enter username" Foreground="{DynamicResource FgColor}" Opacity="{DynamicResource SearchPlaceholderOpacity}" FontSize="{DynamicResource SearchFontSize}" Margin="3,0,0,1" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                                                            <TextBox x:Name="OtherUsernameTextBox" Grid.Column="1" Style="{StaticResource UserTextBoxStyle}" Text="" AutomationProperties.Name="Enter username"/>
-                                                        </Grid>
-                                                    </Border>
-                                                </StackPanel>
-                                                <TextBlock x:Name="UserSelectionDescription" Text="Changes will be applied to the currently logged-in user profile." Foreground="{DynamicResource BodyColor}" FontSize="{DynamicResource BodyFontSize}" TextWrapping="Wrap" Margin="0,6,0,3"/>
-                                            </StackPanel>
-                                        </Border>
+                                                
+                                                <Border x:Name="OtherUsernameBorder" Style="{StaticResource UserTextBoxBorderStyle}" Visibility="Collapsed" Margin="0,4,0,12">
+                                                    <TextBox x:Name="OtherUsernameTextBox" Style="{StaticResource UserTextBoxStyle}" AutomationProperties.Name="Username"/>
+                                                </Border>
 
-                                        <!-- App Removal Scope -->
-                                        <Border Grid.Row="1" x:Name="AppRemovalScopeSection" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="4" Background="{DynamicResource CardBgColor}" Padding="16,12" Margin="0,0,0,16">
-                                            <StackPanel>
-                                                <TextBlock Text="Remove Apps For" Style="{StaticResource CategoryHeaderTextBlock}"/>
-                                                <ComboBox x:Name="AppRemovalScopeCombo" Margin="0,0,0,6" AutomationProperties.Name="App Removal Scope">
+                                                <!-- Remove Apps For subgroup -->
+                                                <TextBlock Text="Remove apps for" Style="{StaticResource CategorySubHeaderTextBlock}" Margin="0,8,0,4"/>
+                                                <ComboBox x:Name="AppRemovalScopeCombo" AutomationProperties.Name="App Removal Scope">
                                                     <ComboBoxItem x:Name="AppRemovalScopeAllUsers" Content="All users" IsSelected="True"/>
                                                     <ComboBoxItem x:Name="AppRemovalScopeCurrentUser" Content="Current user only"/>
                                                     <ComboBoxItem x:Name="AppRemovalScopeTargetUser" Content="Target user only" Visibility="Collapsed"/>
                                                 </ComboBox>
-                                                <TextBlock x:Name="AppRemovalScopeDescription" Text="Apps will be removed for all users and from the Windows image to prevent reinstallation for new users." Foreground="{DynamicResource BodyColor}" FontSize="{DynamicResource BodyFontSize}" TextWrapping="Wrap" Margin="0,6,0,3"/>
                                             </StackPanel>
                                         </Border>
+                                    </StackPanel>
 
-                                        <!-- Options -->
-                                        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="4" Background="{DynamicResource CardBgColor}" Padding="16,12,16,3" Margin="0,0,0,16">
+                                    <!-- Column 2: Options -->
+                                    <StackPanel Grid.Column="2">
+                                        <Border Style="{StaticResource FeatureCardStyle}">
                                             <StackPanel>
                                                 <TextBlock Text="Options" Style="{StaticResource CategoryHeaderTextBlock}"/>
-
-                                                <!-- Restore Point Option -->
-                                                <StackPanel>
-                                                    <CheckBox x:Name="RestorePointCheckBox" Style="{StaticResource FeatureCheckboxStyle}" IsChecked="True" Content="Create a system restore point (Recommended)" AutomationProperties.Name="Create a system restore point (Recommended)"/>
-                                                </StackPanel>
                                                 
-                                                <!-- Restart Explorer Option -->
-                                                <StackPanel>
-                                                    <CheckBox x:Name="RestartExplorerCheckBox" Style="{StaticResource FeatureCheckboxStyle}" IsChecked="True" Content="Restart the Windows Explorer process to apply all changes immediately" AutomationProperties.Name="Restart the Windows Explorer process to apply all changes immediately"/>
-                                                </StackPanel>
+                                                <!-- Toggles -->
+                                                <Grid Margin="0,0,0,12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Create Restore Point" VerticalAlignment="Center" Foreground="{DynamicResource FgColor}"/>
+                                                    <ToggleButton x:Name="RestorePointToggle" Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}" IsChecked="True"/>
+                                                </Grid>
+
+                                                <Grid Margin="0,0,0,12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Auto-Restart Explorer" VerticalAlignment="Center" Foreground="{DynamicResource FgColor}"/>
+                                                    <ToggleButton x:Name="RestartExplorerToggle" Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}" IsChecked="True"/>
+                                                </Grid>
+
+                                                <Grid Margin="0,0,0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Hide Launcher Window" VerticalAlignment="Center" Foreground="{DynamicResource FgColor}"/>
+                                                    <ToggleButton x:Name="HideLauncherToggle" Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}" IsChecked="False"/>
+                                                </Grid>
                                             </StackPanel>
                                         </Border>
-                                    </Grid>
-                                </ScrollViewer>
-                                <!-- Top fade gradient -->
-                                <Border IsHitTestVisible="False" VerticalAlignment="Top" Height="10" Margin="0,0,20,0" Background="{DynamicResource BgColor}">
-                                    <Border.OpacityMask>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="Black" Offset="0"/>
-                                            <GradientStop Color="Black" Offset="0.5"/>
-                                            <GradientStop Color="Transparent" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.OpacityMask>
-                                </Border>
-                                <!-- Bottom fade gradient -->
-                                <Border IsHitTestVisible="False" VerticalAlignment="Bottom" Height="20" Margin="0,0,20,0" Background="{DynamicResource BgColor}">
-                                    <Border.OpacityMask>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="Transparent" Offset="0"/>
-                                            <GradientStop Color="Black" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.OpacityMask>
-                                </Border>
-                            </Grid>
-
-                            <!-- Review & Apply Section -->
-                            <Border Grid.Row="1" HorizontalAlignment="Stretch" Background="{DynamicResource BgColor}" Padding="0,15,0,0">
-                                <StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
-                                    <Button x:Name="ReviewChangesBtn" Background="Transparent" BorderThickness="0" Cursor="Hand" AutomationProperties.Name="Review selected changes">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <TextBlock x:Name="LinkText" Text="Review selected changes" FontSize="{DynamicResource ButtonSecondaryFontSize}" Foreground="{DynamicResource AccentColor}" FontWeight="{DynamicResource ButtonSecondaryFontWeight}" TextDecorations="Underline"/>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="LinkText" Property="Foreground" Value="{DynamicResource ButtonHover}"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
-                                    <TextBlock Text="|" Foreground="{DynamicResource LabelColor}" Margin="10,0" VerticalAlignment="Center"/>
-                                    <Button x:Name="DeploymentExportCliBtn" Background="Transparent" BorderThickness="0" Cursor="Hand" AutomationProperties.Name="Export CLI">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <TextBlock x:Name="LinkText" Text="Export CLI command" FontSize="{DynamicResource ButtonSecondaryFontSize}" Foreground="{DynamicResource AccentColor}" FontWeight="{DynamicResource ButtonSecondaryFontWeight}" TextDecorations="Underline"/>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="LinkText" Property="Foreground" Value="{DynamicResource ButtonHover}"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
-                                </StackPanel>
-                                <Button x:Name="DeploymentApplyBtn" Style="{DynamicResource PrimaryButtonStyle}" Width="350" Height="44" HorizontalAlignment="Center" AutomationProperties.Name="Apply Changes">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource IconFontFamily}" FontSize="20" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Apply Changes" VerticalAlignment="Center" FontSize="{DynamicResource ButtonPrimaryFontSize}" FontWeight="{DynamicResource ButtonPrimaryFontWeight}" Margin="8,0,0,4"/>
                                     </StackPanel>
-                                </Button>
+
+                                    <!-- Column 4: Backup & Support -->
+                                    <StackPanel Grid.Column="4">
+                                        <!-- Backup Card -->
+                                        <Border Style="{StaticResource FeatureCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Backup &amp; Review" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                                
+                                                <Button x:Name="SettingsReviewAllBtn" Style="{StaticResource ActiveBlueButtonStyle}" HorizontalAlignment="Left" Width="150" Margin="0,0,0,10">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Review Settings" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+
+                                                <Button x:Name="SettingsExportBtn" Content="Export Settings" Style="{StaticResource ActiveBlueButtonStyle}" HorizontalAlignment="Left" Width="150" Margin="0,0,0,10"/>
+                                                <Button x:Name="SettingsImportBtn" Content="Import Settings" Style="{StaticResource ActiveBlueButtonStyle}" HorizontalAlignment="Left" Width="150"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Support Card -->
+                                        <Border Style="{StaticResource FeatureCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Support &amp; Info" Style="{StaticResource CategoryHeaderTextBlock}"/>
+                                                <Button x:Name="SettingsLogsBtn" Content="View Logs" Style="{StaticResource ActiveBlueButtonStyle}" HorizontalAlignment="Left" Width="150"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Sticky Bottom Apply Button -->
+                        <Border Grid.Row="1" Background="{DynamicResource BgColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0" Padding="20,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Deployment Trigger" FontWeight="SemiBold" Foreground="{DynamicResource FgColor}"/>
+                                    <TextBlock Text="Apply all selected tweaks, features and app removals to the system" FontSize="12" Foreground="{DynamicResource BodyColor}" Opacity="0.8"/>
+                                </StackPanel>
+                                <Button x:Name="DeploymentApplyBtn" Grid.Column="1" Content="Apply All Changes" Style="{StaticResource PrimaryButtonStyle}" Width="180" Height="40" FontSize="15" FontWeight="Bold"/>
+                            </Grid>
                         </Border>
                     </Grid>
-                    </DockPanel>
                 </TabItem>
             </TabControl>
+        </Border>
+    </Grid>
 
-            <!-- Bottom Navigation Buttons -->
-            <Grid Grid.Row="2" Height="56" x:Name="BottomNavGrid">
-                <Grid Margin="20,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Button x:Name="PreviousBtn" Grid.Column="0" Width="120" Height="36" Style="{DynamicResource SecondaryButtonStyle}" Visibility="Collapsed" Margin="10,0,0,0" AutomationProperties.Name="Back">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE72B;" FontFamily="{DynamicResource IconFontFamily}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Back" VerticalAlignment="Center" FontSize="{DynamicResource NavButtonFontSize}" Margin="0,0,0,1"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button x:Name="NextBtn" Width="120" Height="36" Margin="0,0,10,0" Style="{DynamicResource PrimaryButtonStyle}" AutomationProperties.Name="Next">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Next" VerticalAlignment="Center" FontSize="{DynamicResource NavButtonFontSize}" Margin="0,0,0,1"/>
-                                <TextBlock Text="&#xE72A;" FontFamily="{DynamicResource IconFontFamily}" FontSize="12" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+        <!-- Status Bar Anchor -->
+        <Border Grid.Row="2" Height="32" Background="{DynamicResource MediumBgColor}" CornerRadius="0,0,8,8">
+                <Grid Margin="15,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="StatusBarIcon" Text="&#xE73E;" FontFamily="Segoe Fluent Icons" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource AccentColor}"/>
+                        <TextBlock x:Name="StatusText" Text="System Ready" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource LabelColor}"/>
                     </StackPanel>
+                    <TextBlock x:Name="StatusBarVersion" Text="v1.0.0" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource LabelColor}" Opacity="0.5"/>
                 </Grid>
-                
-                <!-- Progress Indicators - Centered independently -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Ellipse x:Name="ProgressIndicator1" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="Home"/>
-                    <Ellipse x:Name="ProgressIndicator2" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="App Removal"/>
-                    <Ellipse x:Name="ProgressIndicator3" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="System Tweaks"/>
-                    <Ellipse x:Name="ProgressIndicator4" Width="10" Height="10" Margin="4,0" Fill="#808080" ToolTip="Deployment Settings"/>
-                </StackPanel>            </Grid>
+            </Border>
             
             <!-- Modal Overlay for MessageBoxes -->
             <Rectangle x:Name="ModalOverlay" 

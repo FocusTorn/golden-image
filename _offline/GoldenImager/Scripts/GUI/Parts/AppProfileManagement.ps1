@@ -72,29 +72,32 @@ function Set-AppProfileToUi {
     UpdateAppSelectionStatus -scriptScope $scriptScope
 }
 
+function Get-GoldenOptions {
+    $optionsPath = Join-Path $script:GoldenImagerRoot "Config/Options.json"
+    if (Test-Path $optionsPath) { try { $o = Get-Content -Path $optionsPath -Raw | ConvertFrom-Json; return @{ HideLauncherWindow = [bool]($o.HideLauncherWindow) } } catch { } }
+    return @{ HideLauncherWindow = $false }
+}
+
+function Set-GoldenOptions {
+    param([hashtable]$opts)
+    $optionsPath = Join-Path $script:GoldenImagerRoot "Config/Options.json"
+    try { $opts | ConvertTo-Json | Set-Content -Path $optionsPath -Encoding UTF8 -Force } catch { }
+}
+
+function Set-OptionHideLauncher {
+    param([bool]$Hide)
+    try {
+        $h = [User32_ShowWindow]::GetConsoleWindow()
+        if ($h -ne [IntPtr]::Zero -and ([System.Management.Automation.PSTypeName]'User32_ShowWindow').Type) {
+            [User32_ShowWindow]::ShowWindow($h, $(if ($Hide) { [User32_ShowWindow]::SW_HIDE } else { [User32_ShowWindow]::SW_SHOW })) | Out-Null
+        }
+    } catch { }
+}
+
 function Show-OptionsDialog {
     param([System.Windows.Window]$Owner, $usesDarkMode)
-    $optionsPath = Join-Path $script:GoldenImagerRoot "Config/Options.json"
     
-    function Get-Options {
-        if (Test-Path $optionsPath) { try { $o = Get-Content -Path $optionsPath -Raw | ConvertFrom-Json; return @{ HideLauncherWindow = [bool]($o.HideLauncherWindow) } } catch { } }
-        return @{ HideLauncherWindow = $false }
-    }
-    function Set-Options {
-        param([hashtable]$opts)
-        try { $opts | ConvertTo-Json | Set-Content -Path $optionsPath -Encoding UTF8 -Force } catch { }
-    }
-    function Set-OptionHideLauncher {
-        param([bool]$Hide)
-        try {
-            $h = [User32_ShowWindow]::GetConsoleWindow()
-            if ($h -ne [IntPtr]::Zero -and ([System.Management.Automation.PSTypeName]'User32_ShowWindow').Type) {
-                [User32_ShowWindow]::ShowWindow($h, $(if ($Hide) { [User32_ShowWindow]::SW_HIDE } else { [User32_ShowWindow]::SW_SHOW })) | Out-Null
-            }
-        } catch { }
-    }
-
-    $opts = Get-Options
+    $opts = Get-GoldenOptions
     $overlay = $null; $overlayWasAlreadyVisible = $false
     if ($Owner) { try { $overlay = $Owner.FindName('ModalOverlay'); if ($overlay) { $overlayWasAlreadyVisible = ($overlay.Visibility -eq 'Visible'); if (-not $overlayWasAlreadyVisible) { $Owner.Dispatcher.Invoke([action]{ $overlay.Visibility = 'Visible' }) } } } catch { } }
     $optionsSchema = Join-Path $script:GoldenImagerRoot "Schemas/OptionsWindow.xaml"
@@ -105,7 +108,7 @@ function Show-OptionsDialog {
     SetWindowThemeResources -window $optWindow -usesDarkMode $usesDarkMode
     $toggle = $optWindow.FindName('OptionsHideLauncherToggle'); $okBtn = $optWindow.FindName('OptionsOkButton'); $titleBar = $optWindow.FindName('TitleBar')
     $toggle.IsChecked = $opts.HideLauncherWindow
-    $okBtn.Add_Click({ $newOpts = @{ HideLauncherWindow = $toggle.IsChecked -eq $true }; Set-Options $newOpts; Set-OptionHideLauncher -Hide $newOpts.HideLauncherWindow; $optWindow.Close() })
+    $okBtn.Add_Click({ $newOpts = @{ HideLauncherWindow = $toggle.IsChecked -eq $true }; Set-GoldenOptions $newOpts; Set-OptionHideLauncher -Hide $newOpts.HideLauncherWindow; $optWindow.Close() })
     $titleBar.Add_MouseLeftButtonDown({ $optWindow.DragMove() })
     $optWindow.Add_KeyDown({ param($s, $e) if ($e.Key -eq 'Escape') { $optWindow.Close() } })
     $optWindow.ShowDialog() | Out-Null

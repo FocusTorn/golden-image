@@ -1,67 +1,228 @@
-function UpdateNavigationButtons {
+function UpdateSidebarState {
     param($scriptScope)
-    $tabControl = $scriptScope.MainTabControl
-    if ($null -eq $tabControl) { return }
+    $currentIndex = $scriptScope.MainTabControl.SelectedIndex
     
-    $currentIndex = $tabControl.SelectedIndex
-    $totalTabs = $tabControl.Items.Count
-    $homeIndex = 0
-    $overviewIndex = $totalTabs - 1
-    
-    # Update Back/Next buttons at the bottom
-    if ($null -ne $scriptScope.NextBtn -and $null -ne $scriptScope.PreviousBtn) {
-        if ($currentIndex -eq $homeIndex) {
-            $scriptScope.NextBtn.Visibility = 'Visible'
-            $scriptScope.PreviousBtn.Visibility = 'Collapsed'
-        }
-        elseif ($currentIndex -eq $overviewIndex) {
-            $scriptScope.NextBtn.Visibility = 'Collapsed'
-            $scriptScope.PreviousBtn.Visibility = 'Visible'
-        }
-        else {
-            $scriptScope.NextBtn.Visibility = 'Visible'
-            $scriptScope.PreviousBtn.Visibility = 'Visible'
+    # Reset all sidebar buttons
+    $sideButtons = @("SideHomeBtn", "SideAppsBtn", "SideTweaksBtn", "SideSettingsBtn")
+    foreach ($btnName in $sideButtons) {
+        if ($null -ne $scriptScope[$btnName]) {
+            $scriptScope[$btnName].Background = [System.Windows.Media.Brushes]::Transparent
+            $scriptScope[$btnName].Opacity = 0.7
         }
     }
-    
-    $blueColor = "#0067c0"
-    $greyColor = "#808080"
-    
-    # Update progress indicators (illumination)
-    if ($null -ne $scriptScope.ProgressIndicator1) { $scriptScope.ProgressIndicator1.Fill = $(if ($currentIndex -eq 0) { $blueColor } else { $greyColor }) }
-    if ($null -ne $scriptScope.ProgressIndicator2) { $scriptScope.ProgressIndicator2.Fill = $(if ($currentIndex -eq 1) { $blueColor } else { $greyColor }) }
-    if ($null -ne $scriptScope.ProgressIndicator3) { $scriptScope.ProgressIndicator3.Fill = $(if ($currentIndex -eq 2) { $blueColor } else { $greyColor }) }
-    if ($null -ne $scriptScope.ProgressIndicator4) { $scriptScope.ProgressIndicator4.Fill = $(if ($currentIndex -eq 3) { $blueColor } else { $greyColor }) }
+
+    # Highlight active button
+    $activeBtn = switch($currentIndex) {
+        0 { "SideHomeBtn" }
+        1 { "SideAppsBtn" }
+        2 { "SideTweaksBtn" }
+        3 { "SideSettingsBtn" }
+        default { "" }
+    }
+
+    if ($activeBtn -and $null -ne $scriptScope[$activeBtn]) {
+        $scriptScope[$activeBtn].Background = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString("#20FFFFFF"))
+        $scriptScope[$activeBtn].Opacity = 1.0
+    }
+}
+
+function Set-Status {
+    param([string]$Message, [string]$Icon = "&#xE73E;")
+    # Attempt to find the elements in the window if the global scope is not set
+    $statusText = $script:MainWindowScope.StatusText
+    $statusIcon = $script:MainWindowScope.StatusBarIcon
+    if ($null -ne $statusText) { $statusText.Text = $Message }
+    if ($null -ne $statusIcon) { $statusIcon.Text = $Icon }
 }
 
 function Initialize-Navigation {
     param($scriptScope)
+    
+    # Set the global scope for Set-Status
+    $script:MainWindowScope = $scriptScope
 
-    # Next Button Click
-    $scriptScope.NextBtn.Add_Click({
-        $tabControl = $scriptScope.MainTabControl
-        if ($tabControl.SelectedIndex -lt $tabControl.Items.Count - 1) {
-            $tabControl.SelectedIndex++
-            UpdateNavigationButtons -scriptScope $scriptScope
-        }
-    })
+    # Sidebar Click Handlers (Using scriptScope to avoid closure issues)
+    if ($null -ne $scriptScope.SideHomeBtn) { 
+        $scriptScope.SideHomeBtn.Add_Click({ $scriptScope.MainTabControl.SelectedIndex = 0; UpdateSidebarState -scriptScope $scriptScope }) 
+    }
+    if ($null -ne $scriptScope.SideAppsBtn) { 
+        $scriptScope.SideAppsBtn.Add_Click({ $scriptScope.MainTabControl.SelectedIndex = 1; UpdateSidebarState -scriptScope $scriptScope }) 
+    }
+    if ($null -ne $scriptScope.SideTweaksBtn) { 
+        $scriptScope.SideTweaksBtn.Add_Click({ $scriptScope.MainTabControl.SelectedIndex = 2; UpdateSidebarState -scriptScope $scriptScope }) 
+    }
+    
+    # Settings Sidebar Button
+    if ($null -ne $scriptScope.SideSettingsBtn) { 
+        $scriptScope.SideSettingsBtn.Add_Click({ $scriptScope.MainTabControl.SelectedIndex = 3; UpdateSidebarState -scriptScope $scriptScope }) 
+    }
+    
+    # Settings Dashboard Buttons
+    if ($null -ne $scriptScope.SettingsExportBtn) {
+        $scriptScope.SettingsExportBtn.Add_Click({ 
+            if ($scriptScope.MenuExportSettings) { $scriptScope.MenuExportSettings.RaiseEvent([System.Windows.RoutedEventArgs]::new([System.Windows.Controls.MenuItem]::ClickEvent)) }
+        })
+    }
+    if ($null -ne $scriptScope.SettingsImportBtn) {
+        $scriptScope.SettingsImportBtn.Add_Click({ 
+            if ($scriptScope.MenuImportSettings) { $scriptScope.MenuImportSettings.RaiseEvent([System.Windows.RoutedEventArgs]::new([System.Windows.Controls.MenuItem]::ClickEvent)) }
+        })
+    }
+    if ($null -ne $scriptScope.SettingsReviewAllBtn) {
+        $scriptScope.SettingsReviewAllBtn.Add_Click({ 
+            ShowChangesOverview -scriptScope $scriptScope -forceAll $true
+        })
+    }
+    if ($null -ne $scriptScope.SettingsLogsBtn) {
+        $scriptScope.SettingsLogsBtn.Add_Click({ 
+            $scriptScope.window.FindName("MenuLogs")?.RaiseEvent([System.Windows.RoutedEventArgs]::new([System.Windows.Controls.MenuItem]::ClickEvent))
+            Set-Status -Message "Opening Logs..."
+        })
+    }
 
-    # Previous Button Click
-    $scriptScope.PreviousBtn.Add_Click({
-        $tabControl = $scriptScope.MainTabControl
-        if ($tabControl.SelectedIndex -gt 0) {
-            $tabControl.SelectedIndex--
-            UpdateNavigationButtons -scriptScope $scriptScope
-        }
-    })
+    # Main Apply Button
+    if ($null -ne $scriptScope.DeploymentApplyBtn) {
+        $scriptScope.DeploymentApplyBtn.Add_Click({ 
+            Invoke-Deployment -scriptScope $scriptScope
+        })
+    }
 
-    # Tab Selection Change
+    # Exit Button
+    if ($null -ne $scriptScope.SideExitBtn) {
+        $scriptScope.SideExitBtn.Add_Click({ $scriptScope.window.Close() })
+    }
+
+    # Tab Selection Change (Sync if something else changes the tab)
     $scriptScope.MainTabControl.Add_SelectionChanged({
-        UpdateNavigationButtons -scriptScope $scriptScope
+        UpdateSidebarState -scriptScope $scriptScope
     })
 
     # Initial update
-    UpdateNavigationButtons -scriptScope $scriptScope
+    Initialize-SettingsDashboard -scriptScope $scriptScope
+    UpdateSidebarState -scriptScope $scriptScope
+    Set-Status -Message "System Ready"
+}
+
+function Initialize-SettingsDashboard {
+    param($scriptScope)
+    
+    # 1. Initialize Options (Hide Launcher)
+    $opts = Get-GoldenOptions
+    if ($scriptScope.HideLauncherToggle) {
+        $scriptScope.HideLauncherToggle.IsChecked = $opts.HideLauncherWindow
+        $scriptScope.HideLauncherToggle.Add_Click({
+            $isChecked = $scriptScope.HideLauncherToggle.IsChecked -eq $true
+            Set-GoldenOptions @{ HideLauncherWindow = $isChecked }
+            Set-OptionHideLauncher -Hide $isChecked
+            Set-Status -Message ("Launcher window " + $(if ($isChecked) { "hidden" } else { "visible" }))
+        })
+    }
+}
+
+function Invoke-Deployment {
+    param($scriptScope)
+
+    # 1. Validation
+    if (-not (ValidateOtherUsername -scriptScope $scriptScope)) {
+        Show-MessageBox -Message "Please enter a valid username." -Title "Invalid Username" -Button 'OK' -Icon 'Warning' | Out-Null
+        return
+    }
+
+    # 2. Preparation
+    ClearParameters
+    
+    # 3. Collect App Removals
+    $selectedApps = @()
+    if ($scriptScope.AppSelectionPanel) {
+        foreach ($child in $scriptScope.AppSelectionPanel.Children) {
+            if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) {
+                # In this fork, the Tag property usually holds the app ID
+                if ($child.Tag) { $selectedApps += $child.Tag }
+                elseif ($child.Name -match '^chk_(.+)$') { $selectedApps += $matches[1] }
+            }
+        }
+    }
+    
+    if ($selectedApps.Count -gt 0) {
+        AddParameter 'RemoveApps'
+        AddParameter 'Apps' ($selectedApps -join ',')
+        
+        # App Removal Scope
+        if ($scriptScope.AppRemovalScopeCombo) {
+            switch ($scriptScope.AppRemovalScopeCombo.SelectedIndex) {
+                0 { AddParameter 'AppRemovalTarget' 'AllUsers' }
+                1 { AddParameter 'AppRemovalTarget' 'CurrentUser' }
+                2 { AddParameter 'AppRemovalTarget' ($scriptScope.OtherUsernameTextBox.Text.Trim()) }
+            }
+        }
+    }
+
+    # 4. Collect Tweaks (from UiControlMappings)
+    if ($script:UiControlMappings) {
+        foreach ($mappingKey in $script:UiControlMappings.Keys) {
+            $control = $scriptScope.window.FindName($mappingKey)
+            $mapping = $script:UiControlMappings[$mappingKey]
+            $isSelected = $false
+            $selectedIndex = 0
+            
+            if ($control -is [System.Windows.Controls.CheckBox]) {
+                $isSelected = $control.IsChecked -eq $true
+            }
+            elseif ($control -is [System.Windows.Controls.ComboBox]) {
+                $isSelected = $control.SelectedIndex -gt 0
+                $selectedIndex = $control.SelectedIndex
+            }
+            
+            if ($control -and $isSelected) {
+                if ($mapping.Type -eq 'group') {
+                    if ($selectedIndex -gt 0 -and $selectedIndex -le $mapping.Values.Count) {
+                        $selectedValue = $mapping.Values[$selectedIndex - 1]
+                        foreach ($fid in $selectedValue.FeatureIds) { AddParameter $fid }
+                    }
+                }
+                elseif ($mapping.Type -eq 'feature') {
+                    AddParameter $mapping.FeatureId
+                }
+            }
+            # Handle revert for 3-state if needed (skipped for now for simplicity as per legacy logic)
+        }
+    }
+
+    # 5. Collect Performance & System Mods (Settings/Home Tab)
+    if ($scriptScope.HomeModUltimatePerf -and $scriptScope.HomeModUltimatePerf.IsChecked) { AddParameter 'AddUltimatePerformancePlan' }
+    if ($scriptScope.HomeModHyperVNFS -and $scriptScope.HomeModHyperVNFS.IsChecked) { AddParameter 'InstallFeatures' }
+    if ($scriptScope.HomeModClearTemp -and $scriptScope.HomeModClearTemp.IsChecked) { AddParameter 'DeleteTemporaryFiles' }
+    if ($scriptScope.HomeModResetUpdates -and $scriptScope.HomeModResetUpdates.IsChecked) { AddParameter 'ResetWindowsUpdate' }
+    if ($scriptScope.HomeModCorruptionScan -and $scriptScope.HomeModCorruptionScan.IsChecked) { AddParameter 'SystemCorruptionScan' }
+    
+    # 6. Global Settings (Restore Point, Explorer, Hide Launcher)
+    if ($scriptScope.RestorePointToggle -and $scriptScope.RestorePointToggle.IsChecked) { AddParameter 'CreateRestorePoint' }
+    if ($scriptScope.HideLauncherToggle -and $scriptScope.HideLauncherToggle.IsChecked) { AddParameter 'HideLauncher' }
+    
+    $shouldRestartExplorer = if ($scriptScope.RestartExplorerToggle) { $scriptScope.RestartExplorerToggle.IsChecked -eq $true } else { $true }
+
+    # 7. User Target Mode
+    if ($scriptScope.UserSelectionCombo) {
+        switch ($scriptScope.UserSelectionCombo.SelectedIndex) {
+            1 { AddParameter 'User' ($scriptScope.OtherUsernameTextBox.Text.Trim()) }
+            2 { AddParameter 'Sysprep' }
+        }
+    }
+
+    # 8. Check if anything to do
+    $actionableCount = 0
+    foreach ($k in $script:Params.Keys) { if ($script:ControlParams -notcontains $k -and $k -ne 'Apps' -and $k -ne 'CreateRestorePoint') { $actionableCount++ } }
+    if ($actionableCount -eq 0 -and -not $script:Params.ContainsKey('CreateRestorePoint')) {
+        Show-MessageBox -Message "No changes have been selected. Please pick some options before applying." -Title "No Changes" -Button 'OK' -Icon 'Information' | Out-Null
+        return
+    }
+
+    # 9. Execution
+    SaveSettings
+    Show-ApplyModal -Owner $scriptScope.window -RestartExplorer $shouldRestartExplorer
+    
+    # Note: Foundation's Show-ApplyModal might close the window.
+    # In this fork, we might want to stay open unless the user closes it.
 }
 
 function ValidateOtherUsername {
@@ -118,7 +279,7 @@ function GenerateOverview {
         }
     }
 
-    # 3. Deployment / Home Changes (Panel Index 0 or 3)
+    # 3. Settings / Home Changes (Panel Index 0 or 3)
     if ($null -eq $panelIndex -or $panelIndex -eq 3 -or $panelIndex -eq 0) {
         if ($scriptScope.HomeModUltimatePerf.IsChecked) { $changesList += "Add Ultimate Performance plan" }
         if ($scriptScope.HomeModHyperVNFS.IsChecked) { $changesList += "Install Hyper-V & NFS Features" }
@@ -126,22 +287,22 @@ function GenerateOverview {
         if ($scriptScope.HomeModResetUpdates.IsChecked) { $changesList += "Reset Windows Updates" }
         if ($scriptScope.HomeModCorruptionScan.IsChecked) { $changesList += "System Corruption Scan" }
         
-        if ($null -eq $panelIndex -or $panelIndex -eq 3) {
-            if ($scriptScope.RestorePointCheckBox.IsChecked) { $changesList += "Create System Restore Point" }
-            if ($scriptScope.RestartExplorerCheckBox.IsChecked) { $changesList += "Restart Windows Explorer" }
-        }
+        # New Settings tab options
+        if ($scriptScope.RestorePointToggle.IsChecked) { $changesList += "Create System Restore Point" }
+        if ($scriptScope.RestartExplorerToggle.IsChecked) { $changesList += "Auto-Restart Explorer" }
+        if ($scriptScope.HideLauncherToggle.IsChecked) { $changesList += "Hide Launcher Window" }
     }
 
     return $changesList
 }
 
 function ShowChangesOverview {
-    param($scriptScope)
+    param($scriptScope, [bool]$forceAll = $false)
     $currentIndex = $scriptScope.MainTabControl.SelectedIndex
     $totalTabs = $scriptScope.MainTabControl.Items.Count
     
-    # If not the last panel, filter to current panel's changes
-    $filterIndex = if ($currentIndex -lt $totalTabs - 1) { $currentIndex } else { $null }
+    # If forced or on the settings page, show ALL changes. Otherwise filter to current panel.
+    $filterIndex = if ($forceAll -or $currentIndex -eq 3) { $null } else { $currentIndex }
     
     $changesList = GenerateOverview -scriptScope $scriptScope -panelIndex $filterIndex
     if ($changesList.Count -eq 0) { Show-MessageBox -Message 'No changes have been selected for this section.' -Title 'Selected Changes' -Button 'OK' -Icon 'Information'; return }
@@ -159,4 +320,78 @@ function UpdateAppRemovalScopeDescription {
             "Target user only" { $scriptScope.appRemovalScopeDescription.Text = "Apps will only be removed for the specified target user. Other users and new users will not be affected." }
         }
     }
+}
+
+function Show-CliExport {
+    param($scriptScope)
+    
+    $cliCommand = Get-CliExportCommand -scriptScope $scriptScope
+    
+    $message = "Copy this command to run GoldenImager with your current settings:`n`n$cliCommand"
+    $result = Show-MessageBox -Message $message -Title "Export CLI Command" -Button "OK" -Icon "Information" -Width 700
+    
+    try {
+        [System.Windows.Clipboard]::SetText($cliCommand)
+        Set-Status -Message "CLI Command copied to clipboard"
+    } catch {
+        Write-Warning "Failed to copy to clipboard: $_"
+    }
+}
+
+function Get-CliExportCommand {
+    param($scriptScope)
+    
+    $scriptPath = Join-Path $PSScriptRoot "GoldenImager.ps1"
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.Append("powershell.exe -ExecutionPolicy Bypass -File `"$scriptPath`"")
+    
+    # 1. Apps
+    $selectedApps = @()
+    if ($scriptScope.AppSelectionPanel) {
+        foreach ($child in $scriptScope.AppSelectionPanel.Children) {
+            if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) {
+                if ($child.Name -match '^chk_(.+)$') {
+                    $selectedApps += $matches[1]
+                }
+            }
+        }
+    }
+    if ($selectedApps.Count -gt 0) {
+        [void]$sb.Append(" -RemoveApps -Apps `"$($selectedApps -join ',')`"")
+        
+        # App Removal Scope
+        if ($scriptScope.AppRemovalScopeCombo.SelectedIndex -eq 1) {
+            [void]$sb.Append(" -AppRemovalTarget `"$env:USERNAME`"")
+        }
+    }
+    
+    # 2. Tweaks (from UiControlMappings)
+    if ($script:UiControlMappings) {
+        foreach ($mappingKey in $script:UiControlMappings.Keys) {
+            $control = $scriptScope.window.FindName($mappingKey)
+            $mapping = $script:UiControlMappings[$mappingKey]
+            
+            if ($control -is [System.Windows.Controls.CheckBox] -and $control.IsChecked) {
+                if ($mapping.Type -eq 'feature' -and $mapping.FeatureId) {
+                    [void]$sb.Append(" -$($mapping.FeatureId)")
+                }
+            }
+        }
+    }
+    
+    # 3. Settings / Options
+    if ($scriptScope.RestorePointCheckBox -and $scriptScope.RestorePointCheckBox.IsChecked) { [void]$sb.Append(" -CreateRestorePoint") }
+    if ($scriptScope.RestartExplorerCheckBox -and $scriptScope.RestartExplorerCheckBox.IsChecked -eq $false) { [void]$sb.Append(" -NoRestartExplorer") }
+    
+    # 4. User Target
+    if ($scriptScope.UserSelectionCombo) {
+        if ($scriptScope.UserSelectionCombo.SelectedIndex -eq 1) {
+            $targetUser = $scriptScope.OtherUsernameTextBox.Text.Trim()
+            if ($targetUser) { [void]$sb.Append(" -User `"$targetUser`"") }
+        } elseif ($scriptScope.UserSelectionCombo.SelectedIndex -eq 2) {
+            [void]$sb.Append(" -Sysprep")
+        }
+    }
+    
+    return $sb.ToString()
 }

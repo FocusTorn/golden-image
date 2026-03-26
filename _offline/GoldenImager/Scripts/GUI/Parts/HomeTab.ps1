@@ -33,87 +33,92 @@ function Initialize-HomeTab {
     Write-Host "[DEBUG] Initialize-HomeTab started..."
     if ($null -eq $scriptScope.window) { Write-Warning "[DEBUG] Window is null!"; return }
 
+    $window = $scriptScope.window
+    $dispatcher = $window.Dispatcher
+    $logFile = Join-Path $script:GoldenImagerRoot "Logs\AuditDebug.log"
+    if (-not (Test-Path (Split-Path $logFile))) { New-Item -ItemType Directory (Split-Path $logFile) -Force | Out-Null }
+    "--- Audit Log $(Get-Date) ---" | Out-File $logFile
+
     # Helper to check and set elements
     $checkAndSet = {
         param($name, $visibility)
         if ($null -ne $scriptScope[$name]) {
             $scriptScope[$name].Visibility = $visibility
-        } else {
-            Write-Warning "[DEBUG] UI Element NOT FOUND in scriptScope: $name"
         }
     }
 
-    # 1. Immediate UI state (Force show the content containers)
-    Write-Host "[DEBUG] Setting immediate UI state..."
+    # 1. Immediate UI state
     &$checkAndSet "HomeModSpinner" "Collapsed"
     &$checkAndSet "HomeModContent" "Visible"
     &$checkAndSet "HomeExecSpinner" "Collapsed"
     &$checkAndSet "HomeExecContent" "Visible"
 
-    # 2. Connection Settings Audit (Decoupled Task with Closure)
-    Write-Host "[DEBUG] Triggering Connection Audit..."
+    # 2. Connection Settings Audit
     &$checkAndSet "HomeConnSpinner" "Visible"
     &$checkAndSet "HomeConnContent" "Collapsed"
-    if ($null -ne $scriptScope.HomeConnError) { $scriptScope.HomeConnError.Visibility = 'Collapsed' }
     
-    # Capture variables for closure
     $localScope = $scriptScope
+
     $connAction = {
+        param($disp, $scope, $log)
         try {
+            "Starting Connection Audit..." | Out-File $log -Append
+            
             # Real audits
-            $results = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LimitBlankPasswordUse" -ErrorAction SilentlyContinue
-            $lb = if ($null -ne $results) { $results.LimitBlankPasswordUse } else { 1 }
+            $lb = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LimitBlankPasswordUse" -ErrorAction SilentlyContinue).LimitBlankPasswordUse
+            if ($null -eq $lb) { $lb = 1 }
             $wrm = (Get-Service -Name WinRM -ErrorAction SilentlyContinue).Status -eq 'Running'
             $kiso = (Get-Service -Name KeyIso -ErrorAction SilentlyContinue).Status -eq 'Running'
             $adminOk = try { (Get-LocalUser -Name "Administrator" -ErrorAction SilentlyContinue).Enabled } catch { $false }
             
-            $localScope.window.Dispatcher.InvokeAsync([Action]{
-                if ($null -ne $localScope.HomeConnLimitBlank) { $localScope.HomeConnLimitBlank.IsChecked = $lb -eq 0 }
-                if ($null -ne $localScope.HomeConnWinRM)      { $localScope.HomeConnWinRM.IsChecked      = $wrm }
-                if ($null -ne $localScope.HomeConnKeyIso)     { $localScope.HomeConnKeyIso.IsChecked     = $kiso }
-                if ($null -ne $localScope.HomeConnAdmin)      { $localScope.HomeConnAdmin.IsChecked      = $adminOk }
+            "Audits complete. Dispatching to UI..." | Out-File $log -Append
+            
+            $disp.InvokeAsync([Action]{
+                if ($null -ne $scope.HomeConnLimitBlank) { $scope.HomeConnLimitBlank.IsChecked = $lb -eq 0 }
+                if ($null -ne $scope.HomeConnWinRM)      { $scope.HomeConnWinRM.IsChecked      = $wrm }
+                if ($null -ne $scope.HomeConnKeyIso)     { $scope.HomeConnKeyIso.IsChecked     = $kiso }
+                if ($null -ne $scope.HomeConnAdmin)      { $scope.HomeConnAdmin.IsChecked      = $adminOk }
                 
-                if ($null -ne $localScope.HomeConnSpinner) { $localScope.HomeConnSpinner.Visibility = 'Collapsed' }
-                if ($null -ne $localScope.HomeConnContent) { $localScope.HomeConnContent.Visibility = 'Visible' }
+                if ($null -ne $scope.HomeConnSpinner) { $scope.HomeConnSpinner.Visibility = 'Collapsed' }
+                if ($null -ne $scope.HomeConnContent) { $scope.HomeConnContent.Visibility = 'Visible' }
             })
+            "Connection Audit Dispatch Sent." | Out-File $log -Append
         } catch {
+            "CRASH in Connection Audit: $($_.Exception.Message)" | Out-File $log -Append
             $err = $_.Exception.Message
-            Write-Warning "[DEBUG] Conn audit background error: $err"
-            $localScope.window.Dispatcher.InvokeAsync([Action]{
-                if ($null -ne $localScope.HomeConnError)   { $localScope.HomeConnError.Text = "Audit Error: $err"; $localScope.HomeConnError.Visibility = 'Visible' }
-                if ($null -ne $localScope.HomeConnSpinner) { $localScope.HomeConnSpinner.Visibility = 'Collapsed' }
+            $disp.InvokeAsync([Action]{
+                if ($null -ne $scope.HomeConnError)   { $scope.HomeConnError.Text = "Err: $err"; $scope.HomeConnError.Visibility = 'Visible' }
+                if ($null -ne $scope.HomeConnSpinner) { $scope.HomeConnSpinner.Visibility = 'Collapsed' }
             })
         }
-    }.GetNewClosure()
+    }
 
-    [System.Threading.Tasks.Task]::Run([System.Action]$connAction)
+    # Run Connection Task
+    [System.Threading.Tasks.Task]::Run([System.Action]{ &$connAction $dispatcher $localScope $logFile })
 
-    # 3. Stages Audit (Decoupled Task with Closure)
-    Write-Host "[DEBUG] Triggering Stages Audit..."
+    # 3. Stages Audit
     &$checkAndSet "HomeStagesAuditSpinner" "Visible"
     &$checkAndSet "HomeStagesAuditContent" "Collapsed"
-    if ($null -ne $scriptScope.HomeStagesAuditError) { $scriptScope.HomeStagesAuditError.Visibility = 'Collapsed' }
 
     $stagesAction = {
+        param($disp, $scope, $log)
         try {
-            # Real Audit: Check system state for imaging progress
+            "Starting Stages Audit..." | Out-File $log -Append
             $auditData = @()
-            
-            # Stage 1: Customization (Check for PS7)
             $ps7Ok = Test-Path "C:\Program Files\PowerShell\7\pwsh.exe"
             $auditData += @{ Name = "Customization & PWSH 7"; Status = if ($ps7Ok) { "Green" } else { "Gray" } }
             
-            # Stage 2: MSVC Runtimes
             $msvcOk = Test-Path "HKLM:\SOFTWARE\Classes\Installer\Dependencies\VC,redist.x64,amd64,14.0,bundle"
             $auditData += @{ Name = "MSVC Runtimes"; Status = if ($msvcOk) { "Green" } else { "Gray" } }
             
-            # Stage 3: System Apps
             $appsOk = Test-Path "C:\ProgramData\Chocolatey\bin\choco.exe" -or Test-Path "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
             $auditData += @{ Name = "App Infrastructure"; Status = if ($appsOk) { "Green" } else { "Gray" } }
             
-            $localScope.window.Dispatcher.InvokeAsync([Action]{
-                if ($null -eq $localScope.HomeStagesAuditPanel) { return }
-                $localScope.HomeStagesAuditPanel.Children.Clear()
+            "Stages Audits complete. Dispatching..." | Out-File $log -Append
+            
+            $disp.InvokeAsync([Action]{
+                if ($null -eq $scope.HomeStagesAuditPanel) { return }
+                $scope.HomeStagesAuditPanel.Children.Clear()
                 
                 foreach ($item in $auditData) {
                     $color = if ($item.Status -eq "Green") { [System.Windows.Media.Brushes]::LimeGreen } else { [System.Windows.Media.Brushes]::DimGray }
@@ -123,33 +128,34 @@ function Initialize-HomeTab {
                         Foreground = $color;
                         FontWeight = "SemiBold"
                     }
-                    $localScope.HomeStagesAuditPanel.Children.Add($tb) | Out-Null
+                    $scope.HomeStagesAuditPanel.Children.Add($tb) | Out-Null
                 }
                 
-                if ($null -ne $localScope.HomeStagesAuditSpinner) { $localScope.HomeStagesAuditSpinner.Visibility = 'Collapsed' }
-                if ($null -ne $localScope.HomeStagesAuditContent) { $localScope.HomeStagesAuditContent.Visibility = 'Visible' }
+                if ($null -ne $scope.HomeStagesAuditSpinner) { $scope.HomeStagesAuditSpinner.Visibility = 'Collapsed' }
+                if ($null -ne $scope.HomeStagesAuditContent) { $scope.HomeStagesAuditContent.Visibility = 'Visible' }
             })
+            "Stages Audit Dispatch Sent." | Out-File $log -Append
         } catch {
+            "CRASH in Stages Audit: $($_.Exception.Message)" | Out-File $log -Append
             $err = $_.Exception.Message
-            Write-Warning "[DEBUG] Stages audit background error: $err"
-            $localScope.window.Dispatcher.InvokeAsync([Action]{
-                if ($null -ne $localScope.HomeStagesAuditError)   { $localScope.HomeStagesAuditError.Text = "Audit Error: $err"; $localScope.HomeStagesAuditError.Visibility = 'Visible' }
-                if ($null -ne $localScope.HomeStagesAuditSpinner) { $localScope.HomeStagesAuditSpinner.Visibility = 'Collapsed' }
+            $disp.InvokeAsync([Action]{
+                if ($null -ne $scope.HomeStagesAuditError)   { $scope.HomeStagesAuditError.Text = "Err: $err"; $scope.HomeStagesAuditError.Visibility = 'Visible' }
+                if ($null -ne $scope.HomeStagesAuditSpinner) { $scope.HomeStagesAuditSpinner.Visibility = 'Collapsed' }
             })
         }
-    }.GetNewClosure()
+    }
 
-    [System.Threading.Tasks.Task]::Run([System.Action]$stagesAction)
+    # Run Stages Task
+    [System.Threading.Tasks.Task]::Run([System.Action]{ &$stagesAction $dispatcher $localScope $logFile })
 
     # 4. Attach Event Handlers
-    Write-Host "[DEBUG] Attaching event handlers..."
     try {
+        if ($null -ne $scriptScope.HomeApplyFeaturesBtn) {
+            $scriptScope.HomeApplyFeaturesBtn.Add_Click({ Write-Host "Apply Changes clicked." })
+        }
         if ($null -ne $scriptScope.HomeExecRunBtn) {
             $scriptScope.HomeExecRunBtn.Add_Click({
-                Invoke-WithProgress "Execution" {
-                    # Execute logic...
-                    Write-Host "Execute clicked."
-                } $scriptScope
+                Invoke-WithProgress "Execution" { Write-Host "Execute clicked." } $scriptScope
             })
         }
     } catch { Write-Warning "[DEBUG] Handler attachment error: $_" }
