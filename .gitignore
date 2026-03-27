@@ -12,3 +12,4 @@ logs/
 
 # Ignored by F-UX Notes Hub
 /.fux_note-hub/
+_offline/GoldenImager2/_temp_backup/engine/target/
