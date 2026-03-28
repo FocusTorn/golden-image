@@ -253,7 +253,7 @@ fn get_app_details(parent_key: HKEY, subkey_name: PCWSTR, fallback_name: &str) -
         let version = read_reg_string(hkey, "DisplayVersion");
         let install_date = read_reg_string(hkey, "InstallDate");
         
-        let app_id = read_reg_string(hkey, "UninstallString").unwrap_or_else(|| friendly_name.clone());
+        let app_id = fallback_name.to_string();
 
         Ok(AppEntry {
             app_id,

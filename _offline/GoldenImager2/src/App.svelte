@@ -14,6 +14,7 @@
   let appCount = 0;
 
   onMount(async () => {
+    /* OS Color Pull - Preserved but Disabled as per request
     try {
       if ((window as any).__TAURI_METADATA__) {
         const themeInfo: any = await invoke('get_theme_info');
@@ -25,6 +26,7 @@
     } catch (e) {
       console.error("Failed to get system theme:", e);
     }
+    */
   });
 
   $: accentRgb = `${r}, ${g}, ${b}`;
@@ -100,13 +102,13 @@
   .v-edge {
     width: 1px;
     height: 100%;
-    background: var(--divider-edge);
+    background: linear-gradient(180deg, #0d1214 0%, #0d1214 66%, #050809 100%);
   }
 
   .v-core {
     width: 2px;
     height: 100%;
-    background: var(--divider-core);
+    background: linear-gradient(180deg, #2c3233 0%, #2c3233 66%, #1e2223 100%);
   }
 
   .page-container {

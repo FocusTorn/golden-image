@@ -15,6 +15,8 @@
   
   --text-main-rgb: 201, 209, 217;
   --text-dim-rgb: 139, 148, 158;
+  --bg-main-rgb: 24, 34, 36;
+  --bg-panel-rgb: 28, 36, 39;
   
   --grad-main: linear-gradient(180deg, #182224 0%, #182224 66%, #121a1b 100%);
   --grad-panel: linear-gradient(180deg, #1C2427 0%, #1C2427 66%, #101517 100%);
