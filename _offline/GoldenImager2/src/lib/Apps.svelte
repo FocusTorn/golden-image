@@ -39,6 +39,24 @@
     { id: "all", label: "All Applications" },
   ];
 
+  let isPolicyOpen = false;
+  let isProfileOpen = false;
+
+  function togglePolicy() { isPolicyOpen = !isPolicyOpen; isProfileOpen = false; }
+  function toggleProfile() { isProfileOpen = !isProfileOpen; isPolicyOpen = false; }
+  
+  function selectPolicy(id: string) { viewFilter = id; isPolicyOpen = false; }
+  function selectProfile(p: string) { selectedProfile = p; isProfileOpen = false; loadProfile(); }
+
+  // Click Outside logic
+  function handleGlobalClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.custom-select-container')) {
+      isPolicyOpen = false;
+      isProfileOpen = false;
+    }
+  }
+
   $: appCount = filteredApps ? filteredApps.length : 0;
 
   async function loadData() {
@@ -48,7 +66,6 @@
       if (isTauri) {
         apps = await invoke("get_apps");
         profiles = await invoke("list_app_profiles");
-        // Removed auto-select on load per request
       }
     } catch (e) {
       error = typeof e === "string" ? e : JSON.stringify(e);
@@ -56,6 +73,12 @@
       loading = false;
     }
   }
+
+  onMount(() => {
+    loadData();
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  });
 
   async function loadProfile() {
     if (!selectedProfile || !isTauri) return;
@@ -66,23 +89,33 @@
       
       // Fuzzy Matching: Map profile names/short-ids to actual system identifiers
       const newSelection = new Set<string>();
+      const systemApps = [...apps]; // Local snapshot
+      
       profileAppIds.forEach(pId => {
         const pIdLower = pId.toLowerCase();
-        // Look for exact matches or IDs that start/end with the profile string
-        const match = apps.find(a => 
+        
+        // 1. Exact Match or PackageFullName Prefix Match (most common for Appx)
+        const match = systemApps.find(a => 
           a.AppId.toLowerCase() === pIdLower || 
           a.AppId.toLowerCase().startsWith(pIdLower + "_") ||
-          a.FriendlyName.toLowerCase() === pIdLower
+          a.AppId.toLowerCase().includes("." + pIdLower + "_")
         );
-        if (match) newSelection.add(match.AppId);
+
+        if (match) {
+          newSelection.add(match.AppId);
+        } else {
+          // 2. Fallback: Friendly Name matching (less precise)
+          const nameMatch = systemApps.find(a => a.FriendlyName.toLowerCase() === pIdLower);
+          if (nameMatch) newSelection.add(nameMatch.AppId);
+        }
       });
 
       selectedApps = newSelection;
       isApplied = true;
-      console.log(`[Apps] Profile '${selectedProfile}' loaded with fuzzy matching. Matched: ${selectedApps.size}/${profileAppIds.length}`);
+      console.log(`[Apps] Profile '${selectedProfile}' synced. Matched ${selectedApps.size}/${profileAppIds.length} apps.`);
     } catch (e) {
-      console.error("[Apps] Profile Load Failure:", e);
-      alert(`Profile Error: ${e}`);
+      console.error("[Apps] Load Conflict:", e);
+      alert(`Sync Error: ${e}`);
     }
   }
 
@@ -102,8 +135,6 @@
       console.error("Failed to save profile:", e);
     }
   }
-
-  onMount(loadData);
 
   $: filteredApps = apps.filter((app) => {
     const search = searchTerm.toLowerCase();
@@ -185,35 +216,57 @@
 <div class="panel">
   <div class="toolbar">
     <div class="tool-group">
-      <select bind:value={viewFilter} class="compact-select main-filter">
-        {#each FILTER_OPTIONS as opt}
-          <option value={opt.id}>{opt.label}</option>
-        {/each}
-      </select>
+      <!-- Custom Policy Dropdown -->
+      <div class="custom-select-container">
+        <button class="compact-select main-filter" on:click|stopPropagation={togglePolicy} class:item-open={isPolicyOpen}>
+          <span>{FILTER_OPTIONS.find(o => o.id === viewFilter)?.label}</span>
+          <span class="chevron-wrapper" class:spin={isPolicyOpen}>
+            <ChevronDown size={12} />
+          </span>
+        </button>
+        {#if isPolicyOpen}
+          <div class="dropdown-list">
+            {#each FILTER_OPTIONS as opt}
+              <button class="dropdown-item" class:active={viewFilter === opt.id} on:click={() => selectPolicy(opt.id)}>
+                {opt.label}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
       <div class="profile-bar" class:applied={isApplied && selectedProfile} class:selected={selectedProfile && !isApplied}>
         <LayoutList 
           size={12} 
           class="profile-icon"
         />
-        <select
-          bind:value={selectedProfile}
-          on:change={() => isApplied = false}
-          class="compact-select profile-dropdown"
-        >
-          {#if profiles.length === 0}
-            <option value="">No Profiles Found</option>
-          {:else}
-            <option value="">No Profile Loaded</option>
+        
+        <!-- Custom Profile Dropdown -->
+        <div class="custom-select-container profile-dropdown-wrapper">
+          <button class="profile-dropdown-btn" on:click|stopPropagation={toggleProfile} class:item-open={isProfileOpen}>
+            <span>{selectedProfile || "No Profile Loaded"}</span>
+            <span class="chevron-wrapper" class:spin={isProfileOpen}>
+              <ChevronDown size={12} />
+            </span>
+          </button>
+          {#if isProfileOpen}
+            <div class="dropdown-list">
+              <button class="dropdown-item" class:active={!selectedProfile} on:click={() => selectProfile("")}>
+                No Profile Loaded
+              </button>
+              {#each profiles as p}
+                <button class="dropdown-item" class:active={selectedProfile === p} on:click={() => selectProfile(p)}>
+                  {p}
+                </button>
+              {/each}
+            </div>
           {/if}
-          {#each profiles as profile}
-            <option value={profile}>{profile.replace(".json", "")}</option>
-          {/each}
-        </select>
-        <button class="profile-btn" title="Load Profile" on:click={loadProfile}>
+        </div>
+
+        <button class="profile-btn" on:click={loadProfile}>
           <Download size={14} />
         </button>
-        <button class="profile-btn" title="Save Selection" on:click={saveProfile}>
+        <button class="profile-btn" on:click={saveProfile}>
           <Save size={14} />
         </button>
       </div>
@@ -309,10 +362,10 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: transparent;
-    padding: 12px;
-    box-sizing: border-box;
+    padding: 12px 12px 0 24px;
+    gap: 4px; /* Tighter gap */
     overflow: hidden;
+    background: transparent;
   }
 
   .toolbar {
@@ -329,37 +382,39 @@
     gap: 8px;
   }
 
-
-  .compact-select {
-    background: rgba(18, 24, 26, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 
-      inset 0 0 0 1px #12181a,
-      inset 0 2px 4px rgba(0, 0, 0, 0.3);
-    color: var(--text-main);
-    font-size: 11px;
-    padding: 0 24px 0 10px; /* Increased side padding */
-    border-radius: 4px;
-    height: 28px; /* Increased from 24px */
-    outline: none;
-    cursor: pointer;
-    appearance: none;
-    color-scheme: dark;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    transition: all 0.2s;
+  .custom-select-container {
+    position: relative;
+    display: flex;
+    align-items: center;
   }
 
-  .compact-select option {
-    background-color: #1c2427;
+  .compact-select {
+    appearance: none;
+    background: rgba(0, 0, 0, 0.15); /* Sunken start */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      inset 0 0 0 1px #12181a;
     color: #fff;
-    padding: 8px;
+    font-size: 11px;
+    padding: 0 12px;
+    border-radius: 4px;
+    height: 28px;
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .compact-select:hover {
-    background-color: #232d30;
-    border-color: rgba(var(--accent-rgb), 0.3);
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(var(--accent-rgb), 0.5) !important;
+    box-shadow: 
+      0 0 20px rgba(var(--accent-rgb), 0.4),
+      0 0 4px rgba(var(--accent-rgb), 0.6); /* Unified with buttons */
+    z-index: 50;
   }
 
   .main-filter {
@@ -371,41 +426,69 @@
     display: flex;
     align-items: center;
     gap: 0;
-    background: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.15); /* Sunken start */
     padding: 0 0 0 6px;
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 
       inset 0 0 0 1px #12181a;
     height: 28px;
-    overflow: hidden;
+    position: relative;
+    z-index: 5;
   }
 
-  .profile-dropdown {
+  .profile-dropdown-btn {
+    appearance: none;
     border: none !important;
     background: transparent !important;
     flex: 1;
     min-width: 80px;
-    padding-right: 20px;
-    background-position: right 2px center;
+    height: 28px;
+    padding: 0 12px 0 0;
     color: rgba(255, 255, 255, 0.4); /* State 1: No Profile */
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .compact-select:hover {
+  .profile-dropdown-btn:hover {
     background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(var(--accent-rgb), 0.4) !important;
-    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
+    border-color: rgba(var(--accent-rgb), 0.5) !important;
+    box-shadow: 
+      0 0 20px rgba(var(--accent-rgb), 0.4),
+      0 0 4px rgba(var(--accent-rgb), 0.6); /* Outward expansion match */
+    z-index: 50;
   }
 
-  .profile-bar.selected .profile-dropdown {
-    color: #fff; /* State 2: Selected but not applied */
+  .profile-dropdown-btn.item-open, .compact-select.item-open {
+    border-color: rgba(var(--accent-rgb), 0.6) !important;
+    box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.2);
+  }
+
+  .profile-bar.selected .profile-dropdown-btn {
+    color: #fff; 
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
   }
 
-  .profile-bar.applied .profile-dropdown {
-    color: var(--accent-color); /* State 3: Applied */
+  .profile-bar.applied .profile-dropdown-btn {
+    color: var(--accent-color);
     font-weight: 700;
+  }
+
+  .chevron-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .chevron-wrapper.spin {
+    transform: rotate(180deg);
   }
 
   :global(.profile-icon) {
@@ -468,13 +551,16 @@
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
     border-color: rgba(var(--accent-rgb), 0.5);
-    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.15);
+    box-shadow: 
+      0 0 20px rgba(var(--accent-rgb), 0.3),
+      0 0 4px rgba(var(--accent-rgb), 0.4);
   }
 
   .profile-btn {
-    background: transparent;
+    background: rgba(0, 0, 0, 0.1); /* Sunken start */
     border: none;
     border-left: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     padding: 0 8px;
@@ -482,13 +568,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .profile-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
-    border-color: rgba(var(--accent-rgb), 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
+    box-shadow: 
+      0 0 20px rgba(var(--accent-rgb), 0.4),
+      0 0 4px rgba(var(--accent-rgb), 0.6);
+    z-index: 10;
+  }
+
+  .profile-dropdown-wrapper {
+    flex: 1;
   }
 
   .action-btn {
@@ -515,16 +609,6 @@
     filter: brightness(1.15);
     box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.5);
     transform: translateY(-1px);
-  }
-
-  .panel {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 12px 12px 0 24px;
-    gap: 4px; /* Tighter gap */
-    overflow: hidden;
-    background: transparent;
   }
 
   .table-container {
@@ -595,7 +679,6 @@
     position: relative;
   }
 
-
   .table-body {
     flex: 1;
     overflow-y: auto;
@@ -626,9 +709,12 @@
 
   .row:hover {
     background: var(--bg-card-hover);
-    border-color: rgba(var(--accent-rgb), 0.3);
+    border-color: rgba(var(--accent-rgb), 0.5);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 20px rgba(var(--accent-rgb), 0.3);
+    z-index: 10;
   }
 
   .row.selected {

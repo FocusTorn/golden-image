@@ -229,12 +229,13 @@
   }
 
   .feature-card:hover {
-    border-color: rgba(var(--accent-rgb), 0.3);
+    border-color: rgba(var(--accent-rgb), 0.5);
     background: rgba(255, 255, 255, 0.06);
     box-shadow: 
-      0 8px 24px rgba(0, 0, 0, 0.3),
-      0 0 12px rgba(var(--accent-rgb), 0.1);
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 20px rgba(var(--accent-rgb), 0.3);
     transform: translateY(-2px);
+    z-index: 10;
   }
 
   .feature-card.applied {
@@ -274,7 +275,9 @@
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
     border-color: rgba(var(--accent-rgb), 0.5);
-    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.2);
+    box-shadow: 
+      0 0 20px rgba(var(--accent-rgb), 0.3),
+      0 0 4px rgba(var(--accent-rgb), 0.4);
   }
 
   .action-btn.applied {

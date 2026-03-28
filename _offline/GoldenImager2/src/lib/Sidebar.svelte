@@ -5,17 +5,25 @@
 
 <aside class="sidebar" data-tauri-drag-region>
   <button class:active={activeTab === 'dashboard'} on:click={() => activeTab = 'dashboard'} title="Dashboard">
-    <Home size={24} />
+    <span class="icon-wrapper">
+      <Home size={24} color={activeTab === 'dashboard' ? 'var(--accent-color)' : 'currentColor'} />
+    </span>
   </button>
   <button class:active={activeTab === 'tweaks'} on:click={() => activeTab = 'tweaks'} title="Tweaks">
-    <Cog size={24} />
+    <span class="icon-wrapper">
+      <Cog size={24} color={activeTab === 'tweaks' ? 'var(--accent-color)' : 'currentColor'} />
+    </span>
   </button>
   <button class:active={activeTab === 'apps'} on:click={() => activeTab = 'apps'} title="Apps">
-    <LayoutList size={24} />
+    <span class="icon-wrapper">
+      <LayoutList size={24} color={activeTab === 'apps' ? 'var(--accent-color)' : 'currentColor'} />
+    </span>
   </button>
   <div class="spacer"></div>
   <button class:active={activeTab === 'settings'} on:click={() => activeTab = 'settings'} title="Settings">
-    <Settings size={24} />
+    <span class="icon-wrapper">
+      <Settings size={24} color={activeTab === 'settings' ? 'var(--accent-color)' : 'currentColor'} />
+    </span>
   </button>
 </aside>
 
@@ -38,7 +46,7 @@
     color: rgba(255, 255, 255, 0.35);
     padding: 12px 0;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     width: 100%;
     margin: 0;
@@ -48,15 +56,24 @@
     outline: none;
   }
 
+  .icon-wrapper {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   button:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(var(--accent-rgb), 0.2);
-    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
+    background: transparent;
   }
 
   button.active {
-    color: rgb(var(--accent-rgb));
+    color: var(--accent-color);
+    background: transparent;
+    border: none;
+    box-shadow: none;
   }
 
   button.active::before {
@@ -65,14 +82,14 @@
     left: 0;
     top: 0;
     bottom: 0;
-    width: 60px;
+    width: 100%; /* All the way to edge */
     background: rgba(18, 24, 26, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-left: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: none; /* No left border */
     border-radius: 0 8px 8px 0;
     box-shadow: 
       inset 0 0 0 1px #12181a,
-      inset 0 2px 8px rgba(0, 0, 0, 0.4);
+      inset 0 2px 20px rgba(0, 0, 0, 0.6);
     z-index: -1;
   }
 

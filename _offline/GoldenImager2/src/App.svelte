@@ -9,7 +9,7 @@
   import StatusBar from './lib/StatusBar.svelte';
 
   let activeTab = 'apps';
-  let r = 74, g = 199, b = 192; // #4AC7C0 (Brighter teal)
+  let r = 55, g = 125, b = 120; // #377D78 (Requested accent)
   let isDark = true;
   let appCount = 0;
 

@@ -74,11 +74,12 @@
 
   .card:hover {
     background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(var(--accent-rgb), 0.4);
+    border-color: rgba(var(--accent-rgb), 0.5);
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      0 0 16px rgba(var(--accent-rgb), 0.1);
-    transform: translateY(-2px);
+      0 12px 48px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(var(--accent-rgb), 0.3);
+    transform: translateY(-4px);
+    z-index: 10;
   }
 
   .main-health {
