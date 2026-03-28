@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/tauri';
-  import { Drill, Shield, ShieldAlert, Cpu, Lock, Eye, AlertTriangle, RefreshCw, Check, X } from 'lucide-svelte';
+  import { Cog, Shield, ShieldAlert, Cpu, Lock, Eye, AlertTriangle, RefreshCw, Check, X } from 'lucide-svelte';
 
   const isTauri = window.__TAURI_METADATA__ !== undefined;
 
@@ -98,7 +98,7 @@
 
   <div class="content">
     <div class="header">
-      <Drill size={24} style="color: #4fc3f7;" />
+      <Cog size={24} style="color: #4fc3f7;" />
       <h1>{activeCategory}</h1>
     </div>
 

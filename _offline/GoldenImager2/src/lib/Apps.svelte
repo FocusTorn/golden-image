@@ -3,8 +3,8 @@
   import { invoke } from "@tauri-apps/api/tauri";
   import {
     LayoutDashboard,
-    Drill,
-    Package,
+    Cog,
+    LayoutList,
     Settings,
     Search,
     Save,
@@ -47,9 +47,7 @@
       if (isTauri) {
         apps = await invoke("get_apps");
         profiles = await invoke("list_app_profiles");
-        if (profiles.length > 0 && !selectedProfile) {
-          selectedProfile = profiles[0];
-        }
+        // Removed auto-select on load per request
       }
     } catch (e) {
       error = typeof e === "string" ? e : JSON.stringify(e);
@@ -175,22 +173,28 @@
       </select>
 
       <div class="profile-bar">
-        <Package size={12} class="icon-muted" />
+        <LayoutList 
+          size={12} 
+          class={selectedProfile ? "" : "icon-muted"} 
+          style={selectedProfile ? "color: rgb(var(--accent-rgb)); opacity: 1; filter: saturate(1.2)" : ""} 
+        />
         <select
           bind:value={selectedProfile}
           class="compact-select profile-dropdown"
         >
           {#if profiles.length === 0}
             <option value="">No Profiles Found</option>
+          {:else}
+            <option value="">No Profile Loaded</option>
           {/if}
           {#each profiles as profile}
             <option value={profile}>{profile.replace(".json", "")}</option>
           {/each}
         </select>
-        <button class="tool-btn" title="Load Profile" on:click={loadProfile}>
+        <button class="profile-btn" title="Load Profile" on:click={loadProfile}>
           <Download size={14} />
         </button>
-        <button class="tool-btn" title="Save Selection" on:click={saveProfile}>
+        <button class="profile-btn" title="Save Selection" on:click={saveProfile}>
           <Save size={14} />
         </button>
       </div>
@@ -308,20 +312,30 @@
 
 
   .compact-select {
-    background: #1c2427;
-    border: 1px solid var(--border-muted);
+    background: rgba(18, 24, 26, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      inset 0 0 0 1px #12181a,
+      inset 0 2px 4px rgba(0, 0, 0, 0.3);
     color: var(--text-main);
     font-size: 11px;
-    padding: 2px 24px 2px 8px; /* Room for custom arrow */
+    padding: 0 24px 0 10px; /* Increased side padding */
     border-radius: 4px;
-    height: 24px;
+    height: 28px; /* Increased from 24px */
     outline: none;
     cursor: pointer;
     appearance: none;
+    color-scheme: dark;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 6px center;
+    background-position: right 8px center;
     transition: all 0.2s;
+  }
+
+  .compact-select option {
+    background-color: #1c2427;
+    color: #fff;
+    padding: 8px;
   }
 
   .compact-select:hover {
@@ -337,17 +351,24 @@
   .profile-bar {
     display: flex;
     align-items: center;
-    gap: 4px;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 1px 4px;
+    gap: 0;
+    background: rgba(0, 0, 0, 0.15);
+    padding: 0 0 0 6px;
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      inset 0 0 0 1px #12181a;
+    height: 28px;
+    overflow: hidden;
   }
 
   .profile-dropdown {
     border: none;
     background: transparent;
-    min-width: 100px;
+    flex: 1;
+    min-width: 80px;
+    padding-right: 20px;
+    background-position: right 2px center;
   }
 
   .search-box {
@@ -364,14 +385,17 @@
   }
 
   .compact-input {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      inset 0 0 0 1px #12181a,
+      inset 0 2px 4px rgba(0, 0, 0, 0.3);
     color: #fff;
     font-size: 11px;
-    padding: 2px 8px 2px 26px;
+    padding: 0 10px 0 28px; /* Balanced side padding */
     border-radius: 4px;
-    height: 24px;
-    width: 160px;
+    height: 28px; /* Increased from 24px */
+    width: 180px; /* Slightly wider for better balance */
     outline: none;
   }
 
@@ -390,6 +414,25 @@
 
   .tool-btn:hover {
     background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .profile-btn {
+    background: transparent;
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 0 8px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .profile-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
     color: #fff;
   }
 
@@ -417,7 +460,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 12px 12px 0 12px;
+    padding: 12px 12px 0 24px;
     gap: 4px; /* Tighter gap */
     overflow: hidden;
     background: transparent;
@@ -435,22 +478,16 @@
     padding: 0 6px; /* First half of gutter */
     box-shadow:
       inset 0 0 0 1px #12181a,
+      inset 16px 0 24px -12px rgba(0, 0, 0, 0.6),
       inset 0 2px 10px rgba(0, 0, 0, 0.3);
-  }
-
-  .table-container::before,
-  .table-container::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 32px;
-    z-index: 10;
-    pointer-events: none;
   }
 
   .table-container::before {
     top: 0;
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
     background: linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0.48) 0%,
@@ -458,17 +495,23 @@
     );
     height: 32px;
     z-index: 15;
+    pointer-events: none;
   }
 
   .table-container::after {
     bottom: 0;
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
     background: linear-gradient(
       to top,
       rgba(0, 0, 0, 0.48) 0%,
       rgba(var(--bg-main-rgb), 0) 100%
     );
     height: 32px;
-    right: 0;
+    z-index: 15;
+    pointer-events: none;
   }
 
   .table-header {

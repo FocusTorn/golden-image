@@ -293,6 +293,36 @@ async fn get_apps(app: tauri::AppHandle) -> Result<Vec<apps::AppEntry>, String> 
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            #[cfg(windows)]
+            {
+                use tauri::Manager;
+
+                if let Some(window) = app.get_window("main") {
+                    if let Ok(hwnd) = window.hwnd() {
+                        unsafe {
+                            type HWND = isize;
+                            extern "system" {
+                                fn LoadImageW(hinst: isize, lpszName: *const u16, uType: u32, cxDesired: i32, cyDesired: i32, fuLoad: u32) -> isize;
+                                fn SendMessageW(hWnd: HWND, Msg: u32, wParam: usize, lParam: isize) -> isize;
+                            }
+                            const WM_SETICON: u32 = 0x0080;
+                            const ICON_BIG: usize = 1;
+                            const IMAGE_ICON: u32 = 1;
+                            const LR_LOADFROMFILE: u32 = 0x00000010;
+
+                            let path: Vec<u16> = "P:\\Projects\\golden-image\\_offline\\GoldenImager2\\src\\assets\\taskbar.ico".encode_utf16().chain(Some(0)).collect();
+                            let hicon = LoadImageW(0, path.as_ptr(), IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
+                            
+                            if hicon != 0 {
+                                SendMessageW(hwnd.0, WM_SETICON, ICON_BIG, hicon);
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_audit_results, 
             get_features_config, 

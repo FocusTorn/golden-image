@@ -9,7 +9,7 @@
   import StatusBar from './lib/StatusBar.svelte';
 
   let activeTab = 'apps';
-  let r = 0, g = 120, b = 212;
+  let r = 74, g = 199, b = 192; // #4AC7C0 (Brighter teal)
   let isDark = true;
   let appCount = 0;
 
@@ -35,6 +35,12 @@
 <div class="app-root" style="--accent-rgb: {accentRgb}; --is-dark: {isDark ? 1 : 0}">
   <Header />
   
+  <div class="h-divider">
+    <div class="h-edge"></div>
+    <div class="h-core"></div>
+    <div class="h-edge"></div>
+  </div>
+
   <div class="app-body">
     <Sidebar bind:activeTab />
     
@@ -82,6 +88,8 @@
     flex-direction: column;
     border: 1px solid var(--border-muted);
     box-sizing: border-box;
+    box-shadow: none !important;
+    filter: none !important;
   }
 
   .app-body {
@@ -109,6 +117,31 @@
     width: 2px;
     height: 100%;
     background: linear-gradient(180deg, #2c3233 0%, #2c3233 66%, #1e2223 100%);
+  }
+
+  /* Horizontal Divider */
+  .h-divider {
+    height: 4px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    box-shadow: none !important;
+    filter: none !important;
+    position: relative;
+    z-index: 50;
+  }
+
+  .h-edge {
+    height: 1px;
+    width: 100%;
+    background: #0d1214; /* Charcoal edge line */
+  }
+
+  .h-core {
+    height: 2px;
+    width: 100%;
+    background: #2c3233; /* Slate core line */
   }
 
   .page-container {

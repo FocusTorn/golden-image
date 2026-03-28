@@ -7,7 +7,14 @@
 </script>
 
 <header class="header" data-tauri-drag-region>
-  <div class="title" data-tauri-drag-region>GoldenImager2</div>
+  <div class="title" data-tauri-drag-region>
+    <svg width="18" height="18" viewBox="0 0 100 100" fill="none" class="app-icon" data-tauri-drag-region xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 90 L50 65 L90 90 L90 75 L50 50 L10 75 Z" fill="#325D5A" data-tauri-drag-region />
+      <path d="M10 65 L50 40 L90 65 L90 50 L50 25 L10 50 Z" fill="#62A17E" data-tauri-drag-region />
+      <path d="M10 40 L50 15 L90 40 L90 25 L50 0 L10 25 Z" fill="#F2C45E" data-tauri-drag-region />
+    </svg>
+    GoldenImager2
+  </div>
   <div class="controls">
     <button class="control-btn" on:click={minimize} title="Minimize">
       <Minus size={14} />
@@ -21,9 +28,8 @@
 <style>
   .header {
     height: 32px;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: #1C2427; /* Solid background to prevent gradient-based shadow bleed */
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     padding: 0 16px;
@@ -33,15 +39,26 @@
     cursor: default;
     width: 100%;
     flex-shrink: 0;
+    box-shadow: none !important;
   }
 
   .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 11px;
     font-weight: 700;
     color: var(--text-color);
-    opacity: 0.6;
+    opacity: 0.75; /* Slightly brighter for the icon */
     letter-spacing: 0.5px;
     text-transform: uppercase;
+  }
+
+  .app-icon {
+    width: 18px;
+    height: 18px;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8));
+    display: block;
   }
 
   .controls {
