@@ -17,6 +17,7 @@
     RefreshCw,
     X,
   } from "lucide-svelte";
+  import BloomControl from './BloomControl.svelte';
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
@@ -264,12 +265,18 @@
     <div class="tool-group">
       <!-- Custom Policy Dropdown -->
       <div class="custom-select-container">
-        <button class="compact-select main-filter" on:click|stopPropagation={togglePolicy} class:item-open={isPolicyOpen}>
-          <span>{FILTER_OPTIONS.find(o => o.id === viewFilter)?.label}</span>
+        <BloomControl 
+          width="120px" 
+          active={isPolicyOpen} 
+          on:click={togglePolicy}
+          class="main-filter"
+        >
+          <!-- <span>{FILTER_OPTIONS.find(o => o.id === viewFilter)?.label}</span> -->
           <span class="chevron-wrapper" class:spin={isPolicyOpen}>
-            <ChevronDown size={12} />
+            <!-- <ChevronDown size={12} /> -->
           </span>
-        </button>
+        </BloomControl>
+
         {#if isPolicyOpen}
           <div class="dropdown-list">
             {#each FILTER_OPTIONS as opt}
@@ -281,47 +288,50 @@
         {/if}
       </div>
 
-      <div class="profile-bar" class:applied={isApplied && selectedProfile} class:selected={selectedProfile && !isApplied}>
-        <!-- Removed LayoutList icon -->
-        
-        <!-- Custom Profile Dropdown -->
-        <div class="custom-select-container profile-dropdown-wrapper">
-          <button class="profile-dropdown-btn" on:click|stopPropagation={toggleProfile} class:item-open={isProfileOpen}>
-            <span>{selectedProfile || "No Profile Loaded"}</span>
-            <span class="chevron-wrapper" class:spin={isProfileOpen}>
-              <ChevronDown size={12} />
-            </span>
-          </button>
-          {#if isProfileOpen}
-            <div class="dropdown-list">
-              <button class="dropdown-item" class:active={!selectedProfile} on:click={() => selectProfile("")}>
-                No Profile Loaded
-              </button>
-              {#each profiles as p}
-                <button class="dropdown-item" class:active={selectedProfile === p} on:click={() => selectProfile(p)}>
-                  {p}
-                </button>
-              {/each}
-            </div>
-          {/if}
-        </div>
+      <div class="custom-select-container">
+        <BloomControl 
+          width="140px" 
+          active={isProfileOpen} 
+          on:click={toggleProfile}
+        >
+          <!-- <span>{selectedProfile || "No Profile Loaded"}</span> -->
+          <span class="chevron-wrapper" class:spin={isProfileOpen}>
+            <!-- <ChevronDown size={12} /> -->
+          </span>
+        </BloomControl>
 
-        <button class="profile-btn" on:click={loadProfile}>
-          <Download size={14} />
-        </button>
-        <button class="profile-btn" on:click={saveProfile}>
-          <Save size={14} />
-        </button>
+        {#if isProfileOpen}
+          <div class="dropdown-list">
+            <button class="dropdown-item" class:active={!selectedProfile} on:click={() => selectProfile("")}>
+              No Profile Loaded
+            </button>
+            {#each profiles as p}
+              <button class="dropdown-item" class:active={selectedProfile === p} on:click={() => selectProfile(p)}>
+                {p}
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
 
+      <BloomControl width="120px" on:click={loadProfile}>
+        <!-- <Download size={14} /> -->
+      </BloomControl>
+      
+      <BloomControl width="120px" on:click={saveProfile}>
+        <!-- <Save size={14} /> -->
+      </BloomControl>
+
       <div class="search-box">
-        <Search size={12} class="search-icon" />
-        <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder="Filter apps..."
-          class="compact-input"
-        />
+        <BloomControl width="180px" class="search-bloom">
+          <Search size={12} class="search-icon" />
+          <input
+            type="text"
+            bind:value={searchTerm}
+            placeholder="Filter apps..."
+            class="bloom-input"
+          />
+        </BloomControl>
       </div>
     </div>
 
@@ -424,7 +434,7 @@
   .tool-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px; /* Uniform spacing for all industrial slots */
   }
 
   .custom-select-container {
@@ -433,38 +443,30 @@
     align-items: center;
   }
 
-  .compact-select {
-    appearance: none;
-    background: rgba(0, 0, 0, 0.15); /* Sunken start */
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 
-      inset 0 0 0 1px #12181a;
-    color: #fff;
-    font-size: 11px;
-    padding: 0 12px;
-    border-radius: 4px;
-    height: 28px;
-    outline: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .compact-select:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(var(--accent-rgb), 0.5) !important;
-    box-shadow: 
-      0 0 20px rgba(var(--accent-rgb), 0.4),
-      0 0 4px rgba(var(--accent-rgb), 0.6); /* Unified with buttons */
-    z-index: 50;
-  }
-
   .main-filter {
     font-weight: 600;
-    min-width: 120px;
+  }
+
+  .search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  :global(.search-icon) {
+    opacity: 0.3;
+    pointer-events: none;
+    margin-right: -4px; /* Move closer to text */
+  }
+
+  .bloom-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 11px;
+    padding: 0;
+    width: 100%;
+    outline: none;
   }
 
   .profile-bar {
@@ -472,7 +474,7 @@
     align-items: center;
     gap: 0;
     background: rgba(0, 0, 0, 0.15); /* Sunken start */
-    padding: 0 0 0 6px;
+    padding: 0; /* Removed legacy icon padding */
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 
@@ -480,48 +482,6 @@
     height: 28px;
     position: relative;
     z-index: 5;
-  }
-
-  .profile-dropdown-btn {
-    appearance: none;
-    border: none !important;
-    background: transparent !important;
-    flex: 1;
-    min-width: 80px;
-    height: 28px;
-    padding: 0 12px 0 0;
-    color: rgba(255, 255, 255, 0.4); /* State 1: No Profile */
-    font-size: 11px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .profile-dropdown-btn:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(var(--accent-rgb), 0.5) !important;
-    box-shadow: 
-      0 0 20px rgba(var(--accent-rgb), 0.4),
-      0 0 4px rgba(var(--accent-rgb), 0.6); /* Outward expansion match */
-    z-index: 50;
-  }
-
-  .profile-dropdown-btn.item-open, .compact-select.item-open {
-    border-color: rgba(var(--accent-rgb), 0.6) !important;
-    box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.2);
-  }
-
-  .profile-bar.selected .profile-dropdown-btn {
-    color: #fff; 
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-  }
-
-  .profile-bar.applied .profile-dropdown-btn {
-    color: var(--accent-color);
-    font-weight: 700;
   }
 
   .chevron-wrapper {
@@ -551,79 +511,15 @@
     filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.4));
   }
 
-  .search-box {
-    position: relative;
-    display: flex;
-    align-items: center;
+  /* Refined Profiles Bar Coloration */
+  .profile-bar.selected :global(.bloom-control) {
+    color: #fff; 
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
   }
 
-  :global(.search-icon) {
-    position: absolute;
-    left: 8px;
-    opacity: 0.3;
-    pointer-events: none;
-  }
-
-  .compact-input {
-    background: rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 
-      inset 0 0 0 1px #12181a,
-      inset 0 2px 4px rgba(0, 0, 0, 0.3);
-    color: #fff;
-    font-size: 11px;
-    padding: 0 10px 0 28px; /* Balanced side padding */
-    border-radius: 4px;
-    height: 28px; /* Increased from 24px */
-    width: 180px; /* Slightly wider for better balance */
-    outline: none;
-  }
-
-  .tool-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
-
-  .tool-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border-color: rgba(var(--accent-rgb), 0.5);
-    box-shadow: 
-      0 0 20px rgba(var(--accent-rgb), 0.3),
-      0 0 4px rgba(var(--accent-rgb), 0.4);
-  }
-
-  .profile-btn {
-    background: rgba(0, 0, 0, 0.1); /* Sunken start */
-    border: none;
-    border-left: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
-    color: rgba(255, 255, 255, 0.4);
-    cursor: pointer;
-    padding: 0 8px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .profile-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    border: 1px solid rgba(var(--accent-rgb), 0.4);
-    box-shadow: 
-      0 0 20px rgba(var(--accent-rgb), 0.4),
-      0 0 4px rgba(var(--accent-rgb), 0.6);
-    z-index: 10;
+  .profile-bar.applied :global(.bloom-control) {
+    color: var(--accent-color);
+    font-weight: 700;
   }
 
   .profile-dropdown-wrapper .dropdown-list {
@@ -889,10 +785,9 @@
   .dropdown-list {
     position: absolute;
     top: calc(100% + 4px);
-    left: auto;
+    left: 0;
     right: 0;
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
     background: #0b0f10; /* Match Title Bar */
     border: 1px solid rgba(255, 255, 255, 0.08); /* Industrial border */
     border-radius: 6px;
