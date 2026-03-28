@@ -15,6 +15,7 @@
     Upload,
     Trash2,
     RefreshCw,
+    X,
   } from "lucide-svelte";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
@@ -30,6 +31,9 @@
   let selectedApps = new Set<string>();
   let showConfirm = false;
   let viewFilter = "curated";
+
+  let showSaveModal = false;
+  let saveName = "";
 
   const FILTER_OPTIONS = [
     { id: "curated", label: "Curated Policy" },
@@ -121,16 +125,24 @@
 
   async function saveProfile() {
     if (!selectedProfile || !isTauri) {
-      const name = prompt("Enter profile name:");
-      if (!name) return;
-      selectedProfile = name.endsWith(".json") ? name : `${name}.json`;
+      showSaveModal = true;
+      saveName = selectedProfile.replace(".json", "") || "";
+      return;
     }
+    await executeSave(selectedProfile);
+  }
+
+  async function executeSave(name: string) {
+    if (!name || !isTauri) return;
+    const finalName = name.endsWith(".json") ? name : `${name}.json`;
     try {
       await invoke("save_app_profile", {
-        name: selectedProfile,
+        name: finalName,
         appIds: Array.from(selectedApps),
       });
+      selectedProfile = finalName;
       profiles = await invoke("list_app_profiles");
+      showSaveModal = false;
     } catch (e) {
       console.error("Failed to save profile:", e);
     }
@@ -211,7 +223,41 @@
   // Weights: FriendlyName uses ~6.2px/char, AppId (mono) uses ~6.5px/char
   $: nameWidth = Math.min(480, Math.max(140, maxNameLen * 6.2));
   $: idWidth = Math.min(600, Math.max(180, maxIdLen * 6.5));
+
+  function closeModals() {
+    showSaveModal = false;
+    isPolicyOpen = false;
+    isProfileOpen = false;
+  }
 </script>
+
+{#if showSaveModal}
+  <div class="modal-overlay" on:click={closeModals} on:keydown={(e) => e.key === 'Escape' && closeModals()} role="button" tabindex="0" aria-label="Close modal">
+    <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" on:click={() => showSaveModal = false}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input 
+          type="text" 
+          bind:value={saveName} 
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          on:keydown={(e) => e.key === 'Enter' && executeSave(saveName)}
+          autofocus
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" on:click={() => showSaveModal = false}>Cancel</button>
+        <button class="modal-btn confirm" class:active={saveName.length > 0} on:click={() => executeSave(saveName)}>
+          Save Profile
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <div class="panel">
   <div class="toolbar">
@@ -581,8 +627,14 @@
     z-index: 10;
   }
 
+  .profile-dropdown-wrapper .dropdown-list {
+    left: auto;
+    right: 0; /* Align profiles to right edge */
+  }
+
   .profile-dropdown-wrapper {
     flex: 1;
+    min-width: 0; /* Allow shrinking */
   }
 
   .action-btn {
@@ -623,8 +675,8 @@
     padding: 0 6px; /* First half of gutter */
     box-shadow:
       inset 0 0 0 1px #12181a,
-      inset 16px 0 24px -12px rgba(0, 0, 0, 0.6),
-      inset 0 2px 10px rgba(0, 0, 0, 0.3);
+      inset 0 24px 24px -12px rgba(0, 0, 0, 0.48), /* Top drop shadow */
+      inset 0 -24px 24px -12px rgba(0, 0, 0, 0.48); /* Bottom shadow */
   }
 
   .table-container::before {
@@ -818,5 +870,158 @@
   }
   .table-body::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Modal Styling */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+  }
+
+  .dropdown-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: auto;
+    right: 0;
+    width: max-content;
+    min-width: 100%;
+    background: #0b0f10;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 4px;
+    z-index: 1000;
+    box-shadow: 
+      0 12px 32px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .modal-content {
+    background: #12181a;
+    width: 380px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 1), 0 0 0 1px rgba(var(--accent-rgb), 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modal-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes modal-pop {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .modal-header {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-color);
+    letter-spacing: 0.5px;
+  }
+
+  .close-lite {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .close-lite:hover { color: #fff; }
+
+  .modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .modal-body p {
+    margin: 0;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .modal-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .modal-input:focus {
+    border-color: var(--accent-color);
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .modal-footer {
+    padding: 16px 24px;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .modal-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .modal-btn.cancel {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .modal-btn.cancel:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+
+  .modal-btn.confirm {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+  }
+
+  .modal-btn.confirm.active {
+    background: var(--accent-color);
+    color: #fff;
+    border: none;
+    pointer-events: auto;
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+  }
+
+  .modal-btn.confirm.active:hover {
+    filter: brightness(1.15);
   }
 </style>
