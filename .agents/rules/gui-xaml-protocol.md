@@ -1,24 +1,24 @@
 ---
-name: GUI & XAML Protocol
-scope: project
-priority: high
-tags: [wpf, xaml, ui]
-triggers: [".xaml", ".xml", "DataContext", "d:DesignInstance"]
+trigger: always_on
 ---
 
-# 1. :: Structural Integrity & Validation
+# GUI-XAML Protocol: Structural Integrity & Performance
 
-## 1.1. :: Mandatory Verification
-- [ ] **XamlReader Validation:** After ANY modification to a XAML or XML file, you MUST run a validation script (e.g., `[System.Windows.Markup.XamlReader]::Load()`) before reporting success or notifying the user.
-- [ ] **Pre-Loaded Assemblies:** Ensure `PresentationFramework` is loaded in the PowerShell session before attempting to parse XAML components.
-- [ ] **Style Inheritance Audit:** Before referencing a `StaticResource` (e.g., `ToggleSwitchStyle`), verify its definition exists in the current file's resource dictionary or a globally accessible `App.xaml`.
+## 1. :: Engineering & Validation Standards
 
-## 1.2. :: Resource & Data Context Discovery
-- [ ] **Resource Dictionary Prefetch:** When editing any XAML component, always check for and read `App.xaml` or merged resource dictionaries in the same turn to resolve `StaticResource` dependencies.
-- [ ] **Binding Context Discovery:** If a XAML file specifies a `DataContext` or `d:DesignInstance`, proactively read the corresponding ViewModel file in the same turn.
+### 1.1. :: Mandatory System Validation
+- [ ] **XamlReader Load Check**: After ANY modification to a `.xaml` or `.xml` file, you MUST execute a validation script using `[System.Windows.Markup.XamlReader]::Parse()` in an environment where `PresentationFramework` is pre-loaded.
+- [ ] **Assembly Audit**: Proactively verify that `PresentationCore`, `PresentationFramework`, and `WindowsBase` are added to the current session via `Add-Type -AssemblyName` before parsing complex layouts.
 
-# 2. :: Editing Tactics
+### 1.2. :: Component & Resource Modularity
+- [ ] **Resource Dictionary Prefetch**: Before editing a component, read `App.xaml` or merged dictionaries (e.g., `Styles.xaml`) to resolve `StaticResource` dependencies. Never define ad-hoc styles that should be global.
+- [ ] **Asset Portability**: When porting patterns (e.g., card layouts, pill toggles), duplicate the full `ControlTemplate` into the target file to prevent 'Missing Resource' breaks in isolated windows.
 
-## 2.1. :: Layout & Styling
-- [ ] **Macro-Editing:** For complex UI changes involving multiple related containers (e.g., 3-column grids), prefer reading the entire file and using `write_file` to apply the complete layout at once.
-- [ ] **Asset Portability:** When porting modern styles (pill toggles, blue buttons) from foundation schemas, always duplicate the full control template into the target window's resources to ensure independence.
+## 2. :: Data Integrity & Bindings
+
+### 2.1. :: Logic Synchronization
+- [ ] **Binding Context Discovery**: If a XAML file specifies a `DataContext` or `d:DesignInstance`, you MUST read the corresponding ViewModel / Logic file in the same turn to ensure property parity.
+- [ ] **Event-to-Command Registry**: For every `Click` or `SelectionChanged` event, verify the corresponding function exists in the back-end logic before finalizing the UI.
+
+### 2.2. :: Shell Integration
+- [ ] **Interactive Guardrails**: Ensure `data-tauri-drag-region` or native draggable handles do not block interactive child elements (buttons, inputs) by setting `pointer-events: auto` on children.

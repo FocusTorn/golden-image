@@ -1,24 +1,27 @@
 ---
-name: Rust Hybrid Protocol
-scope: project
-priority: high
-tags: [rust, cargo, ipc]
-triggers: [".rs", "Cargo.toml", "main.rs", "lib.rs"]
+trigger: always_on
 ---
 
-# 1. :: Engineering Standards
+# Rust-Hybrid Protocol: Performance & IPC Reliability
 
-## 1.1. :: Development Workflow
-- [ ] **Single-Turn Scaffolding:** Always batch `cargo init`, `Cargo.toml` configuration, and the initial module setup (`main.rs`, `lib.rs`) into a single turn. 
-- [ ] **Pre-emptive `cargo check`:** Never ask for user review of Rust code without first running `cargo check` to ensure compilation integrity.
-- [ ] **Native-First Logic:** Performance-critical operations MUST be delegated to the Rust engine. PowerShell remains as the "UI and Orchestration" layer.
+## 1. :: Core Engineering Standards
 
-## 1.2. :: Dependency & Test Awareness
-- [ ] **Unit Test Awareness:** When modifying a Rust module, proactively read its inline tests (`#[cfg(test)]`) or relevant `tests/` files to understand expected behavior.
-- [ ] **Dependency Analysis:** When investigating compilation errors, read `Cargo.toml` in the same turn to check for version mismatches or missing features.
+### 1.1. :: Development Workflow
+- [ ] **Atomic Scaffolding**: Batch `cargo init`, `Cargo.toml` configuration, and core module setup (`main.rs`, `lib.rs`) into a single turn to minimize compilation latency.
+- [ ] **Pre-emptive `cargo check`**: Never request user review or frontend integration without first running `cargo check --bin [target]` to ensure back-end integrity.
+- [ ] **Native-First Logic**: Delegate performance-critical operations (registry scanning, file I/O, crypto) to the Rust engine. Use PowerShell/JS only for orchestration and UI.
 
-# 2. :: Inter-Process Communication (IPC)
+### 1.2. :: Dependency & Test Maturity
+- [ ] **Contextual Dependency Analysis**: When investigating errors, read `Cargo.toml` and `build.rs` in the same turn to identify version mismatches or feature-gate issues.
+- [ ] **Unit Test Verification**: Proactively read and run inline tests (`#[cfg(test)]`) when modifying core engine modules.
 
-## 2.1. :: Schema & Output
-- [ ] **JSON Output Standard:** All Rust-based engine commands must output valid, structured JSON to `stdout` for the PowerShell UI to consume.
-- [ ] **Schema Consistency:** Maintain strict parity between the Rust `struct` definitions and the PowerShell JSON configuration (e.g., `Features.json`) to minimize mapping complexity.
+## 2. :: Inter-Process Communication (IPC)
+
+### 2.1. :: The 'High-Fidelity' Schema Standard
+- [ ] **PascalCase API Synchronization**: All structs exposed to the frontend via `serde` MUST use `#[serde(rename_all = "PascalCase")]` or explicit renaming for parity with standard C#/TS conventions.
+- [ ] **JSON Output Consistency**: Maintain strict schema parity between Rust `struct` definitions and frontend configuration (e.g., `Features.json`) to minimize mapping overhead.
+
+### 2.2. :: Tauri Integration Integrity
+- [ ] **Handler Registry Audit**: For every new `#[tauri::command]`, you MUST verify it is registered in `tauri::generate_handler![]` within `main.rs` before implementing the frontend `invoke()` call.
+- [ ] **Resilient Resource Resolution**: Use `app.path_resolver()` for all asset lookups. Always implement a verified fallback (via `find_by_name`) for development-mode paths.
+- [ ] **Command Registration Lock**: Before finalizing any turn with a new IPC command, perform a targeted `grep` on `main.rs` to ensure the command name exists in the `generate_handler!` list.

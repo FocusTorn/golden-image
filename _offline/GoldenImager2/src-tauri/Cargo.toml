@@ -1,0 +1,27 @@
+[package]
+name = "goldenimager2"
+version = "0.1.0"
+description = "A native high-performance Windows optimization engine and GUI."
+authors = ["Antigravity"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+tauri = { version = "1.5", features = ["shell-open"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+windows = { version = "0.52", features = [
+    "Win32_System_Registry", 
+    "Win32_System_SystemInformation", 
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_UI_Shell",
+    "Win32_UI_Accessibility",
+    "Win32_UI_WindowsAndMessaging"
+] }
+winreg = "0.10"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

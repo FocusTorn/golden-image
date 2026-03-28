@@ -1,0 +1,41 @@
+:root {
+  --bg-main: #182224;
+  --bg-panel: #1C2427;
+  --bg-darker: #0b0f10;
+  --bg-card: #232d30;
+  --bg-card-hover: #2a3639;
+  --text-main: #e2e8f0;
+  --text-dim: #94a3b8;
+  --border-muted: rgba(148, 163, 184, 0.08);
+  --divider-core: #2C3233;
+  --divider-edge: #0d1214;
+  --risk-safe: #00e676;
+  --risk-warn: #ffd600;
+  --risk-unsafe: #ff1744;
+  
+  --text-main-rgb: 201, 209, 217;
+  --text-dim-rgb: 139, 148, 158;
+  
+  --grad-main: linear-gradient(180deg, #182224 0%, #182224 66%, #121a1b 100%);
+  --grad-panel: linear-gradient(180deg, #1C2427 0%, #1C2427 66%, #101517 100%);
+  
+  /* Backward Compatibility Aliases */
+  --accent-color: rgb(var(--accent-rgb));
+  --text-color: var(--text-main);
+  --border-color: var(--border-muted);
+
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  color: var(--text-main);
+  background-color: var(--bg-main);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  display: block;
+  min-width: 320px;
+  background-color: #0b0e11;
+  overflow: hidden;
+}

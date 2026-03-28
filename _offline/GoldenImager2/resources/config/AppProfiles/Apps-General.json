@@ -1,0 +1,32 @@
+﻿{
+    "Apps":  [
+                 "Microsoft.WindowsAlarms",
+                 "Microsoft.BingNews",
+                 "Microsoft.BingSearch",
+                 "Microsoft.BingWeather",
+                 "Clipchamp.Clipchamp",
+                 "MicrosoftWindows.CrossDevice",
+                 "Microsoft.Windows.DevHome",
+                 "Microsoft.MicrosoftEdgeDevToolsClient",
+                 "Microsoft.WindowsFeedbackHub",
+                 "Microsoft.MicrosoftEdge.Stable",
+                 "MSTeams",
+                 "Microsoft.Todos",
+                 "Microsoft.Windows.NarratorQuickStart",
+                 "Microsoft.MicrosoftOfficeHub",
+                 "Microsoft.Windows.ParentalControls",
+                 "Microsoft.YourPhone",
+                 "Microsoft.PowerAutomateDesktop",
+                 "MicrosoftCorporationII.QuickAssist",
+                 "Microsoft.Windows.SecureAssessmentBrowser",
+                 "Microsoft.MicrosoftSolitaireCollection",
+                 "Microsoft.WindowsSoundRecorder",
+                 "Microsoft.MicrosoftStickyNotes",
+                 "MicrosoftWindows.UndockedDevKit",
+                 "Microsoft.WidgetsPlatformRuntime",
+                 "MicrosoftWindows.Client.WebExperience",
+                 "Microsoft.XboxGameCallableUI",
+                 "Microsoft.GamingApp",
+                 "Microsoft.XboxGamingOverlay"
+             ]
+}
