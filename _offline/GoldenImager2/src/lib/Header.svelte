@@ -13,7 +13,7 @@
       <path d="M10 65 L50 40 L90 65 L90 50 L50 25 L10 50 Z" fill="#62A17E" data-tauri-drag-region />
       <path d="M10 40 L50 15 L90 40 L90 25 L50 0 L10 25 Z" fill="#F2C45E" data-tauri-drag-region />
     </svg>
-    GoldenImager2
+    Golden Imager 2
   </div>
   <div class="controls">
     <button class="control-btn" on:click={minimize} title="Minimize">
@@ -32,7 +32,7 @@
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 10px;
     z-index: 100;
     justify-content: space-between;
     user-select: none;
@@ -51,7 +51,7 @@
     color: var(--text-color);
     opacity: 0.75; /* Slightly brighter for the icon */
     letter-spacing: 0.5px;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   .app-icon {

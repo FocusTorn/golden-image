@@ -282,10 +282,7 @@
       </div>
 
       <div class="profile-bar" class:applied={isApplied && selectedProfile} class:selected={selectedProfile && !isApplied}>
-        <LayoutList 
-          size={12} 
-          class="profile-icon"
-        />
+        <!-- Removed LayoutList icon -->
         
         <!-- Custom Profile Dropdown -->
         <div class="custom-select-container profile-dropdown-wrapper">
@@ -420,6 +417,8 @@
     align-items: center;
     padding-bottom: 4px;
     gap: 12px;
+    position: relative;
+    z-index: 100; /* Sit above table shadows */
   }
 
   .tool-group {
@@ -735,7 +734,7 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 10px 6px; /* Second half of gutter - centers scrollbar */
+    padding: 0 6px 10px 6px; /* Removed top padding to align with row margins */
     display: flex;
     flex-direction: column;
     scrollbar-gutter: stable;
@@ -894,17 +893,44 @@
     right: 0;
     width: max-content;
     min-width: 100%;
-    background: #0b0f10;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #0b0f10; /* Match Title Bar */
+    border: 1px solid rgba(255, 255, 255, 0.08); /* Industrial border */
     border-radius: 6px;
     padding: 4px;
     z-index: 1000;
     box-shadow: 
-      0 12px 32px rgba(0, 0, 0, 0.6),
+      0 12px 32px rgba(0, 0, 0, 0.7),
       0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     gap: 2px;
+    overflow: hidden;
+  }
+
+  .dropdown-item {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.35); /* Sidebar Inactive Color */
+    padding: 8px 14px;
+    font-size: 11px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    display: block;
+    width: 100%;
+  }
+
+  .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+
+  .dropdown-item.active {
+    color: var(--accent-color);
+    font-weight: 700;
   }
 
   .modal-content {

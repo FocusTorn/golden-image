@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/tauri';
   import Sidebar from './lib/Sidebar.svelte';
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
@@ -9,96 +8,128 @@
   import StatusBar from './lib/StatusBar.svelte';
 
   let activeTab = 'apps';
-  let r = 55, g = 125, b = 120; // #377D78 (Requested accent)
+  let r = 55, g = 125, b = 120; // #377D78
   let isDark = true;
   let appCount = 0;
-
-  onMount(async () => {
-    /* OS Color Pull - Preserved but Disabled as per request
-    try {
-      if ((window as any).__TAURI_METADATA__) {
-        const themeInfo: any = await invoke('get_theme_info');
-        r = themeInfo.R;
-        g = themeInfo.G;
-        b = themeInfo.B;
-        isDark = themeInfo.IsDark;
-      }
-    } catch (e) {
-      console.error("Failed to get system theme:", e);
-    }
-    */
-  });
+  
+  const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
   $: accentRgb = `${r}, ${g}, ${b}`;
 </script>
 
-<div class="app-root" style="--accent-rgb: {accentRgb}; --is-dark: {isDark ? 1 : 0}">
-  <Header />
-  
-  <div class="h-divider">
-    <div class="h-edge"></div>
-    <div class="h-core"></div>
-    <div class="h-edge"></div>
-  </div>
-
-  <div class="app-body">
-    <Sidebar bind:activeTab />
+<main 
+  class="app-container" 
+  class:mock-window={!isTauri}
+  style="--accent-color: rgb({accentRgb}); --accent-rgb: {accentRgb};"
+>
+  <div class="app-frame">
+    <!-- Full-Width Title Bar -->
+    <Header />
     
-    <div class="v-divider">
-      <div class="v-edge"></div>
-      <div class="v-core"></div>
-      <div class="v-edge"></div>
+    <!-- Top Global Divider -->
+    <div class="h-divider">
+      <div class="h-edge"></div>
+      <div class="h-core"></div>
+      <div class="h-edge"></div>
     </div>
 
-    <main class="page-container">
-      {#if activeTab === 'dashboard'}
-        <Dashboard />
-      {:else if activeTab === 'apps'}
-        <Apps bind:appCount />
-      {:else if activeTab === 'tweaks'}
-        <Tweaks />
-      {:else if activeTab === 'settings'}
-        <div class="placeholder">
-          <h1>Settings</h1>
-          <p>Global system preferences coming soon.</p>
-        </div>
-      {:else}
-        <div class="placeholder">
-          <h1>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
-          <p>This panel is coming soon.</p>
-        </div>
-      {/if}
-    </main>
-  </div>
+    <!-- Middle Layout: Sidebar + Content -->
+    <div class="middle-body">
+      <Sidebar bind:activeTab />
+      
+      <!-- Vertical Divider -->
+      <div class="v-divider">
+        <div class="v-edge"></div>
+        <div class="v-core"></div>
+        <div class="v-edge"></div>
+      </div>
 
-  <StatusBar {appCount} />
-</div>
+      <div class="content-area">
+        {#if activeTab === 'dashboard'}
+          <Dashboard />
+        {:else if activeTab === 'apps'}
+          <Apps bind:appCount />
+        {:else if activeTab === 'tweaks'}
+          <Tweaks />
+        {:else}
+          <div class="placeholder">
+            <h1>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            <p>Coming soon...</p>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Bottom Global Divider -->
+    <div class="h-divider">
+      <div class="h-edge"></div>
+      <div class="h-core"></div>
+      <div class="h-edge"></div>
+    </div>
+
+    <!-- Full-Width Status Bar -->
+    <StatusBar {appCount} />
+  </div>
+</main>
 
 <style>
   :global(*) { box-sizing: border-box; }
 
-  .app-root {
+  .app-container {
     width: 100vw;
     height: 100vh;
-    background: var(--grad-main);
+    background: var(--bg-main);
     color: var(--text-main);
-    overflow: hidden;
-    position: relative;
     display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border-muted);
-    box-sizing: border-box;
-    box-shadow: none !important;
-    filter: none !important;
+    overflow: hidden;
   }
 
-  .app-body {
+  .app-container.mock-window {
+    background: #050708;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Main frame using column layout to place Sidebar BELOW Title/Status */
+  .app-frame {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-main);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mock-window .app-frame {
+    width: 1100px;
+    height: 720px;
+    border: 1px solid rgba(255, 255, 255, 0.08); 
+    border-radius: 8px;
+    box-shadow: 
+      0 32px 64px rgba(0, 0, 0, 0.8),
+      0 0 0 1px rgba(var(--accent-rgb), 0.15);
+  }
+
+  /* Middle Body using row layout for Sidebar/Content */
+  .middle-body {
     flex: 1;
     display: flex;
     flex-direction: row;
     overflow: hidden;
+    position: relative;
+    z-index: 10; /* Sidebar sits below header/divider */
   }
 
+  .content-area {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--grad-main);
+  }
+
+  /* Vertical Divider Styling */
   .v-divider {
     width: 4px;
     height: 100%;
@@ -110,68 +141,31 @@
   .v-edge {
     width: 1px;
     height: 100%;
-    background: linear-gradient(180deg, #0d1214 0%, #0d1214 66%, #050809 100%);
+    background: #0d1214;
   }
 
   .v-core {
     width: 2px;
     height: 100%;
-    background: linear-gradient(180deg, #2c3233 0%, #2c3233 66%, #1e2223 100%);
+    background: #2c3233;
   }
 
-  /* Horizontal Divider */
+  /* Horizontal Divider Styling */
   .h-divider {
     height: 4px;
     width: 100%;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    box-shadow: none !important;
-    filter: none !important;
-    position: relative;
     z-index: 50;
   }
 
-  .h-edge {
-    height: 1px;
-    width: 100%;
-    background: #0d1214; /* Charcoal edge line */
-  }
-
-  .h-core {
-    height: 2px;
-    width: 100%;
-    background: #2c3233; /* Slate core line */
-  }
-
-  .page-container {
-    flex: 1;
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    background: var(--grad-main);
-  }
+  .h-edge { height: 1px; width: 100%; background: #0d1214; }
+  .h-core { height: 2px; width: 100%; background: #2c3233; }
 
   .placeholder {
-    padding: 40px;
+    padding: 60px;
     text-align: center;
-    color: var(--text-color);
-    opacity: 0.5;
-  }
-
-  /* Custom Scrollbar */
-  .page-container::-webkit-scrollbar {
-    width: 6px;
-  }
-  .page-container::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .page-container::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 3px;
-  }
-  .page-container::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-color);
+    opacity: 0.3;
   }
 </style>

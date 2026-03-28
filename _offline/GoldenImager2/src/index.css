@@ -18,7 +18,7 @@
   --bg-main-rgb: 24, 34, 36;
   --bg-panel-rgb: 28, 36, 39;
   
-  --grad-main: linear-gradient(180deg, #151c1e 0%, #151c1e 66%, #0c1012 100%);
+  --grad-main: linear-gradient(180deg, #161e20 0%, #161e20 66%, #0d1113 100%);
   --grad-panel: linear-gradient(180deg, #1C2427 0%, #1C2427 66%, #101517 100%);
   
   /* Backward Compatibility Aliases */
