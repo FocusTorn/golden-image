@@ -175,8 +175,10 @@
   }
 
   .cat-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
   }
 
   .cat-btn.active {
@@ -227,12 +229,15 @@
   }
 
   .feature-card:hover {
-    border-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(var(--accent-rgb), 0.3);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.3),
+      0 0 12px rgba(var(--accent-rgb), 0.1);
+    transform: translateY(-2px);
   }
 
   .feature-card.applied {
-    border-color: rgba(76, 175, 80, 0.2);
     background: rgba(76, 175, 80, 0.02);
   }
 
@@ -268,6 +273,8 @@
   .action-btn:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
+    border-color: rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.2);
   }
 
   .action-btn.applied {

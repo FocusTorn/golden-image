@@ -26,6 +26,7 @@
   let searchTerm = "";
   let selectedProfile = "";
   let profiles: string[] = [];
+  let isApplied = false;
   let selectedApps = new Set<string>();
   let showConfirm = false;
   let viewFilter = "curated";
@@ -62,9 +63,26 @@
       const profileAppIds: string[] = await invoke("load_app_profile", {
         name: selectedProfile,
       });
-      selectedApps = new Set(profileAppIds);
+      
+      // Fuzzy Matching: Map profile names/short-ids to actual system identifiers
+      const newSelection = new Set<string>();
+      profileAppIds.forEach(pId => {
+        const pIdLower = pId.toLowerCase();
+        // Look for exact matches or IDs that start/end with the profile string
+        const match = apps.find(a => 
+          a.AppId.toLowerCase() === pIdLower || 
+          a.AppId.toLowerCase().startsWith(pIdLower + "_") ||
+          a.FriendlyName.toLowerCase() === pIdLower
+        );
+        if (match) newSelection.add(match.AppId);
+      });
+
+      selectedApps = newSelection;
+      isApplied = true;
+      console.log(`[Apps] Profile '${selectedProfile}' loaded with fuzzy matching. Matched: ${selectedApps.size}/${profileAppIds.length}`);
     } catch (e) {
-      console.error("Failed to load profile:", e);
+      console.error("[Apps] Profile Load Failure:", e);
+      alert(`Profile Error: ${e}`);
     }
   }
 
@@ -142,6 +160,7 @@
     if (selectedApps.has(id)) selectedApps.delete(id);
     else selectedApps.add(id);
     selectedApps = new Set(selectedApps);
+    isApplied = false; // Modification breaks the "Applied" state
   };
 
   function handleToggleAll(e: Event) {
@@ -172,14 +191,14 @@
         {/each}
       </select>
 
-      <div class="profile-bar">
+      <div class="profile-bar" class:applied={isApplied && selectedProfile} class:selected={selectedProfile && !isApplied}>
         <LayoutList 
           size={12} 
-          class={selectedProfile ? "" : "icon-muted"} 
-          style={selectedProfile ? "color: rgb(var(--accent-rgb)); opacity: 1; filter: saturate(1.2)" : ""} 
+          class="profile-icon"
         />
         <select
           bind:value={selectedProfile}
+          on:change={() => isApplied = false}
           class="compact-select profile-dropdown"
         >
           {#if profiles.length === 0}
@@ -363,12 +382,45 @@
   }
 
   .profile-dropdown {
-    border: none;
-    background: transparent;
+    border: none !important;
+    background: transparent !important;
     flex: 1;
     min-width: 80px;
     padding-right: 20px;
     background-position: right 2px center;
+    color: rgba(255, 255, 255, 0.4); /* State 1: No Profile */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .compact-select:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(var(--accent-rgb), 0.4) !important;
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
+  }
+
+  .profile-bar.selected .profile-dropdown {
+    color: #fff; /* State 2: Selected but not applied */
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  }
+
+  .profile-bar.applied .profile-dropdown {
+    color: var(--accent-color); /* State 3: Applied */
+    font-weight: 700;
+  }
+
+  :global(.profile-icon) {
+    color: rgba(255, 255, 255, 0.2);
+    transition: all 0.2s;
+  }
+
+  .profile-bar.selected :global(.profile-icon) {
+    color: #fff;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+  }
+
+  .profile-bar.applied :global(.profile-icon) {
+    color: var(--accent-color);
+    filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.4));
   }
 
   .search-box {
@@ -415,6 +467,8 @@
   .tool-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
+    border-color: rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.15);
   }
 
   .profile-btn {
@@ -432,8 +486,9 @@
   }
 
   .profile-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
+    border-color: rgba(var(--accent-rgb), 0.3);
   }
 
   .action-btn {
@@ -453,7 +508,13 @@
     color: #fff;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+  }
+
+  .action-btn.active:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.5);
+    transform: translateY(-1px);
   }
 
   .panel {

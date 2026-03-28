@@ -50,6 +50,9 @@
 
   button:hover {
     color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(var(--accent-rgb), 0.2);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
   }
 
   button.active {

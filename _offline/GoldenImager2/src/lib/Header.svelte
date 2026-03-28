@@ -81,8 +81,10 @@
   }
 
   .control-btn:hover {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.15);
   }
 
   .control-btn.close:hover {
