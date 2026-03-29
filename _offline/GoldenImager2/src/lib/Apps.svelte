@@ -77,11 +77,11 @@
   ];
 
   const RISK_OPTIONS = [
-    { id: "safe", color: "var(--risk-safe)", label: "Safe / Cleanup" },
-    { id: "warn", color: "var(--risk-warn)", label: "Warning / Risky" },
-    { id: "unsafe", color: "var(--risk-unsafe)", label: "Unsafe / Remove" },
-    { id: "user", color: "var(--risk-user)", label: "User Tools" },
-    { id: "unmapped", color: "var(--risk-unknown)", label: "Unmapped / New" },
+    { id: "safe", color: "var(--risk-safe)", label: "Safe" },
+    { id: "warn", color: "var(--risk-warn)", label: "Optional" },
+    { id: "unsafe", color: "var(--risk-unsafe)", label: "Risky" },
+    { id: "user", color: "var(--risk-user)", label: "Installed" },
+    { id: "unmapped", color: "transparent", label: "Unknown" },
   ];
 
   let isPolicyOpen = false;
@@ -236,19 +236,22 @@
   });
 
   $: filteredByRisk = filteredApps.filter((app) => {
-    if (selectedRisks.size === 0) return true;
-    const isUser = app.IsUser || app.Recommendation === "user";
-    if (isUser && selectedRisks.has("user")) return true;
-
-    if (app.IsCurated) {
-      return selectedRisks.has(app.Recommendation);
+    // Determine Effective Risk Category for Filter Parity
+    let effectiveRisk: string;
+    if (app.IsUser || app.Recommendation === "user") {
+      effectiveRisk = "user";
+    } else if (app.IsCurated) {
+      effectiveRisk = app.Recommendation;
     } else {
-      return selectedRisks.has("unmapped");
+      effectiveRisk = "unmapped";
     }
+
+    return selectedRisks.has(effectiveRisk);
   });
 
   function toggleRisk(id: string) {
     if (selectedRisks.has(id)) {
+      if (selectedRisks.size === 1) return; // Prevent complete deselection
       selectedRisks.delete(id);
     } else {
       selectedRisks.add(id);
@@ -299,7 +302,7 @@
       case "unsafe":
         return "var(--risk-unsafe)";
       default:
-        return "var(--risk-unknown)";
+        return "#778899";
     }
   };
 
@@ -554,47 +557,90 @@
     </div>
     <div class="col-status">
       <div class="risk-filter-container">
-        <button
-          class="risk-header-btn"
-          on:click|stopPropagation={() => (isRiskOpen = !isRiskOpen)}
+        <div
+          class="risk-filter-btn-wrapper"
+          on:click|stopPropagation={() => {}}
+          on:keydown={() => {}}
+          role="button"
+          tabindex="-1"
         >
-          <div
-            class="dot header-pie"
-            class:is-off={selectedRisks.size === 0 ||
-              (selectedRisks.has("unmapped") && selectedRisks.size === 1)}
+          <BloomControl
+            width="18px"
+            height="18px"
+            active={isRiskOpen}
+            on:click={() => (isRiskOpen = !isRiskOpen)}
+            style="padding: 0; border-radius: 50%; border-color: rgba(255, 255, 255, 0.1) !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.1) !important; background: rgba(0, 0, 0, 0.35) !important;"
           >
-            {#if selectedRisks.size > 0}
-              {@const selectedList = getSelectedRisksList(selectedRisks)}
-              <svg viewBox="-2 -2 18 18" class="pie-overlay">
-                <!-- Exploded Spectral Glow Group -->
-                <g class="pie-glow-group">
-                  {#each selectedList as opt, i}
-                    {@const offset = getExplodeOffset(i, selectedList.length)}
-                    <path 
-                      d={getSegmentPath(i, selectedList.length)}
-                      fill={opt.color}
-                      transform="translate({offset.x}, {offset.y})"
-                    />
-                  {/each}
-                </g>
-
-                <!-- Exploded Physical Pieces -->
-                <g class="pie-pieces-group">
-                  {#each selectedList as opt, i}
-                    {@const offset = getExplodeOffset(i, selectedList.length)}
-                    <path 
-                      d={getSegmentPath(i, selectedList.length)}
-                      fill={opt.color}
-                      transform="translate({offset.x}, {offset.y})"
-                      stroke="#0b0f10"
-                      stroke-width="1.2"
-                    />
-                  {/each}
-                </g>
-              </svg>
-            {/if}
-          </div>
-        </button>
+            <div
+              class="dot header-pie"
+              class:is-off={selectedRisks.size === 0 ||
+                (selectedRisks.has("unmapped") && selectedRisks.size === 1)}
+            >
+              {#if selectedRisks.size > 0}
+                {@const selectedList = getSelectedRisksList(selectedRisks)}
+                <svg viewBox="-2.5 -2.5 16 16" class="pie-overlay">
+                  <!-- Exploded Spectral Glow Group -->
+                  <g class="pie-glow-group" transform="translate(-1.5, -1.5)">
+                    {#if selectedList.length === 1}
+                      <circle
+                        cx="7"
+                        cy="7"
+                        r="7.5"
+                        fill={selectedList[0].color}
+                        style="opacity: {selectedList[0].id === 'unmapped'
+                          ? 0
+                          : 1}"
+                      />
+                    {:else}
+                      {#each selectedList as opt, i}
+                        {@const offset = getExplodeOffset(
+                          i,
+                          selectedList.length,
+                        )}
+                        <path
+                          d={getSegmentPath(i, selectedList.length)}
+                          fill={opt.color}
+                          transform="translate({offset.x}, {offset.y})"
+                          style="opacity: {opt.id === "unmapped" ? 0 : 1}"
+                        />
+                      {/each}
+                    {/if}
+                  </g>
+  
+                  <!-- Exploded Physical Pieces -->
+                  <g class="pie-pieces-group" transform="translate(-1.5, -1.5)">
+                    {#if selectedList.length === 1}
+                      <circle
+                        cx="7"
+                        cy="7"
+                        r="7.5"
+                        fill={selectedList[0].color === "transparent"
+                          ? "rgba(0,0,0,0)"
+                          : selectedList[0].color}
+                      />
+                    {:else}
+                      {#each selectedList as opt, i}
+                        {@const offset = getExplodeOffset(
+                          i,
+                          selectedList.length,
+                        )}
+                        <path
+                          d={getSegmentPath(i, selectedList.length)}
+                          fill={opt.color === "transparent"
+                            ? "rgba(0,0,0,0)"
+                            : opt.color}
+                          transform="translate({offset.x}, {offset.y})"
+                          stroke="#0b0f10"
+                          stroke-width="1.2"
+                        />
+                      {/each}
+                    {/if}
+                  </g>
+                </svg>
+              {/if}
+            </div>
+          </BloomControl>
+        </div>
 
         {#if isRiskOpen}
           <div class="dropdown-list risk-dropdown">
@@ -657,8 +703,9 @@
             <div class="col-status">
               <div
                 class="dot"
-                class:is-off={!app.IsUser &&
-                  !["safe", "warn", "unsafe"].includes(app.Recommendation)}
+                class:is-off={app.Recommendation === "unmapped" ||
+                  (!app.IsUser &&
+                    !["safe", "warn", "unsafe"].includes(app.Recommendation))}
                 style="--dot-color: {getStatusColor(app)}"
               ></div>
             </div>
@@ -934,14 +981,11 @@
   }
 
   .row:hover {
-    background: rgba(255, 255, 255, 0.08) !important; /* Bloom Hover Base */
-    border-color: rgba(
-      var(--accent-rgb),
-      0.6
-    ) !important; /* Standard Bloom Reveal */
+    background: rgba(var(--accent-rgb), 0.08);
+    border-color: rgba(var(--accent-rgb), 0.9) !important; /* Brighter Reveal than selected state */
     box-shadow:
-      0 0 15px rgba(var(--accent-rgb), 0.2),
-      0 0 4px rgba(var(--accent-rgb), 0.4);
+      0 0 15px rgba(var(--accent-rgb), 0.25),
+      0 0 4px rgba(var(--accent-rgb), 0.45);
     z-index: 50;
     filter: brightness(1.15);
   }
@@ -958,14 +1002,14 @@
   }
 
   .row.selected {
-    background: rgba(var(--accent-rgb), 0.12);
+    background: rgba(var(--accent-rgb), 0.08); /* Synchronized with Hover Base */
     border-color: rgba(
       var(--accent-rgb),
-      0.85
-    ) !important; /* Bright 'Opened/Active' Pip */
+      0.6
+    ) !important; 
     box-shadow:
-      0 0 12px rgba(var(--accent-rgb), 0.2),
-      inset 0 0 0 1px rgba(var(--accent-rgb), 0.1);
+      0 0 12px rgba(var(--accent-rgb), 0.15),
+      inset 0 0 0 1px rgba(var(--accent-rgb), 0.05);
   }
 
   .col-check {
@@ -978,11 +1022,11 @@
     flex-shrink: 0;
   }
   .col-status {
-    width: 42px;
+    width: 32px; /* Synchronized with col-check width */
     flex: 0 0 auto;
     display: flex;
-    justify-content: flex-start;
-    padding-left: 10px;
+    justify-content: center; /* PERFECT INDUSTRIAL CENTERING */
+    align-items: center;
     flex-shrink: 0;
   }
   .col-name {
@@ -1001,7 +1045,7 @@
   }
 
   .dot {
-    width: 11px;
+    width: 11px; /* Reverted to 11px Industrial Baseline */
     height: 11px;
     border-radius: 50%;
     background: var(--dot-color);
@@ -1010,15 +1054,22 @@
     opacity: 0.95;
     flex-shrink: 0;
     transition: all 0.25s ease;
+    box-sizing: border-box; /* PREVENT SIZE BLOATING */
   }
 
   .dot.is-off {
-    width: 14px; /* Scaled to 14px to match visual volume of glowing 11px dots */
-    height: 14px;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+    width: 18px; /* Standardize with Checkbox footprint */
+    height: 18px;
+    border-radius: 50%; /* Circle format */
+    background: rgba(0, 0, 0, 0.35) !important; /* Bloom Style Base */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Master industrial piping - Bloom Parity */
+    box-shadow:
+      inset 0 1px 4px rgba(0, 0, 0, 0.4),
+      inset 0 0 0 1px rgba(0, 0, 0, 0.1) !important;
     filter: none !important;
     opacity: 1;
-    margin: -1.5px; /* Alignment for 14px centered on an 11px row track */
+    margin: 0px;
+    box-sizing: border-box; /* PREVENT SIZE BLOATING */
   }
 
   .text-main {
@@ -1105,6 +1156,17 @@
     -webkit-mask-size: contain;
   }
 
+  input[type="checkbox"]:hover,
+  .row:hover input[type="checkbox"] {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(var(--accent-rgb), 0.9) !important; /* Intensive Bloom Reveal */
+    box-shadow:
+      0 0 15px rgba(var(--accent-rgb), 0.25),
+      0 0 4px rgba(var(--accent-rgb), 0.45);
+    color: #fff;
+    cursor: pointer;
+  }
+
   :global(.icon-muted) {
     opacity: 0.25;
     filter: grayscale(1);
@@ -1153,9 +1215,9 @@
     border-radius: 6px;
     padding: 4px;
     z-index: 10000; /* Absolute topmost layer */
-    box-shadow: 
-      0 32px 64px rgba(0, 0, 0, 1), /* Massive shadow for depth */
-      0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 32px 64px rgba(0, 0, 0, 1),
+      /* Massive shadow for depth */ 0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -1186,7 +1248,10 @@
   .dropdown-item:hover {
     background: rgba(255, 255, 255, 0.08) !important;
     color: #fff;
-    border-color: rgba(var(--accent-rgb), 0.85) !important; /* Brighter Bloom Reveal */
+    border-color: rgba(
+      var(--accent-rgb),
+      0.85
+    ) !important; /* Brighter Bloom Reveal */
     box-shadow:
       0 0 15px rgba(var(--accent-rgb), 0.2),
       0 0 4px rgba(var(--accent-rgb), 0.4);
@@ -1332,9 +1397,17 @@
   }
   .risk-filter-container {
     position: relative;
+    z-index: 5000; /* Absolute top-row priority */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .risk-filter-btn-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
   }
 
   .risk-header-btn {
@@ -1345,23 +1418,40 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 16px; /* Reduced to provide tighter centering in col-status */
+    height: 16px;
     border-radius: 4px;
     transition: background 0.2s;
+    opacity: 1 !important; /* MASTER LUMINOSITY LOCK */
   }
 
   .risk-header-btn:hover {
     background: rgba(255, 255, 255, 0.05);
   }
 
+  .risk-header-btn :global(svg) {
+    opacity: 1 !important; /* EXEMPT from global toolbar dimming */
+    filter: none !important; /* EXEMPT from global toolbar drop-shadows */
+  }
+
   .header-pie {
-    width: 14px !important;
-    height: 14px !important;
+    width: 11px !important; /* Synchronized to 11px Row Dots */
+    height: 11px !important;
     background: transparent !important; /* Managed by SVG internally */
     margin: 0 !important;
     position: relative;
     border-radius: 50%;
+    pointer-events: none; /* PASS-THROUGH TO BLOOM CONTROL */
+  }
+
+  .header-pie.is-off {
+    border-radius: 50%;
+    width: 18px !important;
+    height: 18px !important;
+    margin: 0 !important;
+    background: transparent !important; /* Managed by parent BloomControl */
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .pie-overlay {
@@ -1399,8 +1489,8 @@
   }
 
   .mini-dot {
-    width: 10px !important;
-    height: 10px !important;
+    width: 12px !important;
+    height: 12px !important;
     flex-shrink: 0;
   }
 
