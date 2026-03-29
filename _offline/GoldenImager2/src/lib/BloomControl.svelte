@@ -3,6 +3,7 @@
   export let width: string = "auto";
   export let height: string = "28px";
   export let style: string = "";
+  export let title: string = "";
   let className: string = "";
   export { className as class };
 
@@ -18,6 +19,7 @@
 <button 
   class="bloom-control {className}" 
   class:active
+  {title}
   style="--width: {width}; --height: {height}; {style}"
   on:click={handleClick}
 >

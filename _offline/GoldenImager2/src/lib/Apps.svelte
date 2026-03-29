@@ -16,6 +16,7 @@
     Trash2,
     RefreshCw,
     X,
+    Zap,
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
 
@@ -37,24 +38,77 @@
   let saveName = "";
 
   const FILTER_OPTIONS = [
-    { id: "all", label: "All Applications" },
-    { id: "curated", label: "Curated Policy" },
-    { id: "installed", label: "Installed Apps" },
-    { id: "system", label: "System (Provisioned)" },
-    { id: "user", label: "User (Appx/Reg)" },
+    {
+      id: "all",
+      label: "All Applications",
+      description:
+        "Complete system inventory including provisioned system packages and manually installed user apps.",
+    },
+    {
+      id: "curated",
+      label: "Curated Policy",
+      description:
+        "High-fidelity audit list based on standard Sysprep best practices and security hardening.",
+    },
+    {
+      id: "installed",
+      label: "Installed Apps",
+      description:
+        "Standard desktop applications and third-party software currently registered with the system.",
+    },
+    {
+      id: "system",
+      label: "System (Provisioned)",
+      description:
+        "Core Windows system packages pre-staged for deployment but not yet fully instantiated for users.",
+    },
+    {
+      id: "user",
+      label: "User (Appx/Reg)",
+      description:
+        "Applications specifically registered to the current user profile or installed via Appx.",
+    },
+    {
+      id: "unmapped",
+      label: "New / Unmapped",
+      description:
+        "Discovered system applications that are not currently accounted for in the curated Apps.json policy.",
+    },
+  ];
+
+  const RISK_OPTIONS = [
+    { id: "safe", color: "var(--risk-safe)", label: "Safe / Cleanup" },
+    { id: "warn", color: "var(--risk-warn)", label: "Warning / Risky" },
+    { id: "unsafe", color: "var(--risk-unsafe)", label: "Unsafe / Remove" },
+    { id: "user", color: "var(--risk-user)", label: "User Tools" },
+    { id: "unmapped", color: "var(--risk-unknown)", label: "Unmapped / New" },
   ];
 
   let isPolicyOpen = false;
+  let isRiskOpen = false;
   let isProfileOpen = false;
 
-  function togglePolicy() {
-    isPolicyOpen = !isPolicyOpen;
+  function closeAll() {
+    isPolicyOpen = false;
+    isRiskOpen = false;
     isProfileOpen = false;
   }
-  function toggleProfile() {
+
+  function togglePolicy(e?: any) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    isPolicyOpen = !isPolicyOpen;
+    isProfileOpen = false;
+    isRiskOpen = false;
+  }
+
+  function toggleProfile(e?: any) {
+    if (e && e.stopPropagation) e.stopPropagation();
     isProfileOpen = !isProfileOpen;
     isPolicyOpen = false;
+    isRiskOpen = false;
   }
+
+  let selectedRisks = new Set(["safe", "warn", "unsafe", "user", "unmapped"]);
 
   function selectPolicy(id: string) {
     viewFilter = id;
@@ -64,15 +118,6 @@
     selectedProfile = p;
     isProfileOpen = false;
     loadProfile();
-  }
-
-  // Click Outside logic
-  function handleGlobalClick(e: MouseEvent) {
-    const target = e.target as HTMLElement;
-    if (!target.closest(".custom-select-container")) {
-      isPolicyOpen = false;
-      isProfileOpen = false;
-    }
   }
 
   $: appCount = filteredApps ? filteredApps.length : 0;
@@ -94,8 +139,6 @@
 
   onMount(() => {
     loadData();
-    window.addEventListener("click", handleGlobalClick);
-    return () => window.removeEventListener("click", handleGlobalClick);
   });
 
   async function loadProfile() {
@@ -105,14 +148,12 @@
         name: selectedProfile,
       });
 
-      // Fuzzy Matching: Map profile names/short-ids to actual system identifiers
       const newSelection = new Set<string>();
-      const systemApps = [...apps]; // Local snapshot
+      const systemApps = [...apps];
 
       profileAppIds.forEach((pId) => {
         const pIdLower = pId.toLowerCase();
 
-        // 1. Exact Match or PackageFullName Prefix Match (most common for Appx)
         const match = systemApps.find(
           (a) =>
             a.AppId.toLowerCase() === pIdLower ||
@@ -123,7 +164,6 @@
         if (match) {
           newSelection.add(match.AppId);
         } else {
-          // 2. Fallback: Friendly Name matching (less precise)
           const nameMatch = systemApps.find(
             (a) => a.FriendlyName.toLowerCase() === pIdLower,
           );
@@ -133,9 +173,6 @@
 
       selectedApps = newSelection;
       isApplied = true;
-      console.log(
-        `[Apps] Profile '${selectedProfile}' synced. Matched ${selectedApps.size}/${profileAppIds.length} apps.`,
-      );
     } catch (e) {
       console.error("[Apps] Load Conflict:", e);
       alert(`Sync Error: ${e}`);
@@ -178,6 +215,9 @@
       case "curated":
         matchesFilter = app.IsCurated;
         break;
+      case "unmapped":
+        matchesFilter = !app.IsCurated;
+        break;
       case "installed":
         matchesFilter = app.IsInstalled;
         break;
@@ -195,14 +235,71 @@
     return matchesSearch && matchesFilter;
   });
 
-  const getStatusColor = (rec: string) => {
-    switch (rec) {
+  $: filteredByRisk = filteredApps.filter((app) => {
+    if (selectedRisks.size === 0) return true;
+    const isUser = app.IsUser || app.Recommendation === "user";
+    if (isUser && selectedRisks.has("user")) return true;
+
+    if (app.IsCurated) {
+      return selectedRisks.has(app.Recommendation);
+    } else {
+      return selectedRisks.has("unmapped");
+    }
+  });
+
+  function toggleRisk(id: string) {
+    if (selectedRisks.has(id)) {
+      selectedRisks.delete(id);
+    } else {
+      selectedRisks.add(id);
+    }
+    selectedRisks = selectedRisks;
+  }
+
+  function getSelectedRisksList(selected: Set<string>) {
+    return RISK_OPTIONS.filter((o) => selected.has(o.id));
+  }
+
+  function getExplodeOffset(i: number, count: number) {
+    if (count <= 1) return { x: 0, y: 0 };
+    // 0deg is TOP. Bisector is in the middle of segment.
+    const angle = (i + 0.5) * (360 / count);
+    const rad = (angle * Math.PI) / 180;
+    const dist = 1.0; // 1px explosion
+    return {
+      x: Math.sin(rad) * dist,
+      y: -Math.cos(rad) * dist,
+    };
+  }
+
+  function getSegmentPath(i: number, count: number) {
+    const r = 7;
+    const startAngle = (i * (360 / count) - 90) * (Math.PI / 180);
+    const endAngle = ((i + 1) * (360 / count) - 90) * (Math.PI / 180);
+
+    const x1 = r + r * Math.cos(startAngle);
+    const y1 = r + r * Math.sin(startAngle);
+    const x2 = r + r * Math.cos(endAngle);
+    const y2 = r + r * Math.sin(endAngle);
+
+    const largeArc = 0; // Each piece is < 180
+    return `M 7 7 L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+  }
+
+  const getStatusColor = (app: any) => {
+    if (app.IsUser || app.Recommendation === "user") {
+      return "var(--risk-user)";
+    }
+
+    switch (app.Recommendation) {
       case "safe":
         return "var(--risk-safe)";
+      case "warn":
+        return "var(--risk-warn)";
       case "unsafe":
         return "var(--risk-unsafe)";
       default:
-        return "var(--risk-warn)";
+        return "var(--risk-unknown)";
     }
   };
 
@@ -222,7 +319,7 @@
     if (selectedApps.has(id)) selectedApps.delete(id);
     else selectedApps.add(id);
     selectedApps = new Set(selectedApps);
-    isApplied = false; // Modification breaks the "Applied" state
+    isApplied = false;
   };
 
   function handleToggleAll(e: Event) {
@@ -235,7 +332,6 @@
     selectedApps = new Set(selectedApps);
   }
 
-  // Dynamic Column Width Calculation (Full Dataset)
   $: maxNameLen = apps.reduce(
     (max, app) => Math.max(max, (app.FriendlyName || "").length),
     20,
@@ -245,7 +341,6 @@
     30,
   );
 
-  // Weights: FriendlyName uses ~5.4px/char, AppId (mono) uses ~7.2px/char
   $: nameWidth = (maxNameLen + 2) * 5.4;
   $: idWidth = (maxIdLen + 4) * 7.2;
 
@@ -253,6 +348,7 @@
     showSaveModal = false;
     isPolicyOpen = false;
     isProfileOpen = false;
+    isRiskOpen = false;
   }
 </script>
 
@@ -305,11 +401,18 @@
   </div>
 {/if}
 
+<svelte:window on:click={closeAll} />
+
 <div class="panel">
   <div class="toolbar">
     <div class="tool-group">
-      <!-- Custom Policy Dropdown -->
-      <div class="custom-select-container">
+      <div
+        class="custom-select-container"
+        on:click|stopPropagation={() => {}}
+        on:keydown={() => {}}
+        role="button"
+        tabindex="-1"
+      >
         <BloomControl
           width="140px"
           active={isPolicyOpen}
@@ -332,6 +435,7 @@
                 class="dropdown-item"
                 class:active={viewFilter === opt.id}
                 on:click={() => selectPolicy(opt.id)}
+                title={opt.description}
               >
                 {opt.label}
               </button>
@@ -340,9 +444,14 @@
         {/if}
       </div>
 
-      <!-- Integrated Profile & Action Group -->
       <div class="segmented-control profile-group">
-        <div class="custom-select-container">
+        <div
+          class="custom-select-container"
+          on:click|stopPropagation={() => {}}
+          on:keydown={() => {}}
+          role="button"
+          tabindex="-1"
+        >
           <BloomControl
             width="140px"
             active={isProfileOpen}
@@ -396,27 +505,35 @@
         </BloomControl>
       </div>
 
-      <div class="search-box">
-        <BloomControl width="180px" class="locked-sunken">
-          <Search size={13} class="search-icon" />
-          <input
-            type="text"
-            bind:value={searchTerm}
-            placeholder="Filter apps..."
-            class="bloom-input"
-          />
+      <div class="segmented-control search-group">
+        <div class="search-box">
+          <BloomControl
+            width="180px"
+            class="locked-sunken"
+            style="border-radius: 4px 0 0 4px !important;"
+          >
+            <Search size={13} class="search-icon" />
+            <input
+              type="text"
+              bind:value={searchTerm}
+              placeholder="Filter apps..."
+              class="bloom-input"
+            />
+          </BloomControl>
+        </div>
+        <BloomControl
+          width="34px"
+          on:click={loadData}
+          title="Refresh System List"
+          style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
+          class="refresh-btn"
+        >
+          <RefreshCw size={13} strokeWidth={2.5} />
         </BloomControl>
       </div>
     </div>
 
     <div class="tool-group right">
-      <button
-        class="tool-btn refresh-dim"
-        on:click={loadData}
-        title="Refresh System List"
-      >
-        <RefreshCw size={14} strokeWidth={2.5} />
-      </button>
       <button class="action-btn" class:active={selectedApps.size > 0}>
         Apply Changes ({selectedApps.size})
       </button>
@@ -435,7 +552,75 @@
         on:change={handleToggleAll}
       />
     </div>
-    <div class="col-status"></div>
+    <div class="col-status">
+      <div class="risk-filter-container">
+        <button
+          class="risk-header-btn"
+          on:click|stopPropagation={() => (isRiskOpen = !isRiskOpen)}
+        >
+          <div
+            class="dot header-pie"
+            class:is-off={selectedRisks.size === 0 ||
+              (selectedRisks.has("unmapped") && selectedRisks.size === 1)}
+          >
+            {#if selectedRisks.size > 0}
+              {@const selectedList = getSelectedRisksList(selectedRisks)}
+              <svg viewBox="-2 -2 18 18" class="pie-overlay">
+                <!-- Exploded Spectral Glow Group -->
+                <g class="pie-glow-group">
+                  {#each selectedList as opt, i}
+                    {@const offset = getExplodeOffset(i, selectedList.length)}
+                    <path 
+                      d={getSegmentPath(i, selectedList.length)}
+                      fill={opt.color}
+                      transform="translate({offset.x}, {offset.y})"
+                    />
+                  {/each}
+                </g>
+
+                <!-- Exploded Physical Pieces -->
+                <g class="pie-pieces-group">
+                  {#each selectedList as opt, i}
+                    {@const offset = getExplodeOffset(i, selectedList.length)}
+                    <path 
+                      d={getSegmentPath(i, selectedList.length)}
+                      fill={opt.color}
+                      transform="translate({offset.x}, {offset.y})"
+                      stroke="#0b0f10"
+                      stroke-width="1.2"
+                    />
+                  {/each}
+                </g>
+              </svg>
+            {/if}
+          </div>
+        </button>
+
+        {#if isRiskOpen}
+          <div class="dropdown-list risk-dropdown">
+            {#each RISK_OPTIONS as opt}
+              <button
+                class="dropdown-item risk-item"
+                on:click|stopPropagation={() => toggleRisk(opt.id)}
+              >
+                <div class="risk-check-row">
+                  <div class="risk-active-mark-container">
+                    {#if selectedRisks.has(opt.id)}
+                      <div class="risk-active-mark"></div>
+                    {/if}
+                  </div>
+                  <span class="risk-label">{opt.label}</span>
+                  <div
+                    class="dot mini-dot"
+                    style="background: {opt.color}; box-shadow: 0 0 4px {opt.color};"
+                  ></div>
+                </div>
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </div>
     <div class="col-name">Friendly Name</div>
     <div class="col-appid">System Identifier / Package Name</div>
   </div>
@@ -450,7 +635,7 @@
       {:else if error}
         <div class="state-msg error">{error}</div>
       {:else}
-        {#each filteredApps as app}
+        {#each filteredByRisk as app}
           <div
             class="row"
             style="--row-hue: {getRowHue(app.Recommendation)}"
@@ -472,9 +657,9 @@
             <div class="col-status">
               <div
                 class="dot"
-                style="background: {getStatusColor(
-                  app.Recommendation,
-                )}; color: {getStatusColor(app.Recommendation)}"
+                class:is-off={!app.IsUser &&
+                  !["safe", "warn", "unsafe"].includes(app.Recommendation)}
+                style="--dot-color: {getStatusColor(app)}"
               ></div>
             </div>
             <div class="col-name">
@@ -491,6 +676,14 @@
 </div>
 
 <style>
+  :root {
+    --risk-safe: #00e676;
+    --risk-warn: #ffd600;
+    --risk-unsafe: #ff3d60; /* Bright Neon Red */
+    --risk-user: #9900ff; /* Bright Electric Purple */
+    --risk-unknown: #1a1f21; /* 'Off' state industrial grey */
+  }
+
   .panel {
     display: flex;
     flex-direction: column;
@@ -508,7 +701,7 @@
     padding-bottom: 4px;
     gap: 12px;
     position: relative;
-    z-index: 100; /* Sit above table shadows */
+    z-index: 2000; /* Master priority above table assets */
   }
 
   .tool-group {
@@ -525,7 +718,7 @@
 
   .toolbar :global(svg) {
     color: #fff;
-    opacity: 0.6; /* Perfectly syncs with Sidebar resting weight */
+    opacity: 0.35; /* Master Sidebar resting weight */
     filter: drop-shadow(
       0 1px 2px rgba(0, 0, 0, 0.5)
     ); /* Professional lift - Synced with Search Magnifier */
@@ -561,7 +754,7 @@
     border: none;
     color: #fff;
     font-size: 11px;
-    padding: 0 0 0 28px; /* Correct 8px gap after 12px icon (8 + 12 + 8) */
+    padding: 0 0 0 28px; /* Standard 8px gap after 12px icon */
     width: 100%;
     outline: none;
   }
@@ -596,45 +789,52 @@
   .action-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.35); /* Matched to Sidebar resting weight */
     font-size: 11px;
     font-weight: 700;
     padding: 0 16px;
-    height: 26px;
+    height: 28px; /* Matched to Bloom inputs */
     border-radius: 4px;
     cursor: default;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .action-btn.active {
-    background: var(--accent-color);
-    color: #fff;
-    border: none;
+    background: rgba(
+      var(--accent-rgb),
+      0.15
+    ) !important; /* Industrial Sunken Teal */
+    color: var(--accent-color); /* Vibrant Teal Text */
+    border: 1px solid rgba(var(--accent-rgb), 0.6) !important;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+    box-shadow: none; /* REMOVED GLOW PER USER REQ */
+    text-shadow: none; /* REMOVED GLOW PER USER REQ */
   }
 
   .action-btn.active:hover {
     filter: brightness(1.15);
-    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.5);
-    transform: translateY(-1px);
+    box-shadow:
+      0 0 15px rgba(var(--accent-rgb), 0.2),
+      0 0 4px rgba(var(--accent-rgb), 0.4);
+    border-color: rgba(
+      var(--accent-rgb),
+      0.8
+    ) !important; /* Brighter on hover */
   }
 
-  .refresh-dim {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 8px;
-    opacity: 0.15; /* Dimmer than sidebar icons */
-    transition: all 0.25s ease;
-    color: #fff;
+  :global(.refresh-btn svg) {
+    opacity: 0.35 !important;
   }
 
-  .refresh-dim:hover {
-    opacity: 1;
-    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+  :global(.refresh-btn:hover svg) {
+    opacity: 1 !important;
+  }
+
+  :global(.refresh-btn:active svg) {
+    transform: rotate(180deg);
   }
 
   .table-container {
@@ -648,6 +848,7 @@
     overflow: hidden;
     position: relative;
     padding: 0 6px; /* First half of gutter */
+    z-index: 1; /* Lowest industrial stack */
     box-shadow:
       inset 0 0 0 1px #12181a,
       inset 0 24px 24px -12px rgba(0, 0, 0, 0.48); /* Only top industrial shadow */
@@ -693,7 +894,6 @@
     font-size: 10px;
     font-weight: 800;
     color: #fff;
-    opacity: 0.8;
     background: linear-gradient(to right, #fff, #94a3b8);
     -webkit-background-clip: text;
     background-clip: text;
@@ -701,7 +901,7 @@
     text-transform: uppercase;
     letter-spacing: 0.8px;
     flex-shrink: 0;
-    z-index: 20;
+    z-index: 1000; /* Lifts entire header above body/rows */
     position: relative;
   }
 
@@ -734,18 +934,38 @@
   }
 
   .row:hover {
-    background: var(--bg-card-hover);
-    border-color: rgba(var(--accent-rgb), 0.5);
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.08) !important; /* Bloom Hover Base */
+    border-color: rgba(
+      var(--accent-rgb),
+      0.6
+    ) !important; /* Standard Bloom Reveal */
     box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.4),
-      0 0 20px rgba(var(--accent-rgb), 0.3);
-    z-index: 10;
+      0 0 15px rgba(var(--accent-rgb), 0.2),
+      0 0 4px rgba(var(--accent-rgb), 0.4);
+    z-index: 50;
+    filter: brightness(1.15);
+  }
+
+  .row:hover .text-main,
+  .row:hover .text-mono {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    -webkit-text-fill-color: #fff !important;
+    color: #fff !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
   }
 
   .row.selected {
     background: rgba(var(--accent-rgb), 0.12);
-    border-color: rgba(var(--accent-rgb), 0.4);
+    border-color: rgba(
+      var(--accent-rgb),
+      0.85
+    ) !important; /* Bright 'Opened/Active' Pip */
+    box-shadow:
+      0 0 12px rgba(var(--accent-rgb), 0.2),
+      inset 0 0 0 1px rgba(var(--accent-rgb), 0.1);
   }
 
   .col-check {
@@ -784,10 +1004,21 @@
     width: 11px;
     height: 11px;
     border-radius: 50%;
-    box-shadow: 0 0 6px currentColor;
+    background: var(--dot-color);
+    box-shadow: 0 0 10px var(--dot-color); /* Intensified bloom radiance */
     filter: saturate(1.8) brightness(1.2);
     opacity: 0.95;
     flex-shrink: 0;
+    transition: all 0.25s ease;
+  }
+
+  .dot.is-off {
+    width: 14px; /* Scaled to 14px to match visual volume of glowing 11px dots */
+    height: 14px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+    filter: none !important;
+    opacity: 1;
+    margin: -1.5px; /* Alignment for 14px centered on an 11px row track */
   }
 
   .text-main {
@@ -805,8 +1036,11 @@
   }
 
   .text-mono {
-    font-family: "Consolas", "Monaco", monospace;
-    font-size: 10px;
+    font-family: "Fira Code Nerd Font", "Fira Code", "JetBrains Mono",
+      "Cascadia Code", "Consolas", monospace;
+    font-size: 10.5px;
+    font-weight: 400; /* Balanced industrial thickness */
+    letter-spacing: 0.2px; /* Increased for better horizontal clarity */
     color: #94a3b8;
     white-space: nowrap;
     overflow: hidden;
@@ -849,9 +1083,9 @@
   }
 
   input[type="checkbox"]:checked {
-    border-color: rgba(var(--accent-rgb), 0.6);
+    border-color: rgba(var(--accent-rgb), 0.85) !important; /* Brighter frame */
     box-shadow:
-      0 0 8px rgba(var(--accent-rgb), 0.3),
+      0 0 10px rgba(var(--accent-rgb), 0.3),
       inset 0 1px 3px rgba(0, 0, 0, 0.4);
   }
 
@@ -859,7 +1093,10 @@
     content: "";
     width: 12px;
     height: 12px;
-    background: var(--accent-color);
+    background: #fff; /* White check for maximum brightness */
+    filter: drop-shadow(
+      0 0 2px rgba(var(--accent-rgb), 0.5)
+    ); /* Reduced glow */
     mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E")
       no-repeat center;
     -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E")
@@ -909,18 +1146,20 @@
     left: 0;
     right: 0;
     width: 100%;
-    background: #0b0f10; /* Match Title Bar */
-    border: 1px solid rgba(255, 255, 255, 0.08); /* Industrial border */
+    background-color: #0b0f10 !important; /* Absolute Opaque Black */
+    background: #0b0f10 !important;
+    opacity: 1 !important; /* Force full non-transparency */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Matched to BloomControl Industrial Rim */
     border-radius: 6px;
     padding: 4px;
-    z-index: 1000;
-    box-shadow:
-      0 12px 32px rgba(0, 0, 0, 0.7),
+    z-index: 10000; /* Absolute topmost layer */
+    box-shadow: 
+      0 32px 64px rgba(0, 0, 0, 1), /* Massive shadow for depth */
       0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     gap: 2px;
-    overflow: hidden;
+    overflow: visible; /* Ensure shadows and children clear */
   }
 
   .dropdown-item {
@@ -931,23 +1170,29 @@
     font-size: 11px;
     text-align: left;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 2px; /* Sharper industrial rounding */
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     display: block;
     width: 100%;
+    border: 1px solid transparent; /* Placeholder for hover border */
+    /* Reset header-inherited transparency */
+    -webkit-text-fill-color: initial !important;
+    background-clip: initial !important;
+    -webkit-background-clip: initial !important;
+    text-transform: none !important;
   }
 
   .dropdown-item:hover {
-    background: var(--bg-card-hover);
+    background: rgba(255, 255, 255, 0.08) !important;
     color: #fff;
-    border-color: rgba(var(--accent-rgb), 0.5);
-    transform: translateY(-1px);
+    border-color: rgba(var(--accent-rgb), 0.85) !important; /* Brighter Bloom Reveal */
     box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.4),
-      0 0 20px rgba(var(--accent-rgb), 0.3);
-    z-index: 10;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      0 0 15px rgba(var(--accent-rgb), 0.2),
+      0 0 4px rgba(var(--accent-rgb), 0.4);
+    z-index: 50;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    filter: brightness(1.15);
   }
 
   .dropdown-item.active {
@@ -1084,5 +1329,100 @@
 
   .modal-btn.confirm.active:hover {
     filter: brightness(1.15);
+  }
+  .risk-filter-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .risk-header-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .risk-header-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .header-pie {
+    width: 14px !important;
+    height: 14px !important;
+    background: transparent !important; /* Managed by SVG internally */
+    margin: 0 !important;
+    position: relative;
+    border-radius: 50%;
+  }
+
+  .pie-overlay {
+    position: absolute;
+    inset: -2px; /* Allow for explosion space */
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    pointer-events: none;
+    z-index: 2;
+    overflow: visible;
+  }
+
+  .pie-glow-group {
+    filter: blur(5px) brightness(1.2) saturate(1.8);
+    opacity: 0.4;
+  }
+
+  .pie-pieces-group {
+    scale: 0.95; /* Slight industrial recession to account for 1px movement */
+    transform-origin: center;
+  }
+
+  .risk-dropdown {
+    width: 180px;
+    left: -10px;
+    top: calc(100% + 12px); /* Slightly more clearance */
+    z-index: 10000 !important; /* Unified topmost priority */
+  }
+
+  .risk-check-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .mini-dot {
+    width: 10px !important;
+    height: 10px !important;
+    flex-shrink: 0;
+  }
+
+  .risk-label {
+    flex: 1;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    /* Reset header-inherited transparency */
+    -webkit-text-fill-color: initial !important;
+  }
+
+  .risk-active-mark-container {
+    width: 8px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .risk-active-mark {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-color);
   }
 </style>
