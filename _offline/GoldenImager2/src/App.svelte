@@ -27,7 +27,7 @@
     <Header />
     
     <!-- Top Global Divider -->
-    <div class="h-divider">
+    <div class="h-divider top">
       <div class="h-edge"></div>
       <div class="h-core"></div>
       <div class="h-edge"></div>
@@ -61,7 +61,7 @@
     </div>
 
     <!-- Bottom Global Divider -->
-    <div class="h-divider">
+    <div class="h-divider bottom">
       <div class="h-edge"></div>
       <div class="h-core"></div>
       <div class="h-edge"></div>
@@ -147,7 +147,8 @@
   .v-core {
     width: 2px;
     height: 100%;
-    background: #2c3233;
+    /* Offset colors (2c3233 -> 1d2325) to prevent meshing with #12181a panels */
+    background: linear-gradient(180deg, #2c3233 0%, #1d2325 100%);
   }
 
   /* Horizontal Divider Styling */
@@ -161,7 +162,18 @@
   }
 
   .h-edge { height: 1px; width: 100%; background: #0d1214; }
-  .h-core { height: 2px; width: 100%; background: #2c3233; }
+  .h-core { 
+    height: 2px; 
+    width: 100%; 
+  }
+
+  .h-divider.top .h-core {
+    background: #2c3233; /* Matches top of vertical divider */
+  }
+
+  .h-divider.bottom .h-core {
+    background: #1d2325; /* Matches bottom of vertical divider */
+  }
 
   .placeholder {
     padding: 60px;

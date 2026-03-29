@@ -26,12 +26,12 @@
 <style>
   .bloom-control {
     appearance: none;
-    background: rgba(0, 0, 0, 0.35); /* Switched to a much deeper sunken base */
-    border: 1px solid rgba(255, 255, 255, 0.06); /* Fainter, more professional edge */
+    background: rgba(0, 0, 0, 0.35); /* Master Dark Sunken background */
+    border: 1px solid rgba(255, 255, 255, 0.06); /* Master industrial border */
     box-shadow: 
-      inset 0 1px 4px rgba(0, 0, 0, 0.4), /* True top-down recessed shadow */
+      inset 0 1px 4px rgba(0, 0, 0, 0.4), /* Top-down industrial recess */
       inset 0 0 0 1px rgba(0, 0, 0, 0.2); 
-    color: currentColor; 
+    color: rgba(255, 255, 255, 0.6); /* Perfectly syncs with Sidebar icon weight */
     font-size: 11px;
     padding: 0 12px;
     border-radius: 4px;
@@ -50,13 +50,13 @@
 
   .bloom-control:hover, .bloom-control.active {
     background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(var(--accent-rgb), 0.6) !important; /* Vibrant accent border */
+    border-color: rgba(var(--accent-rgb), 0.6) !important; /* Vibrant teal border */
     box-shadow: 
-      0 0 20px rgba(var(--accent-rgb), 0.4),
-      0 0 4px rgba(var(--accent-rgb), 0.6);
-    color: #fff;
+      0 0 15px rgba(var(--accent-rgb), 0.2), /* Vibrant teal bloom */
+      0 0 4px rgba(var(--accent-rgb), 0.4);
+    color: #fff; /* Icons brighten to 1.0 on hover */
     z-index: 50;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3); /* Premium text glow */
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3); /* Premium white text glow */
   }
 
   /* Refined Hover transition */
@@ -66,9 +66,9 @@
 
   .bloom-control.active {
     border-color: rgba(var(--accent-rgb), 0.8) !important;
-    background: rgba(var(--accent-rgb), 0.1); /* Subtle sunken-active tint */
+    background: rgba(var(--accent-rgb), 0.1); 
     box-shadow: 
-      0 0 15px rgba(var(--accent-rgb), 0.3),
-      inset 0 0 0 1px rgba(var(--accent-rgb), 0.1);
+      0 0 12px rgba(var(--accent-rgb), 0.15),
+      inset 0 0 0 1px rgba(var(--accent-rgb), 0.05);
   }
 </style>

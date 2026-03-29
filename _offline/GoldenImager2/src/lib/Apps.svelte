@@ -271,9 +271,8 @@
           on:click={togglePolicy}
           class="main-filter"
         >
-          <!-- <span>{FILTER_OPTIONS.find(o => o.id === viewFilter)?.label}</span> -->
           <span class="chevron-wrapper" class:spin={isPolicyOpen}>
-            <!-- <ChevronDown size={12} /> -->
+            <ChevronDown size={12} />
           </span>
         </BloomControl>
 
@@ -294,9 +293,8 @@
           active={isProfileOpen} 
           on:click={toggleProfile}
         >
-          <!-- <span>{selectedProfile || "No Profile Loaded"}</span> -->
           <span class="chevron-wrapper" class:spin={isProfileOpen}>
-            <!-- <ChevronDown size={12} /> -->
+            <ChevronDown size={12} />
           </span>
         </BloomControl>
 
@@ -315,15 +313,15 @@
       </div>
 
       <BloomControl width="120px" on:click={loadProfile}>
-        <!-- <Download size={14} /> -->
+        <Download size={14} />
       </BloomControl>
       
       <BloomControl width="120px" on:click={saveProfile}>
-        <!-- <Save size={14} /> -->
+        <Save size={14} />
       </BloomControl>
 
       <div class="search-box">
-        <BloomControl width="180px" class="search-bloom">
+        <BloomControl width="180px" class="locked-sunken">
           <Search size={12} class="search-icon" />
           <input
             type="text"
@@ -443,6 +441,19 @@
     align-items: center;
   }
 
+  .toolbar :global(svg) {
+    color: #fff;
+    opacity: 0.6; /* Perfectly syncs with Sidebar resting weight */
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.15));
+    transition: all 0.25s ease;
+  }
+
+  .toolbar :global(.bloom-control:hover svg),
+  .toolbar :global(.bloom-control.active svg) {
+    opacity: 1; /* Brightens to full intensity on hover/active like Sidebar */
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+  }
+
   .main-filter {
     font-weight: 600;
   }
@@ -454,9 +465,12 @@
   }
 
   :global(.search-icon) {
-    opacity: 0.3;
+    position: absolute;
+    left: 8px; /* Industrial tight anchor: 8px gap */
+    opacity: 0.75; /* Synced to new industrial baseline */
+    color: #fff;
     pointer-events: none;
-    margin-right: -4px; /* Move closer to text */
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); /* Professional lift shadow */
   }
 
   .bloom-input {
@@ -464,9 +478,13 @@
     border: none;
     color: #fff;
     font-size: 11px;
-    padding: 0;
+    padding: 0 0 0 28px; /* Correct 8px gap after 12px icon (8 + 12 + 8) */
     width: 100%;
     outline: none;
+  }
+
+  :global(.locked-sunken) {
+    padding: 0 !important; /* Force reset of component padding to ensure symmetry */
   }
 
   .profile-bar {
@@ -488,17 +506,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.4;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .chevron-wrapper.spin {
-    transform: rotate(180deg);
-  }
-
-  :global(.profile-icon) {
-    color: rgba(255, 255, 255, 0.2);
-    transition: all 0.2s;
   }
 
   .profile-bar.selected :global(.profile-icon) {
@@ -564,14 +572,14 @@
     flex-direction: column;
     background: rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none; /* Flush with industrial floor */
     border-radius: 12px 12px 0 0;
     overflow: hidden;
     position: relative;
     padding: 0 6px; /* First half of gutter */
     box-shadow:
       inset 0 0 0 1px #12181a,
-      inset 0 24px 24px -12px rgba(0, 0, 0, 0.48), /* Top drop shadow */
-      inset 0 -24px 24px -12px rgba(0, 0, 0, 0.48); /* Bottom shadow */
+      inset 0 24px 24px -12px rgba(0, 0, 0, 0.48); /* Only top industrial shadow */
   }
 
   .table-container::before {
@@ -598,10 +606,10 @@
     right: 0;
     background: linear-gradient(
       to top,
-      rgba(0, 0, 0, 0.48) 0%,
-      rgba(var(--bg-main-rgb), 0) 100%
+      rgba(0, 0, 0, 0.4) 0%,
+      rgba(0, 0, 0, 0) 100%
     );
-    height: 32px;
+    height: 16px; /* Tighter fade to ensure pixel parity at bottom */
     z-index: 15;
     pointer-events: none;
   }
@@ -630,7 +638,7 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0 6px 10px 6px; /* Removed top padding to align with row margins */
+    padding: 0 6px 0 6px; /* Removed bottom padding for list-to-divider parity */
     display: flex;
     flex-direction: column;
     scrollbar-gutter: stable;
@@ -662,6 +670,20 @@
       0 8px 24px rgba(0, 0, 0, 0.4),
       0 0 20px rgba(var(--accent-rgb), 0.3);
     z-index: 10;
+  }
+
+  /* Variant for persistent industrial depth */
+  .bloom-control.locked-sunken:hover {
+    filter: none;
+    cursor: text;
+    background: rgba(0, 0, 0, 0.35); /* Lock to sunken color */
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    box-shadow: 
+      inset 0 1px 4px rgba(0, 0, 0, 0.4), /* Top-down industrial recess */
+      inset 0 0 0 1px rgba(0, 0, 0, 0.2); 
+    color: inherit; 
+    font-size: 11px;
+    border-color: rgba(var(--accent-rgb), 0.4);
   }
 
   .row.selected {

@@ -27,12 +27,12 @@
 
 <style>
   .header {
-    height: 32px;
+    height: 36px; /* Slightly taller for premium air */
     background: #1C2427; /* Solid background to prevent gradient-based shadow bleed */
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 12px;
     z-index: 100;
     justify-content: space-between;
     user-select: none;
@@ -45,19 +45,19 @@
   .title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 11px;
+    gap: 10px;
+    font-size: 14px; /* Stronger branding presence */
     font-weight: 700;
     color: var(--text-color);
-    opacity: 0.75; /* Slightly brighter for the icon */
+    opacity: 0.9; /* High-clarity branding */
     letter-spacing: 0.5px;
     text-transform: none;
   }
 
   .app-icon {
-    width: 18px;
-    height: 18px;
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8));
+    width: 22px;
+    height: 22px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
     display: block;
   }
 

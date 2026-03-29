@@ -18,8 +18,7 @@
 <style>
   .status-bar {
     height: 22px;
-    background: rgba(0, 0, 0, 0.6);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: #12181A; /* Synced with Sidebar/Content floor luminance */
     display: flex;
     align-items: center;
     justify-content: space-between;
