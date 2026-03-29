@@ -17,7 +17,7 @@
     RefreshCw,
     X,
   } from "lucide-svelte";
-  import BloomControl from './BloomControl.svelte';
+  import BloomControl from "./BloomControl.svelte";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
@@ -31,32 +31,45 @@
   let isApplied = false;
   let selectedApps = new Set<string>();
   let showConfirm = false;
-  let viewFilter = "curated";
+  let viewFilter = "all";
 
   let showSaveModal = false;
   let saveName = "";
 
   const FILTER_OPTIONS = [
+    { id: "all", label: "All Applications" },
     { id: "curated", label: "Curated Policy" },
     { id: "installed", label: "Installed Apps" },
     { id: "system", label: "System (Provisioned)" },
     { id: "user", label: "User (Appx/Reg)" },
-    { id: "all", label: "All Applications" },
   ];
 
   let isPolicyOpen = false;
   let isProfileOpen = false;
 
-  function togglePolicy() { isPolicyOpen = !isPolicyOpen; isProfileOpen = false; }
-  function toggleProfile() { isProfileOpen = !isProfileOpen; isPolicyOpen = false; }
-  
-  function selectPolicy(id: string) { viewFilter = id; isPolicyOpen = false; }
-  function selectProfile(p: string) { selectedProfile = p; isProfileOpen = false; loadProfile(); }
+  function togglePolicy() {
+    isPolicyOpen = !isPolicyOpen;
+    isProfileOpen = false;
+  }
+  function toggleProfile() {
+    isProfileOpen = !isProfileOpen;
+    isPolicyOpen = false;
+  }
+
+  function selectPolicy(id: string) {
+    viewFilter = id;
+    isPolicyOpen = false;
+  }
+  function selectProfile(p: string) {
+    selectedProfile = p;
+    isProfileOpen = false;
+    loadProfile();
+  }
 
   // Click Outside logic
   function handleGlobalClick(e: MouseEvent) {
     const target = e.target as HTMLElement;
-    if (!target.closest('.custom-select-container')) {
+    if (!target.closest(".custom-select-container")) {
       isPolicyOpen = false;
       isProfileOpen = false;
     }
@@ -81,8 +94,8 @@
 
   onMount(() => {
     loadData();
-    window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
   });
 
   async function loadProfile() {
@@ -91,33 +104,38 @@
       const profileAppIds: string[] = await invoke("load_app_profile", {
         name: selectedProfile,
       });
-      
+
       // Fuzzy Matching: Map profile names/short-ids to actual system identifiers
       const newSelection = new Set<string>();
       const systemApps = [...apps]; // Local snapshot
-      
-      profileAppIds.forEach(pId => {
+
+      profileAppIds.forEach((pId) => {
         const pIdLower = pId.toLowerCase();
-        
+
         // 1. Exact Match or PackageFullName Prefix Match (most common for Appx)
-        const match = systemApps.find(a => 
-          a.AppId.toLowerCase() === pIdLower || 
-          a.AppId.toLowerCase().startsWith(pIdLower + "_") ||
-          a.AppId.toLowerCase().includes("." + pIdLower + "_")
+        const match = systemApps.find(
+          (a) =>
+            a.AppId.toLowerCase() === pIdLower ||
+            a.AppId.toLowerCase().startsWith(pIdLower + "_") ||
+            a.AppId.toLowerCase().includes("." + pIdLower + "_"),
         );
 
         if (match) {
           newSelection.add(match.AppId);
         } else {
           // 2. Fallback: Friendly Name matching (less precise)
-          const nameMatch = systemApps.find(a => a.FriendlyName.toLowerCase() === pIdLower);
+          const nameMatch = systemApps.find(
+            (a) => a.FriendlyName.toLowerCase() === pIdLower,
+          );
           if (nameMatch) newSelection.add(nameMatch.AppId);
         }
       });
 
       selectedApps = newSelection;
       isApplied = true;
-      console.log(`[Apps] Profile '${selectedProfile}' synced. Matched ${selectedApps.size}/${profileAppIds.length} apps.`);
+      console.log(
+        `[Apps] Profile '${selectedProfile}' synced. Matched ${selectedApps.size}/${profileAppIds.length} apps.`,
+      );
     } catch (e) {
       console.error("[Apps] Load Conflict:", e);
       alert(`Sync Error: ${e}`);
@@ -218,12 +236,18 @@
   }
 
   // Dynamic Column Width Calculation (Full Dataset)
-  $: maxNameLen = apps.reduce((max, app) => Math.max(max, (app.FriendlyName || "").length), 20);
-  $: maxIdLen = apps.reduce((max, app) => Math.max(max, (app.AppId || "").length), 30);
-  
-  // Weights: FriendlyName uses ~6.2px/char, AppId (mono) uses ~6.5px/char
-  $: nameWidth = Math.min(480, Math.max(140, maxNameLen * 6.2));
-  $: idWidth = Math.min(600, Math.max(180, maxIdLen * 6.5));
+  $: maxNameLen = apps.reduce(
+    (max, app) => Math.max(max, (app.FriendlyName || "").length),
+    20,
+  );
+  $: maxIdLen = apps.reduce(
+    (max, app) => Math.max(max, (app.AppId || "").length),
+    30,
+  );
+
+  // Weights: FriendlyName uses ~5.4px/char, AppId (mono) uses ~7.2px/char
+  $: nameWidth = (maxNameLen + 2) * 5.4;
+  $: idWidth = (maxIdLen + 4) * 7.2;
 
   function closeModals() {
     showSaveModal = false;
@@ -233,26 +257,47 @@
 </script>
 
 {#if showSaveModal}
-  <div class="modal-overlay" on:click={closeModals} on:keydown={(e) => e.key === 'Escape' && closeModals()} role="button" tabindex="0" aria-label="Close modal">
-    <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true">
+  <div
+    class="modal-overlay"
+    on:click={closeModals}
+    on:keydown={(e) => e.key === "Escape" && closeModals()}
+    role="button"
+    tabindex="0"
+    aria-label="Close modal"
+  >
+    <div
+      class="modal-content"
+      on:click|stopPropagation
+      role="dialog"
+      aria-modal="true"
+    >
       <div class="modal-header">
         <h3>Save Profile</h3>
-        <button class="close-lite" on:click={() => showSaveModal = false}><X size={16} /></button>
+        <button class="close-lite" on:click={() => (showSaveModal = false)}
+          ><X size={16} /></button
+        >
       </div>
       <div class="modal-body">
         <p>Enter a unique name to store the current selection.</p>
-        <input 
-          type="text" 
-          bind:value={saveName} 
+        <input
+          type="text"
+          bind:value={saveName}
           placeholder="e.g. Minimalist-Build"
           class="modal-input"
-          on:keydown={(e) => e.key === 'Enter' && executeSave(saveName)}
+          on:keydown={(e) => e.key === "Enter" && executeSave(saveName)}
           autofocus
         />
       </div>
       <div class="modal-footer">
-        <button class="modal-btn cancel" on:click={() => showSaveModal = false}>Cancel</button>
-        <button class="modal-btn confirm" class:active={saveName.length > 0} on:click={() => executeSave(saveName)}>
+        <button
+          class="modal-btn cancel"
+          on:click={() => (showSaveModal = false)}>Cancel</button
+        >
+        <button
+          class="modal-btn confirm"
+          class:active={saveName.length > 0}
+          on:click={() => executeSave(saveName)}
+        >
           Save Profile
         </button>
       </div>
@@ -265,13 +310,16 @@
     <div class="tool-group">
       <!-- Custom Policy Dropdown -->
       <div class="custom-select-container">
-        <BloomControl 
-          width="140px" 
-          active={isPolicyOpen} 
+        <BloomControl
+          width="140px"
+          active={isPolicyOpen}
           on:click={togglePolicy}
           style="padding: 0 8px;"
         >
-          <span class="select-label truncate">{FILTER_OPTIONS.find(o => o.id === viewFilter)?.label || "Select Policy"}</span>
+          <span class="select-label truncate"
+            >{FILTER_OPTIONS.find((o) => o.id === viewFilter)?.label ||
+              "Select Policy"}</span
+          >
           <div class="chevron-wrapper" class:open={isPolicyOpen}>
             <ChevronDown size={14} />
           </div>
@@ -280,7 +328,11 @@
         {#if isPolicyOpen}
           <div class="dropdown-list">
             {#each FILTER_OPTIONS as opt}
-              <button class="dropdown-item" class:active={viewFilter === opt.id} on:click={() => selectPolicy(opt.id)}>
+              <button
+                class="dropdown-item"
+                class:active={viewFilter === opt.id}
+                on:click={() => selectPolicy(opt.id)}
+              >
                 {opt.label}
               </button>
             {/each}
@@ -290,42 +342,54 @@
 
       <!-- Integrated Profile & Action Group -->
       <div class="segmented-control profile-group">
-        <BloomControl 
-          width="140px" 
-          active={isProfileOpen} 
-          on:click={toggleProfile}
-          style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative;"
-        >
-          <span class="select-label truncate">{selectedProfile.replace('.json','') || "App-Profiles"}</span>
-          <div class="chevron-wrapper" class:open={isProfileOpen}>
-            <ChevronDown size={14} />
-          </div>
+        <div class="custom-select-container">
+          <BloomControl
+            width="140px"
+            active={isProfileOpen}
+            on:click={toggleProfile}
+            style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative;"
+          >
+            <span class="select-label truncate"
+              >{selectedProfile.replace(".json", "") || "App-Profiles"}</span
+            >
+            <div class="chevron-wrapper" class:open={isProfileOpen}>
+              <ChevronDown size={14} />
+            </div>
+          </BloomControl>
 
           {#if isProfileOpen}
             <div class="dropdown-list">
-              <button class="dropdown-item" class:active={!selectedProfile} on:click={() => selectProfile("")}>
+              <button
+                class="dropdown-item"
+                class:active={!selectedProfile}
+                on:click={() => selectProfile("")}
+              >
                 Clear Selection
               </button>
               {#each profiles as p}
-                <button class="dropdown-item" class:active={selectedProfile === p} on:click={() => selectProfile(p)}>
+                <button
+                  class="dropdown-item"
+                  class:active={selectedProfile === p}
+                  on:click={() => selectProfile(p)}
+                >
                   {p}
                 </button>
               {/each}
             </div>
           {/if}
-        </BloomControl>
+        </div>
 
-        <BloomControl 
-          width="34px" 
-          on:click={loadProfile} 
+        <BloomControl
+          width="34px"
+          on:click={loadProfile}
           style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
         >
           <Download size={13} />
         </BloomControl>
-        
-        <BloomControl 
-          width="34px" 
-          on:click={saveProfile} 
+
+        <BloomControl
+          width="34px"
+          on:click={saveProfile}
           style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
         >
           <Save size={13} />
@@ -347,11 +411,11 @@
 
     <div class="tool-group right">
       <button
-        class="tool-btn refresh"
+        class="tool-btn refresh-dim"
         on:click={loadData}
         title="Refresh System List"
       >
-        <RefreshCw size={14} />
+        <RefreshCw size={14} strokeWidth={2.5} />
       </button>
       <button class="action-btn" class:active={selectedApps.size > 0}>
         Apply Changes ({selectedApps.size})
@@ -359,14 +423,15 @@
     </div>
   </div>
 
-  <div class="table-header" style="--col-name-w: {nameWidth}px; --col-id-w: {idWidth}px;">
+  <div
+    class="table-header"
+    style="--col-name-w: {nameWidth}px; --col-id-w: {idWidth}px;"
+  >
     <div class="col-check">
       <input
         type="checkbox"
         checked={filteredApps.length > 0 &&
-          Array.from(selectedApps).every((id) =>
-            filteredApps.some((a) => a.AppId === id),
-          )}
+          filteredApps.every((a) => selectedApps.has(a.AppId))}
         on:change={handleToggleAll}
       />
     </div>
@@ -375,7 +440,10 @@
     <div class="col-appid">System Identifier / Package Name</div>
   </div>
 
-  <div class="table-container" style="--col-name-w: {nameWidth}px; --col-id-w: {idWidth}px;">
+  <div
+    class="table-container"
+    style="--col-name-w: {nameWidth}px; --col-id-w: {idWidth}px;"
+  >
     <div class="table-body">
       {#if loading}
         <div class="state-msg">Scanning system...</div>
@@ -404,7 +472,9 @@
             <div class="col-status">
               <div
                 class="dot"
-                style="background: {getStatusColor(app.Recommendation)}; color: {getStatusColor(app.Recommendation)}"
+                style="background: {getStatusColor(
+                  app.Recommendation,
+                )}; color: {getStatusColor(app.Recommendation)}"
               ></div>
             </div>
             <div class="col-name">
@@ -456,18 +526,17 @@
   .toolbar :global(svg) {
     color: #fff;
     opacity: 0.6; /* Perfectly syncs with Sidebar resting weight */
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); /* Professional lift - Synced with Search Magnifier */
+    filter: drop-shadow(
+      0 1px 2px rgba(0, 0, 0, 0.5)
+    ); /* Professional lift - Synced with Search Magnifier */
     transition: all 0.25s ease;
   }
 
   .toolbar :global(.bloom-control:hover:not(.locked-sunken) svg),
   .toolbar :global(.bloom-control.active:not(.locked-sunken) svg) {
     opacity: 1; /* Brightens to full intensity on hover/active like Sidebar */
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
-  }
-
-  .main-filter {
-    font-weight: 600;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))
+      drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
   }
 
   .search-box {
@@ -482,7 +551,9 @@
     opacity: 0.75; /* Synced to new industrial baseline */
     color: #fff;
     pointer-events: none;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); /* Professional lift shadow */
+    filter: drop-shadow(
+      0 1px 2px rgba(0, 0, 0, 0.5)
+    ); /* Professional lift shadow */
   }
 
   .bloom-input {
@@ -503,52 +574,11 @@
     padding: 0 !important; /* Force reset of component padding to ensure symmetry */
   }
 
-  .profile-bar {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    background: rgba(0, 0, 0, 0.15); /* Sunken start */
-    padding: 0; /* Removed legacy icon padding */
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 
-      inset 0 0 0 1px #12181a;
-    height: 28px;
-    position: relative;
-    z-index: 5;
-  }
-
   .chevron-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .profile-bar.selected :global(.profile-icon) {
-    color: #fff;
-    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
-  }
-
-  .profile-bar.applied :global(.profile-icon) {
-    color: var(--accent-color);
-    filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.4));
-  }
-
-  /* Refined Profiles Bar Coloration */
-  .profile-bar.selected :global(.bloom-control) {
-    color: #fff; 
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-  }
-
-  .profile-bar.applied :global(.bloom-control) {
-    color: var(--accent-color);
-    font-weight: 700;
-  }
-
-  .profile-dropdown-wrapper .dropdown-list {
-    left: auto;
-    right: 0; /* Align profiles to right edge */
   }
 
   .segmented-control {
@@ -557,11 +587,6 @@
     position: relative;
     z-index: 20;
     gap: 0; /* Forced industrial seal */
-  }
-
-  /* Ensure dropdowns inside segmented controls stay correctly positioned */
-  .segmented-control .dropdown-wrapper {
-    position: relative;
   }
 
   .profile-group {
@@ -594,6 +619,24 @@
     transform: translateY(-1px);
   }
 
+  .refresh-dim {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    opacity: 0.15; /* Dimmer than sidebar icons */
+    transition: all 0.25s ease;
+    color: #fff;
+  }
+
+  .refresh-dim:hover {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+  }
+
   .table-container {
     flex: 1;
     display: flex;
@@ -612,7 +655,7 @@
 
   .table-container::before {
     top: 0;
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     right: 0;
@@ -628,7 +671,7 @@
 
   .table-container::after {
     bottom: 0;
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     right: 0;
@@ -644,8 +687,8 @@
 
   .table-header {
     display: flex;
-    align-items: flex-end;
-    padding: 0 24px 4px 24px; /* Align with Row columns + lowered text */
+    align-items: center; /* Centered with row content */
+    padding: 0 12px 0 24px; /* Offset by 12px (6+6) to match container and body gutters */
     height: 32px;
     font-size: 10px;
     font-weight: 800;
@@ -694,22 +737,10 @@
     background: var(--bg-card-hover);
     border-color: rgba(var(--accent-rgb), 0.5);
     transform: translateY(-1px);
-    box-shadow: 
+    box-shadow:
       0 8px 24px rgba(0, 0, 0, 0.4),
       0 0 20px rgba(var(--accent-rgb), 0.3);
     z-index: 10;
-  }
-
-  /* Variant for persistent industrial depth */
-  .bloom-control.locked-sunken:hover {
-    filter: none !important;
-    cursor: text;
-    background: rgba(0, 0, 0, 0.35) !important; /* Lock to sunken color - NO BLOOM */
-    box-shadow: 
-      inset 0 1px 4px rgba(0, 0, 0, 0.4), /* Top-down industrial recess */
-      inset 0 0 0 1px rgba(0, 0, 0, 0.2) !important; 
-    color: rgba(255, 255, 255, 0.4) !important; 
-    font-size: 11px;
   }
 
   .row.selected {
@@ -718,34 +749,45 @@
   }
 
   .col-check {
-    width: 36px;
+    width: 32px;
+    flex: 0 0 auto;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-left: 2px;
+    padding-right: 12px;
+    flex-shrink: 0;
   }
   .col-status {
-    width: 36px;
+    width: 42px;
+    flex: 0 0 auto;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-left: 10px;
+    flex-shrink: 0;
   }
   .col-name {
     width: var(--col-name-w, 360px);
+    flex: 0 0 auto; /* Locked width */
     padding-right: 16px;
     box-sizing: border-box;
+    flex-shrink: 0;
   }
   .col-appid {
     width: var(--col-id-w, 400px);
-    flex: 1;
+    flex: 0 0 auto; /* No growth, no shrink - Locked width */
     padding-right: 16px;
     box-sizing: border-box;
+    flex-shrink: 0;
   }
 
   .dot {
-    width: 9px;
-    height: 9px;
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
     box-shadow: 0 0 6px currentColor;
     filter: saturate(1.8) brightness(1.2);
     opacity: 0.95;
+    flex-shrink: 0;
   }
 
   .text-main {
@@ -789,10 +831,41 @@
   }
 
   input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.35) !important; /* Bloom Base - Sunken */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  input[type="checkbox"]:checked {
+    border-color: rgba(var(--accent-rgb), 0.6);
+    box-shadow:
+      0 0 8px rgba(var(--accent-rgb), 0.3),
+      inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  input[type="checkbox"]:checked::after {
+    content: "";
     width: 12px;
     height: 12px;
-    cursor: pointer;
-    accent-color: var(--accent-color);
+    background: var(--accent-color);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E")
+      no-repeat center;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E")
+      no-repeat center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
   }
 
   :global(.icon-muted) {
@@ -841,7 +914,7 @@
     border-radius: 6px;
     padding: 4px;
     z-index: 1000;
-    box-shadow: 
+    box-shadow:
       0 12px 32px rgba(0, 0, 0, 0.7),
       0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex;
@@ -866,8 +939,14 @@
   }
 
   .dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--bg-card-hover);
     color: #fff;
+    border-color: rgba(var(--accent-rgb), 0.5);
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 20px rgba(var(--accent-rgb), 0.3);
+    z-index: 10;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   }
 
@@ -881,7 +960,9 @@
     width: 380px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 1), 0 0 0 1px rgba(var(--accent-rgb), 0.1);
+    box-shadow:
+      0 24px 64px rgba(0, 0, 0, 1),
+      0 0 0 1px rgba(var(--accent-rgb), 0.1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -889,8 +970,14 @@
   }
 
   @keyframes modal-pop {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   .modal-header {
@@ -918,7 +1005,9 @@
     transition: color 0.2s;
   }
 
-  .close-lite:hover { color: #fff; }
+  .close-lite:hover {
+    color: #fff;
+  }
 
   .modal-body {
     padding: 20px 24px;
@@ -973,7 +1062,10 @@
     color: rgba(255, 255, 255, 0.4);
   }
 
-  .modal-btn.cancel:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+  .modal-btn.cancel:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
 
   .modal-btn.confirm {
     background: rgba(255, 255, 255, 0.05);
