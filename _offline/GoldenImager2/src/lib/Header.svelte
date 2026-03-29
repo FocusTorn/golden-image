@@ -55,8 +55,8 @@
   }
 
   .app-icon {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
     display: block;
   }

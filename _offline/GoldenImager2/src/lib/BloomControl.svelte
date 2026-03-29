@@ -2,6 +2,7 @@
   export let active: boolean = false;
   export let width: string = "auto";
   export let height: string = "28px";
+  export let style: string = "";
   let className: string = "";
   export { className as class };
 
@@ -17,7 +18,7 @@
 <button 
   class="bloom-control {className}" 
   class:active
-  style="--width: {width}; --height: {height};"
+  style="--width: {width}; --height: {height}; {style}"
   on:click={handleClick}
 >
   <slot />
@@ -27,13 +28,13 @@
   .bloom-control {
     appearance: none;
     background: rgba(0, 0, 0, 0.35); /* Master Dark Sunken background */
-    border: 1px solid rgba(255, 255, 255, 0.06); /* Master industrial border */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Master industrial border - DEFINED PIPING */
     box-shadow: 
       inset 0 1px 4px rgba(0, 0, 0, 0.4), /* Top-down industrial recess */
-      inset 0 0 0 1px rgba(0, 0, 0, 0.2); 
+      inset 0 0 0 1px rgba(0, 0, 0, 0.1); 
     color: rgba(255, 255, 255, 0.6); /* Perfectly syncs with Sidebar icon weight */
     font-size: 11px;
-    padding: 0 12px;
+    padding: 0 4px; /* Tight base padding to allow square buttons to breathe */
     border-radius: 4px;
     width: var(--width);
     height: var(--height);
@@ -48,7 +49,7 @@
     user-select: none;
   }
 
-  .bloom-control:hover, .bloom-control.active {
+  .bloom-control:hover:not(.locked-sunken), .bloom-control.active {
     background-color: rgba(255, 255, 255, 0.08);
     border-color: rgba(var(--accent-rgb), 0.6) !important; /* Vibrant teal border */
     box-shadow: 

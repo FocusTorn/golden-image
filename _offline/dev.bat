@@ -1,0 +1,6 @@
+@echo off
+echo [Industrial Purge] Neutralizing active session on port 1420...
+for /f "tokens=5" %%p in ('netstat -aon ^| findstr :1420') do taskkill /f /pid %%p 2>nul
+echo [Electric Launch] Transitioning to project root and firing UI Dev Server...
+cd GoldenImager2
+npm run dev

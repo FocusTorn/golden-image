@@ -2,6 +2,11 @@
 setlocal
 cd /d "%~dp0"
 
+:: Step 0: Enter the project directory BEFORE any logic occurs
+if exist "GoldenImager2" (
+    cd GoldenImager2
+)
+
 :: --- Argument Normalization ---
 set "choice=%~1"
 
@@ -18,9 +23,6 @@ echo ==================================================
 echo   GoldenImager2: Modernized Native Engine + GUI
 echo ==================================================
 echo.
-
-:: Enter the project directory
-if exist "GoldenImager2" cd GoldenImager2
 
 :: Check for Node.js
 where npm >nul 2>nul || (echo [ERROR] npm not found! && pause && exit /b)

@@ -8,7 +8,7 @@
   import StatusBar from './lib/StatusBar.svelte';
 
   let activeTab = 'apps';
-  let r = 55, g = 125, b = 120; // #377D78
+  let r = 75, g = 155, b = 149; // Brightened Teal
   let isDark = true;
   let appCount = 0;
   

@@ -266,14 +266,15 @@
       <!-- Custom Policy Dropdown -->
       <div class="custom-select-container">
         <BloomControl 
-          width="120px" 
+          width="140px" 
           active={isPolicyOpen} 
           on:click={togglePolicy}
-          class="main-filter"
+          style="padding: 0 8px;"
         >
-          <span class="chevron-wrapper" class:spin={isPolicyOpen}>
-            <ChevronDown size={12} />
-          </span>
+          <span class="select-label truncate">{FILTER_OPTIONS.find(o => o.id === viewFilter)?.label || "Select Policy"}</span>
+          <div class="chevron-wrapper" class:open={isPolicyOpen}>
+            <ChevronDown size={14} />
+          </div>
         </BloomControl>
 
         {#if isPolicyOpen}
@@ -287,42 +288,53 @@
         {/if}
       </div>
 
-      <div class="custom-select-container">
+      <!-- Integrated Profile & Action Group -->
+      <div class="segmented-control profile-group">
         <BloomControl 
           width="140px" 
           active={isProfileOpen} 
           on:click={toggleProfile}
+          style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative;"
         >
-          <span class="chevron-wrapper" class:spin={isProfileOpen}>
-            <ChevronDown size={12} />
-          </span>
+          <span class="select-label truncate">{selectedProfile.replace('.json','') || "App-Profiles"}</span>
+          <div class="chevron-wrapper" class:open={isProfileOpen}>
+            <ChevronDown size={14} />
+          </div>
+
+          {#if isProfileOpen}
+            <div class="dropdown-list">
+              <button class="dropdown-item" class:active={!selectedProfile} on:click={() => selectProfile("")}>
+                Clear Selection
+              </button>
+              {#each profiles as p}
+                <button class="dropdown-item" class:active={selectedProfile === p} on:click={() => selectProfile(p)}>
+                  {p}
+                </button>
+              {/each}
+            </div>
+          {/if}
         </BloomControl>
 
-        {#if isProfileOpen}
-          <div class="dropdown-list">
-            <button class="dropdown-item" class:active={!selectedProfile} on:click={() => selectProfile("")}>
-              No Profile Loaded
-            </button>
-            {#each profiles as p}
-              <button class="dropdown-item" class:active={selectedProfile === p} on:click={() => selectProfile(p)}>
-                {p}
-              </button>
-            {/each}
-          </div>
-        {/if}
+        <BloomControl 
+          width="34px" 
+          on:click={loadProfile} 
+          style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
+        >
+          <Download size={13} />
+        </BloomControl>
+        
+        <BloomControl 
+          width="34px" 
+          on:click={saveProfile} 
+          style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
+        >
+          <Save size={13} />
+        </BloomControl>
       </div>
-
-      <BloomControl width="120px" on:click={loadProfile}>
-        <Download size={14} />
-      </BloomControl>
-      
-      <BloomControl width="120px" on:click={saveProfile}>
-        <Save size={14} />
-      </BloomControl>
 
       <div class="search-box">
         <BloomControl width="180px" class="locked-sunken">
-          <Search size={12} class="search-icon" />
+          <Search size={13} class="search-icon" />
           <input
             type="text"
             bind:value={searchTerm}
@@ -444,14 +456,14 @@
   .toolbar :global(svg) {
     color: #fff;
     opacity: 0.6; /* Perfectly syncs with Sidebar resting weight */
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.15));
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); /* Professional lift - Synced with Search Magnifier */
     transition: all 0.25s ease;
   }
 
-  .toolbar :global(.bloom-control:hover svg),
-  .toolbar :global(.bloom-control.active svg) {
+  .toolbar :global(.bloom-control:hover:not(.locked-sunken) svg),
+  .toolbar :global(.bloom-control.active:not(.locked-sunken) svg) {
     opacity: 1; /* Brightens to full intensity on hover/active like Sidebar */
-    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
   }
 
   .main-filter {
@@ -481,6 +493,10 @@
     padding: 0 0 0 28px; /* Correct 8px gap after 12px icon (8 + 12 + 8) */
     width: 100%;
     outline: none;
+  }
+
+  .bloom-input:focus::placeholder {
+    color: transparent;
   }
 
   :global(.locked-sunken) {
@@ -535,9 +551,21 @@
     right: 0; /* Align profiles to right edge */
   }
 
-  .profile-dropdown-wrapper {
-    flex: 1;
-    min-width: 0; /* Allow shrinking */
+  .segmented-control {
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 20;
+    gap: 0; /* Forced industrial seal */
+  }
+
+  /* Ensure dropdowns inside segmented controls stay correctly positioned */
+  .segmented-control .dropdown-wrapper {
+    position: relative;
+  }
+
+  .profile-group {
+    margin-right: 4px; /* Space before search box */
   }
 
   .action-btn {
@@ -674,16 +702,14 @@
 
   /* Variant for persistent industrial depth */
   .bloom-control.locked-sunken:hover {
-    filter: none;
+    filter: none !important;
     cursor: text;
-    background: rgba(0, 0, 0, 0.35); /* Lock to sunken color */
-    border-color: rgba(255, 255, 255, 0.06) !important;
+    background: rgba(0, 0, 0, 0.35) !important; /* Lock to sunken color - NO BLOOM */
     box-shadow: 
       inset 0 1px 4px rgba(0, 0, 0, 0.4), /* Top-down industrial recess */
-      inset 0 0 0 1px rgba(0, 0, 0, 0.2); 
-    color: inherit; 
+      inset 0 0 0 1px rgba(0, 0, 0, 0.2) !important; 
+    color: rgba(255, 255, 255, 0.4) !important; 
     font-size: 11px;
-    border-color: rgba(var(--accent-rgb), 0.4);
   }
 
   .row.selected {
