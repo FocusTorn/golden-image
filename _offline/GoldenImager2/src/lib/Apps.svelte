@@ -17,6 +17,7 @@
     RefreshCw,
     X,
     Zap,
+    Plus,
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
 
@@ -142,7 +143,12 @@
   });
 
   async function loadProfile() {
-    if (!selectedProfile || !isTauri) return;
+    if (!selectedProfile) {
+      selectedApps = new Set();
+      isApplied = false;
+      return;
+    }
+    if (!isTauri) return;
     try {
       const profileAppIds: string[] = await invoke("load_app_profile", {
         name: selectedProfile,
@@ -495,14 +501,25 @@
           width="34px"
           on:click={loadProfile}
           style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
+          title="Load Profile Selection"
         >
           <Download size={13} />
         </BloomControl>
 
         <BloomControl
           width="34px"
+          on:click={() => { showSaveModal = true; saveName = selectedProfile.replace(".json", "") || ""; }}
+          style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
+          title="Save As New Profile"
+        >
+          <Plus size={13} />
+        </BloomControl>
+
+        <BloomControl
+          width="34px"
           on:click={saveProfile}
           style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
+          title="Save Current Profile"
         >
           <Save size={13} />
         </BloomControl>
@@ -697,6 +714,7 @@
               <input
                 type="checkbox"
                 checked={selectedApps.has(app.AppId)}
+                on:change={() => toggleSelect(app.AppId)}
                 on:click|stopPropagation
               />
             </div>
