@@ -1,15 +1,12 @@
-
 // "WORKSPACE_ROOT": P:/Projects/golden-image
-
 {
-	"folders": [
-		{
-			"path": ".."
-		}
-	],
+    "folders": [
+        {
+            "path": ".."
+        }
+    ],
     "settings": {
         "files.watcherExclude": {
-          
             "**/.git/objects/**": true,
             "**/.git/subtree-cache/**": true,
             "**/__pycache__/**": true,
@@ -32,8 +29,6 @@
             "**/_shared-resources/**": false,
             "**/___shared/**": false
         },
-
-
         "search.exclude": {
             "**/node_modules": true,
             "**/.uv": true,
@@ -60,6 +55,7 @@
             "**/___shared": false
         },
         "files.exclude": {
+            "**/GoldenImager": true,
             "**/__pycache__": true,
             "**/esp-idf": true,
             "**/.git": true,
