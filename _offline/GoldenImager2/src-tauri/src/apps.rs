@@ -36,6 +36,8 @@ pub struct AppEntry {
     pub is_user: bool,
     #[serde(default)]
     pub origin_type: String, // "Registry", "Appx", "Provisioned"
+    #[serde(default)]
+    pub uninstall_string: Option<String>,
 }
 
 fn default_category() -> String {
@@ -75,7 +77,10 @@ pub fn scan_installed_apps(config_apps: &Vec<AppEntry>) -> Vec<AppEntry> {
 
     // Provisioned Appx Scan
     if let Ok(mut prov_apps) = scan_appx_provisioned_packages() {
-        for app in &mut prov_apps { app.origin_type = "Provisioned".to_string(); }
+        for app in &mut prov_apps { 
+            app.origin_type = "Provisioned".to_string();
+            app.uninstall_string = Some(format!("Remove-AppxProvisionedPackage -Online -PackageName {}", app.app_id));
+        }
         system_apps.append(&mut prov_apps);
     }
     
@@ -180,6 +185,7 @@ fn parse_appx_json(stdout: Vec<u8>) -> Result<Vec<AppEntry>, Box<dyn std::error:
                 is_provisioned: false,
                 is_user: false,
                 origin_type: "".to_string(),
+                uninstall_string: Some(format!("Remove-AppxPackage -Package {}", app_id)),
             });
         }
     } else if let Some(obj) = json.as_object() {
@@ -188,7 +194,7 @@ fn parse_appx_json(stdout: Vec<u8>) -> Result<Vec<AppEntry>, Box<dyn std::error:
         let app_id = obj["PackageFullName"].as_str().unwrap_or("").to_string();
         if !name.is_empty() && !app_id.is_empty() {
              apps.push(AppEntry {
-                app_id,
+                app_id: app_id.clone(),
                 friendly_name: name,
                 recommendation: "optional".to_string(),
                 category: "Appx".to_string(),
@@ -201,6 +207,7 @@ fn parse_appx_json(stdout: Vec<u8>) -> Result<Vec<AppEntry>, Box<dyn std::error:
                 is_provisioned: false,
                 is_user: false,
                 origin_type: "".to_string(),
+                uninstall_string: Some(format!("Remove-AppxPackage -Package {}", app_id)),
             });
         }
     }
@@ -269,6 +276,7 @@ fn get_app_details(parent_key: HKEY, subkey_name: PCWSTR, fallback_name: &str) -
             is_provisioned: false,
             is_user: false,
             origin_type: "".to_string(),
+            uninstall_string: read_reg_string(hkey, "UninstallString"),
         })
     }
 }

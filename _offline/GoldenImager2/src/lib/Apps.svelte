@@ -18,6 +18,8 @@
     X,
     Zap,
     Plus,
+    Copy,
+    Terminal,
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
 
@@ -75,6 +77,11 @@
       description:
         "Discovered system applications that are not currently accounted for in the curated Apps.json policy.",
     },
+    {
+      id: "selected",
+      label: "Selected Apps",
+      description: "Only show applications currently selected for processing.",
+    },
   ];
 
   const RISK_OPTIONS = [
@@ -93,6 +100,7 @@
     isPolicyOpen = false;
     isRiskOpen = false;
     isProfileOpen = false;
+    activeCopyMenu = null;
   }
 
   function togglePolicy(e?: any) {
@@ -118,7 +126,6 @@
   function selectProfile(p: string) {
     selectedProfile = p;
     isProfileOpen = false;
-    loadProfile();
   }
 
   $: appCount = filteredApps ? filteredApps.length : 0;
@@ -142,6 +149,9 @@
     loadData();
   });
 
+  // Force reactivity for nested UI elements in Svelte 4
+  $: selectionList = Array.from(selectedApps);
+
   async function loadProfile() {
     if (!selectedProfile) {
       selectedApps = new Set();
@@ -150,32 +160,63 @@
     }
     if (!isTauri) return;
     try {
+      console.log(`[Apps] Loading Profile: ${selectedProfile}`);
       const profileAppIds: string[] = await invoke("load_app_profile", {
         name: selectedProfile,
       });
 
+      console.group(`[Apps] Profile Load: ${selectedProfile}`);
+      console.log(`IDs found in JSON:`, profileAppIds);
+
       const newSelection = new Set<string>();
       const systemApps = [...apps];
 
+      if (systemApps.length === 0) {
+        console.warn("[Apps] System inventory is empty. Cannot match profile apps.");
+      } else {
+        console.log(`[Apps] System Inventory Sample (keys):`, Object.keys(systemApps[0]));
+      }
+
       profileAppIds.forEach((pId) => {
-        const pIdLower = pId.toLowerCase();
+        const pIdLower = pId.toLowerCase().trim();
+        const pIdBase = pIdLower.split('_')[0];
 
         const match = systemApps.find(
-          (a) =>
-            a.AppId.toLowerCase() === pIdLower ||
-            a.AppId.toLowerCase().startsWith(pIdLower + "_") ||
-            a.AppId.toLowerCase().includes("." + pIdLower + "_"),
+          (a) => {
+            const aId = a.AppId || a.app_id || "";
+            const aName = a.FriendlyName || a.friendly_name || "";
+            
+            const aIdLower = aId.toLowerCase();
+            const aNameLower = aName.toLowerCase();
+            const aIdBase = aIdLower.split('_')[0];
+
+            // 1. Exact ID match
+            if (aIdLower === pIdLower) return true;
+            
+            // 2. Base ID match (ignoring version suffixes like _1.2.3_...)
+            if (aIdBase === pIdBase && aIdBase.length > 3) return true;
+            
+            // 3. Prefix matches (one is a subset of the other)
+            if (aIdLower.startsWith(pIdLower + "_") || pIdLower.startsWith(aIdLower + "_")) return true;
+            
+            // 4. Friendly Name match (for Appx which stores short name in FriendlyName)
+            if (aNameLower === pIdLower || aNameLower === pIdBase) return true;
+
+            return false;
+          }
         );
 
         if (match) {
-          newSelection.add(match.AppId);
+          const finalId = (match.AppId || match.app_id || "").trim();
+          console.log(`[Apps] MATCH: "${pId}" -> "${finalId}"`);
+          newSelection.add(finalId);
         } else {
-          const nameMatch = systemApps.find(
-            (a) => a.FriendlyName.toLowerCase() === pIdLower,
-          );
-          if (nameMatch) newSelection.add(nameMatch.AppId);
+           console.warn(`[Apps] NO MATCH FOUND for: "${pId}" (Base: "${pIdBase}")`);
         }
       });
+
+      console.log(`[Apps] Load Complete. Matched ${newSelection.size} of ${profileAppIds.length} apps.`);
+      console.groupEnd();
 
       selectedApps = newSelection;
       isApplied = true;
@@ -210,6 +251,20 @@
     }
   }
 
+  async function deleteProfile(p: string, event: MouseEvent) {
+    event.stopPropagation();
+    if (!p || !isTauri) return;
+    if (!confirm(`Delete profile "${p.replace(".json", "")}"?`)) return;
+
+    try {
+      await invoke("delete_app_profile", { name: p });
+      if (selectedProfile === p) selectedProfile = "";
+      profiles = await invoke("list_app_profiles");
+    } catch (e) {
+      console.error("Failed to delete profile:", e);
+    }
+  }
+
   $: filteredApps = apps.filter((app) => {
     const search = searchTerm.toLowerCase();
     const matchesSearch =
@@ -232,6 +287,9 @@
         break;
       case "user":
         matchesFilter = app.IsUser;
+        break;
+      case "selected":
+        matchesFilter = selectionList.includes(app.AppId);
         break;
       case "all":
         matchesFilter = true;
@@ -350,14 +408,51 @@
     30,
   );
 
-  $: nameWidth = (maxNameLen + 2) * 5.4;
-  $: idWidth = (maxIdLen + 4) * 7.2;
+  $: nameWidth = (maxNameLen + 4) * 7.2; /* Industrial Sans Spacing */
+  $: idWidth = (maxIdLen + 4) * 8.0; /* Mono Package Spacing */
 
   function closeModals() {
     showSaveModal = false;
     isPolicyOpen = false;
     isProfileOpen = false;
     isRiskOpen = false;
+  }
+
+  /* Selector Width Reactivity */
+  $: maxPolicyLen = FILTER_OPTIONS.reduce(
+    (max, opt) => Math.max(max, opt.label.length),
+    12,
+  );
+  $: policyCalcWidth = Math.max(120, (maxPolicyLen + 4) * 6.2) + "px";
+
+  $: maxProfileLen = profiles.reduce(
+    (max, p) => Math.max(max, p.replace(".json", "").length),
+    Math.max(12, selectedProfile.replace(".json", "").length),
+  );
+  $: profileCalcWidth = Math.max(120, (maxProfileLen + 5) * 6.2) + "px";
+
+  let activeCopyMenu: string | null = null;
+  function toggleCopyMenu(id: string, e: MouseEvent) {
+    e.stopPropagation();
+    if (activeCopyMenu === id) {
+      activeCopyMenu = null;
+    } else {
+      activeCopyMenu = id;
+    }
+  }
+
+  async function copyToClipboard(
+    text: string | null | undefined,
+    e?: MouseEvent,
+  ) {
+    if (e) e.stopPropagation();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+    activeCopyMenu = null;
   }
 </script>
 
@@ -423,10 +518,10 @@
         tabindex="-1"
       >
         <BloomControl
-          width="140px"
+          width={policyCalcWidth}
           active={isPolicyOpen}
           on:click={togglePolicy}
-          style="padding: 0 8px;"
+          style="padding: 0 8px; justify-content: flex-start !important;"
         >
           <span class="select-label truncate"
             >{FILTER_OPTIONS.find((o) => o.id === viewFilter)?.label ||
@@ -462,10 +557,10 @@
           tabindex="-1"
         >
           <BloomControl
-            width="140px"
+            width={profileCalcWidth}
             active={isProfileOpen}
             on:click={toggleProfile}
-            style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative;"
+            style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative; justify-content: flex-start !important;"
           >
             <span class="select-label truncate"
               >{selectedProfile.replace(".json", "") || "App-Profiles"}</span
@@ -485,13 +580,22 @@
                 Clear Selection
               </button>
               {#each profiles as p}
-                <button
-                  class="dropdown-item"
-                  class:active={selectedProfile === p}
-                  on:click={() => selectProfile(p)}
-                >
-                  {p}
-                </button>
+                <div class="dropdown-item-wrapper">
+                  <button
+                    class="dropdown-item"
+                    class:active={selectedProfile === p}
+                    on:click={() => selectProfile(p)}
+                  >
+                    <span class="truncate">{p.replace(".json", "")}</span>
+                  </button>
+                  <button
+                    class="delete-profile-btn"
+                    on:click={(e) => deleteProfile(p, e)}
+                    title="Delete Profile"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               {/each}
             </div>
           {/if}
@@ -684,6 +788,8 @@
         {/if}
       </div>
     </div>
+    <div class="col-status"></div>
+    <div class="col-copy"></div>
     <div class="col-name">Friendly Name</div>
     <div class="col-appid">System Identifier / Package Name</div>
   </div>
@@ -702,7 +808,7 @@
           <div
             class="row"
             style="--row-hue: {getRowHue(app.Recommendation)}"
-            class:selected={selectedApps.has(app.AppId)}
+            class:selected={selectionList.includes(app.AppId)}
             on:click={() => toggleSelect(app.AppId)}
             on:keydown={(e) =>
               (e.key === "Enter" || e.key === " ") && toggleSelect(app.AppId)}
@@ -713,7 +819,7 @@
             <div class="col-check">
               <input
                 type="checkbox"
-                checked={selectedApps.has(app.AppId)}
+                checked={selectionList.includes(app.AppId)}
                 on:change={() => toggleSelect(app.AppId)}
                 on:click|stopPropagation
               />
@@ -726,6 +832,35 @@
                     !["safe", "warn", "unsafe"].includes(app.Recommendation))}
                 style="--dot-color: {getStatusColor(app)}"
               ></div>
+            </div>
+            <div class="col-copy">
+              <div class="copy-trigger-wrapper">
+                <button 
+                  class="row-copy-btn" 
+                  on:click={(e) => toggleCopyMenu(app.AppId, e)}
+                  title="Copy application data"
+                >
+                  <Copy size={12} />
+                </button>
+
+                {#if activeCopyMenu === app.AppId}
+                  <div class="copy-flyout" on:click|stopPropagation>
+                    <button class="flyout-item" on:click={(e) => copyToClipboard(app.FriendlyName, e)}>
+                      <Copy size={10} /> <span>Copy Name</span>
+                    </button>
+                    <button class="flyout-item" on:click={(e) => copyToClipboard(app.AppId, e)}>
+                      <Copy size={10} /> <span>Copy Identifier</span>
+                    </button>
+                    <button class="flyout-item" on:click={(e) => copyToClipboard(app.UninstallString, e)}>
+                      <Terminal size={10} /> <span>Copy Uninstall</span>
+                    </button>
+                    <div class="flyout-divider"></div>
+                    <button class="flyout-item" on:click={(e) => copyToClipboard(`Name: ${app.FriendlyName}\nID: ${app.AppId}\nUninstall: ${app.UninstallString || "N/A"}`, e)}>
+                      <Zap size={10} /> <span>Copy Complete Info</span>
+                    </button>
+                  </div>
+                {/if}
+              </div>
             </div>
             <div class="col-name">
               <span class="text-main">{app.FriendlyName}</span>
@@ -822,6 +957,7 @@
     padding: 0 0 0 28px; /* Standard 8px gap after 12px icon */
     width: 100%;
     outline: none;
+    margin-top: 1px; /* Subtle downward nudge for industrial balance */
   }
 
   .bloom-input:focus::placeholder {
@@ -1036,7 +1172,7 @@
     display: flex;
     justify-content: flex-start;
     padding-left: 2px;
-    padding-right: 12px;
+    padding-right: 8px; /* Balanced industrial gap */
     flex-shrink: 0;
   }
   .col-status {
@@ -1047,9 +1183,72 @@
     align-items: center;
     flex-shrink: 0;
   }
+  .col-copy {
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
+  }
+  .copy-trigger-wrapper {
+    position: relative;
+    display: flex;
+  }
+  .row-copy-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .row-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--accent-color);
+  }
+  .copy-flyout {
+    position: absolute;
+    top: -4px;
+    left: 28px;
+    background: #0b0f10;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 4px;
+    z-index: 5000;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    min-width: 140px;
+  }
+  .flyout-item {
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 4px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .flyout-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+  .flyout-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 4px 0;
+  }
   .col-name {
     width: var(--col-name-w, 360px);
     flex: 0 0 auto; /* Locked width */
+    padding-left: 8px; /* Symmetrical risk-indicator gap */
     padding-right: 16px;
     box-sizing: border-box;
     flex-shrink: 0;
@@ -1246,21 +1445,67 @@
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.35); /* Sidebar Inactive Color */
-    padding: 8px 14px;
+    padding: 10px 14px 8px 12px; /* Increased top padding for breathing room, tighter left */
     font-size: 11px;
     text-align: left;
     cursor: pointer;
     border-radius: 2px; /* Sharper industrial rounding */
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
-    display: block;
-    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Ensure left justification */
+    flex: 1;
+    min-width: 0;
+    padding-right: 32px; /* Ensure truncation happens before overlapping garbage icon */
     border: 1px solid transparent; /* Placeholder for hover border */
     /* Reset header-inherited transparency */
     -webkit-text-fill-color: initial !important;
     background-clip: initial !important;
     -webkit-background-clip: initial !important;
     text-transform: none !important;
+  }
+  
+  .select-label {
+    text-align: left;
+    display: block;
+    width: 100%;
+    margin-top: 1px; /* Subtle downward nudge for industrial balance */
+    padding-left: 2px;
+  }
+
+  .dropdown-item-wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0;
+    position: relative;
+  }
+
+  .delete-profile-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.2);
+    padding: 0 8px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: absolute;
+    right: 4px;
+    z-index: 10;
+    opacity: 0; /* Hidden by default, revealed on wrapper hover */
+  }
+
+  .delete-profile-btn:hover {
+    color: #ff3d60;
+    filter: drop-shadow(0 0 4px #ff3d60);
+  }
+
+  .dropdown-item-wrapper:hover .delete-profile-btn {
+    opacity: 1;
   }
 
   .dropdown-item:hover {

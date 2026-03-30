@@ -253,6 +253,18 @@ async fn save_app_profile(app: tauri::AppHandle, name: String, app_ids: Vec<Stri
 }
 
 #[tauri::command]
+async fn delete_app_profile(app: tauri::AppHandle, name: String) -> Result<(), String> {
+    let profile_path = resolve_path(&app, &format!("config/AppProfiles/{}", name))
+        .ok_or_else(|| format!("Profile {} not found", name))?;
+    
+    if profile_path.exists() {
+        std::fs::remove_file(profile_path).map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
 async fn get_apps(app: tauri::AppHandle) -> Result<Vec<apps::AppEntry>, String> {
     let mut resource_path = resolve_path(&app, "config/Apps.json");
     
@@ -332,6 +344,7 @@ fn main() {
             list_app_profiles,
             load_app_profile,
             save_app_profile,
+            delete_app_profile,
             get_theme_info,
             minimize_window,
             close_window
