@@ -1,0 +1,45 @@
+    Checking goldenimager2 v0.1.0 (P:\Projects\golden-image\_offline\GoldenImager2\src-tauri)
+error[E0308]: mismatched types
+   --> src\main.rs:230:30
+    |
+230 |                         Some(&mut status as *mut _ as *mut u8),
+    |                         ---- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&mut [u8]`, found `*mut u8`
+    |                         |
+    |                         arguments to this enum variant are incorrect
+    |
+    = note: expected mutable reference `&mut [u8]`
+                     found raw pointer `*mut u8`
+help: the type constructed contains `*mut u8` due to the type of the argument passed
+   --> src\main.rs:230:25
+    |
+230 |                         Some(&mut status as *mut _ as *mut u8),
+    |                         ^^^^^--------------------------------^
+    |                              |
+    |                              this argument influences the type of `Some`
+note: tuple variant defined here
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\option.rs:608:5
+
+error[E0061]: this function takes 4 arguments but 5 arguments were supplied
+   --> src\main.rs:227:35
+    |
+227 |                     let success = QueryServiceStatusEx(
+    |                                   ^^^^^^^^^^^^^^^^^^^^
+...
+231 |                         std::mem::size_of::<SERVICE_STATUS_PROCESS>() as u32,
+    |                         ---------------------------------------------------- unexpected argument #4 of type `u32`
+    |
+note: function defined here
+   --> P:\._pkg\rust\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-0.52.0\src\Windows\Win32\System\Services\mod.rs:464:15
+    |
+464 | pub unsafe fn QueryServiceStatusEx<P0>(hservice: P0, infolevel: SC_STATUS_TYPE, lpbuffer: ::core::option::Option<&mut [u8]>, pcbbytesneed...
+    |               ^^^^^^^^^^^^^^^^^^^^
+help: remove the extra argument
+    |
+230 -                         Some(&mut status as *mut _ as *mut u8),
+231 -                         std::mem::size_of::<SERVICE_STATUS_PROCESS>() as u32,
+230 +                         Some(&mut status as *mut _ as *mut u8),
+    |
+
+Some errors have detailed explanations: E0061, E0308.
+For more information about an error, try `rustc --explain E0061`.
+error: could not compile `goldenimager2` (bin "goldenimager2") due to 2 previous errors

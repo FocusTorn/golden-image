@@ -454,6 +454,25 @@
     }
     activeCopyMenu = null;
   }
+
+  async function installApp(app: any, event: MouseEvent) {
+    if (event) event.stopPropagation();
+    if (!isTauri) {
+      alert(`[MOCK] Installing ${app.FriendlyName}...`);
+      return;
+    }
+    
+    try {
+      await invoke("install_app", { 
+        appId: app.AppId, 
+        appName: app.FriendlyName,
+        isSystem: app.IsProvisioned || app.IsUser
+      });
+      alert(`Installation of ${app.FriendlyName} initiated.`);
+    } catch (e) {
+      alert(`Failed to install ${app.FriendlyName}: ${e}`);
+    }
+  }
 </script>
 
 {#if showSaveModal}
@@ -792,6 +811,7 @@
     <div class="col-copy"></div>
     <div class="col-name">Friendly Name</div>
     <div class="col-appid">System Identifier / Package Name</div>
+    <div class="col-actions">Actions</div>
   </div>
 
   <div
@@ -867,6 +887,15 @@
             </div>
             <div class="col-appid">
               <span class="text-mono">{app.AppId}</span>
+            </div>
+            <div class="col-actions">
+              <button 
+                class="row-action-btn install" 
+                on:click={(e) => installApp(app, e)}
+                title="Install application individually"
+              >
+                <Download size={12} />
+              </button>
             </div>
           </div>
         {/each}
@@ -1259,6 +1288,40 @@
     padding-right: 16px;
     box-sizing: border-box;
     flex-shrink: 0;
+  }
+  .col-actions {
+    width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .row-action-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .row-action-btn:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #000;
+  }
+
+  .row-action-btn.install:hover {
+    background: #00e676;
+    border-color: #00e676;
+    color: #000;
+    box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
   }
 
   .dot {

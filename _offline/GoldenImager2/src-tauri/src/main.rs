@@ -141,6 +141,202 @@ async fn get_theme_info() -> ThemeInfo {
     ThemeInfo { R: r, G: g, B: b, IsDark: is_dark }
 }
 
+#[derive(Serialize)]
+pub struct DashboardStats {
+    pub connection: ConnectionAudit,
+    pub stages: StagesAudit,
+}
+
+#[derive(Serialize)]
+pub struct ConnectionAudit {
+    pub limit_blank: bool,
+    pub winrm: bool,
+    pub keyiso: bool,
+    pub admin_enabled: bool,
+}
+
+#[derive(Serialize)]
+pub struct StagesAudit {
+    pub pwsh7: bool,
+    pub msvc: bool,
+    pub app_infra: bool,
+}
+
+#[tauri::command]
+async fn get_dashboard_stats() -> DashboardStats {
+    use winreg::RegKey;
+    use winreg::enums::HKEY_LOCAL_MACHINE;
+    use std::path::Path;
+
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    
+    // 1. Connection Audit
+    let limit_blank = hklm.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Lsa")
+        .and_then(|k| k.get_value::<u32, _>("LimitBlankPasswordUse"))
+        .map(|v| v == 0).unwrap_or(false);
+
+    let winrm = check_service_status("WinRM");
+    let keyiso = check_service_status("KeyIso");
+    
+    // Quick check for Administrator status (simplified for this turn)
+    let admin_enabled = std::process::Command::new("net")
+        .args(["user", "Administrator"])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).contains("Account active               Yes"))
+        .unwrap_or(false);
+
+    // 2. Stages Audit
+    let pwsh7 = Path::new("C:\\Program Files\\PowerShell\\7\\pwsh.exe").exists();
+    let msvc = hklm.open_subkey("SOFTWARE\\Classes\\Installer\\Dependencies\\VC,redist.x64,amd64,14.0,bundle").is_ok();
+    
+    // Check for choco or winget
+    let app_infra = check_command_exists("choco") || check_command_exists("winget");
+
+    DashboardStats {
+        connection: ConnectionAudit {
+            limit_blank,
+            winrm,
+            keyiso,
+            admin_enabled,
+        },
+        stages: StagesAudit {
+            pwsh7,
+            msvc,
+            app_infra,
+        }
+    }
+}
+
+fn check_service_status(name: &str) -> bool {
+    #[cfg(windows)]
+    {
+        use windows::Win32::System::Services::{
+            OpenSCManagerW, OpenServiceW, QueryServiceStatusEx, CloseServiceHandle,
+            SC_MANAGER_CONNECT, SERVICE_QUERY_STATUS, SC_STATUS_PROCESS_INFO,
+            SERVICE_STATUS_PROCESS, SERVICE_RUNNING
+        };
+        use windows::core::HSTRING;
+
+        unsafe {
+            let scm = OpenSCManagerW(None, None, SC_MANAGER_CONNECT);
+            if let Ok(scm_handle) = scm {
+                let service = OpenServiceW(scm_handle, &HSTRING::from(name), SERVICE_QUERY_STATUS);
+                if let Ok(service_handle) = service {
+                    let mut status = SERVICE_STATUS_PROCESS::default();
+                    let mut bytes_needed = 0;
+                    let buffer = std::slice::from_raw_parts_mut(
+                        &mut status as *mut _ as *mut u8,
+                        std::mem::size_of::<SERVICE_STATUS_PROCESS>()
+                    );
+                    let success = QueryServiceStatusEx(
+                        service_handle,
+                        SC_STATUS_PROCESS_INFO,
+                        Some(buffer),
+                        &mut bytes_needed
+                    );
+                    let _ = CloseServiceHandle(service_handle);
+                    let _ = CloseServiceHandle(scm_handle);
+                    return success.is_ok() && status.dwCurrentState == SERVICE_RUNNING;
+                }
+                let _ = CloseServiceHandle(scm_handle);
+            }
+        }
+    }
+    false
+}
+
+fn check_command_exists(cmd: &str) -> bool {
+    std::process::Command::new("where.exe")
+        .arg(cmd)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+#[tauri::command]
+async fn run_provisioning_stage(stage: u32, window: tauri::Window) -> Result<(), String> {
+    use std::process::{Command, Stdio};
+    use std::io::{BufRead, BufReader};
+
+    let script_name = match stage {
+        1 => "1_Scoop.ps1",
+        2 => "2_MSVC.ps1",
+        3 => "3_System_Apps.ps1",
+        4 => "4_Rust_Finish.ps1",
+        5 => "5_Finalize.ps1",
+        6 => "Customize.ps1",
+        _ => return Err("Invalid stage".to_string()),
+    };
+
+    // In a real scenario, these would be in resources/scripts
+    // For now, we'll try to find them in the project root or resources
+    let script_path = format!("resources/scripts/{}", script_name);
+
+    let mut child = Command::new("powershell")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", &script_path])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn process: {}", e))?;
+
+    let stdout = child.stdout.take().unwrap();
+    let reader = BufReader::new(stdout);
+
+    for line in reader.lines() {
+        if let Ok(l) = line {
+            // Emit log event to frontend
+            let _ = window.emit("provisioning-log", l);
+        }
+    }
+
+    let status = child.wait().map_err(|e| format!("Failed to wait for process: {}", e))?;
+    
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("Stage {} failed with exit code: {:?}", stage, status.code()))
+    }
+}
+
+#[tauri::command]
+async fn install_app(app_id: String, app_name: String, is_system: bool, window: tauri::Window) -> Result<(), String> {
+    use std::process::{Command, Stdio};
+    use std::io::{BufRead, BufReader};
+
+    let _ = window.emit("provisioning-log", format!(">>> STARTING INSTALLATION OF: {}...", app_name));
+
+    let command = if is_system {
+        format!("Add-AppxPackage -Name \"{}\"", app_id)
+    } else {
+        format!("scoop install \"{}\"", app_id)
+    };
+
+    let mut child = Command::new("powershell")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &command])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn process: {}", e))?;
+
+    let stdout = child.stdout.take().unwrap();
+    let reader = BufReader::new(stdout);
+
+    for line in reader.lines() {
+        if let Ok(l) = line {
+            let _ = window.emit("provisioning-log", l);
+        }
+    }
+
+    let status = child.wait().map_err(|e| format!("Failed to wait for process: {}", e))?;
+    
+    if status.success() {
+        let _ = window.emit("provisioning-log", format!(">>> {} INSTALLED SUCCESSFULLY.", app_name));
+        Ok(())
+    } else {
+        Err(format!("Installation failed with exit code: {:?}", status.code()))
+    }
+}
+
 #[tauri::command]
 async fn minimize_window(window: tauri::Window) -> Result<(), String> {
     window.minimize().map_err(|e| e.to_string())
@@ -346,6 +542,9 @@ fn main() {
             save_app_profile,
             delete_app_profile,
             get_theme_info,
+            get_dashboard_stats,
+            run_provisioning_stage,
+            install_app,
             minimize_window,
             close_window
         ])

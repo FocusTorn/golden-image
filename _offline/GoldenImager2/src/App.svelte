@@ -5,6 +5,8 @@
   import Dashboard from './lib/Dashboard.svelte';
   import Apps from './lib/Apps.svelte';
   import Tweaks from './lib/Tweaks.svelte';
+  import Provisioning from './lib/Provisioning.svelte';
+  import Settings from './lib/Settings.svelte';
   import StatusBar from './lib/StatusBar.svelte';
 
   let activeTab = 'apps';
@@ -51,6 +53,10 @@
           <Apps bind:appCount />
         {:else if activeTab === 'tweaks'}
           <Tweaks />
+        {:else if activeTab === 'provisioning'}
+          <Provisioning />
+        {:else if activeTab === 'settings'}
+          <Settings />
         {:else}
           <div class="placeholder">
             <h1>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>

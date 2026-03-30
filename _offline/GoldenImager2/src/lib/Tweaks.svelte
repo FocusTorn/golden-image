@@ -1,45 +1,67 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/tauri';
-  import { Cog, Shield, ShieldAlert, Cpu, Lock, Eye, AlertTriangle, RefreshCw, Check, X } from 'lucide-svelte';
+  import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api/tauri";
+  import { 
+    Cog, 
+    Shield, 
+    Zap, 
+    Cpu, 
+    Eye, 
+    ShieldAlert, 
+    RefreshCw, 
+    Check, 
+    X,
+    Search,
+    ChevronRight,
+    Terminal,
+    Info
+  } from "lucide-svelte";
+  import BloomControl from "./BloomControl.svelte";
 
-  const isTauri = window.__TAURI_METADATA__ !== undefined;
+  const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
   let featuresConfig: any = null;
   let auditResults: any[] = [];
   let loading = true;
   let error: string | null = null;
-  let activeCategory = 'Titus Essentials';
+  let activeCategory = "Titus Essentials";
   let applyingFeature: string | null = null;
+  let searchQuery = "";
 
   async function loadData() {
     loading = true;
     error = null;
     try {
       if (isTauri) {
-        featuresConfig = await invoke('get_features_config');
-        auditResults = await invoke('get_audit_results');
+        featuresConfig = await invoke("get_features_config");
+        auditResults = await invoke("get_audit_results");
       } else {
-        // Mock data
+        // High-fidelity Mock Data
         featuresConfig = {
           Categories: [
-            { Name: 'Titus Essentials', Icon: '&#xE9E9;' },
-            { Name: 'Titus Advanced', Icon: '&#xE7BA;' },
-            { Name: 'System', Icon: '&#xE770;' }
+            { Name: "Titus Essentials", Icon: "&#xE9E9;" },
+            { Name: "Titus Advanced", Icon: "&#xE7BA;" },
+            { Name: "Privacy & Suggested", Icon: "&#xE72E;" },
+            { Name: "System", Icon: "&#xe770;" },
+            { Name: "AI", Icon: "&#xe794;" }
           ],
           Features: [
-            { FeatureId: 'DisableWPBT', Label: 'Disable WPBT', Category: 'Titus Essentials', ToolTip: '...', Action: 'Disable' },
-            { FeatureId: 'BlockRazerSoftware', Label: 'Block Razer Software', Category: 'Titus Advanced', ToolTip: '...', Action: 'Block' }
+            { FeatureId: "DisableWPBT", Label: "Disable WPBT", Category: "Titus Essentials", ToolTip: "Prevents BIOS-injected software execution.", Action: "Disable" },
+            { FeatureId: "DisableTelemetry", Label: "Universal Telemetry", Category: "Privacy & Suggested", ToolTip: "Stops background tracking services.", Action: "Disable" },
+            { FeatureId: "EnableDarkMode", Label: "Force Dark Mode", Category: "System", ToolTip: "System-wide luminance override.", Action: "Enable" }
           ]
         };
         auditResults = [
-          { feature_id: 'DisableWPBT', status: 'Applied' },
-          { feature_id: 'BlockRazerSoftware', status: 'Not Applied' }
+          { feature_id: "DisableWPBT", status: "Applied" },
+          { feature_id: "DisableTelemetry", status: "Not Applied" }
         ];
       }
+      
+      if (featuresConfig?.Categories?.length > 0 && !activeCategory) {
+        activeCategory = featuresConfig.Categories[0].Name;
+      }
     } catch (e) {
-      console.error("Failed to load tweaks:", e);
-      error = typeof e === 'string' ? e : "Connection failed";
+      error = typeof e === "string" ? e : "Sync Failure";
     } finally {
       loading = false;
     }
@@ -49,7 +71,7 @@
 
   function getStatus(id: string) {
     const res = auditResults.find(r => r.feature_id === id);
-    return res ? res.status : 'Unknown';
+    return res ? res.status : "Unknown";
   }
 
   async function toggleFeature(feature: any) {
@@ -57,233 +79,398 @@
     applyingFeature = feature.FeatureId;
     
     try {
-      if (status === 'Applied') {
-        if (feature.RegistryUndoKey) {
-          await invoke('undo_feature', { feature_id: feature.FeatureId });
-        } else {
-          // If no undo key, maybe just re-apply? Or notify user.
-          console.warn("No undo key for", feature.FeatureId);
-        }
+      if (status === "Applied") {
+        await invoke("undo_feature", { feature_id: feature.FeatureId });
       } else {
-        await invoke('apply_feature', { feature_id: feature.FeatureId });
+        await invoke("apply_feature", { feature_id: feature.FeatureId });
       }
       
-      // Refresh audit results
       if (isTauri) {
-        auditResults = await invoke('get_audit_results');
+        auditResults = await invoke("get_audit_results");
       }
     } catch (e) {
       console.error("Action failed:", e);
-      alert("Failed to update feature: " + e);
     } finally {
       applyingFeature = null;
     }
   }
 
   $: categories = featuresConfig?.Categories || [];
-  $: features = (featuresConfig?.Features || []).filter(f => f.Category === activeCategory);
+  $: filteredFeatures = (featuresConfig?.Features || []).filter(f => {
+    const matchesCat = f.Category === activeCategory;
+    const matchesSearch = f.Label.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
 </script>
 
-<div class="tweaks-panel">
+<div class="panel-container">
   <div class="sidebar">
-    {#each categories as cat}
-      <button class="cat-btn" 
-              class:active={activeCategory === cat.Name}
-              on:click={() => activeCategory = cat.Name}>
-        <span class="icon">{@html cat.Icon}</span>
-        <span class="name">{cat.Name}</span>
-      </button>
-    {/each}
+    <div class="sidebar-header">
+      <Cog size={16} class="glow-icon" />
+      <span>REGISTRY OPS</span>
+    </div>
+    <div class="cat-list">
+      {#each categories as cat}
+        <button 
+          class="cat-item" 
+          class:active={activeCategory === cat.Name}
+          on:click={() => activeCategory = cat.Name}
+        >
+          <span class="icon">{@html cat.Icon}</span>
+          <span class="label">{cat.Name}</span>
+          {#if activeCategory === cat.Name}
+            <div class="active-indicator"></div>
+          {/if}
+        </button>
+      {/each}
+    </div>
   </div>
 
-  <div class="content">
-    <div class="header">
-      <Cog size={24} style="color: #4fc3f7;" />
-      <h1>{activeCategory}</h1>
+  <div class="main-content">
+    <div class="toolbar">
+      <div class="search-box">
+        <Search size={14} />
+        <input type="text" placeholder="Search tweaks..." bind:value={searchQuery} />
+      </div>
+      <div class="spacer"></div>
+      <BloomControl on:click={loadData} disabled={loading}>
+        <RefreshCw size={14} class={loading ? "spin" : ""} />
+        <span>RE-AUDIT</span>
+      </BloomControl>
     </div>
 
-    {#if loading}
-      <div class="loading">
-        <RefreshCw class="spin" />
-        <span>Auditing system tweaks...</span>
+    <div class="scroll-area">
+      <div class="header-banner">
+        <div class="banner-content">
+          <h1>{activeCategory}</h1>
+          <p>Tactical system modifications and policy enforcement for {activeCategory.toLowerCase()}.</p>
+        </div>
       </div>
-    {:else if error}
-      <div class="error">
-        <AlertTriangle size={48} />
-        <p>{error}</p>
-        <button on:click={loadData}>Retry</button>
-      </div>
-    {:else}
-      <div class="features-grid">
-        {#each features as feature}
-          <div class="feature-card" class:applied={getStatus(feature.FeatureId) === 'Applied'}>
-            <div class="info">
-              <h3>{feature.Label}</h3>
-              <p>{feature.ToolTip || 'No description available.'}</p>
-            </div>
-            
-            <button class="action-btn" 
-                    disabled={applyingFeature === feature.FeatureId}
-                    class:applied={getStatus(feature.FeatureId) === 'Applied'}
-                    on:click={() => toggleFeature(feature)}>
-              {#if applyingFeature === feature.FeatureId}
-                <RefreshCw size={18} class="spin" />
-              {:else if getStatus(feature.FeatureId) === 'Applied'}
-                <Check size={18} />
-                <span>Applied</span>
-              {:else}
-                <X size={18} />
-                <span>Not Applied</span>
-              {/if}
+
+      {#if loading}
+        <div class="state-view">
+          <RefreshCw size={32} class="spin dim" />
+          <span>Scanning Registry State...</span>
+        </div>
+      {:else if error}
+        <div class="state-view error">
+          <ShieldAlert size={32} />
+          <span>Sync Error: {error}</span>
+          <BloomControl on:click={loadData}>Retry Connection</BloomControl>
+        </div>
+      {:else}
+        <div class="tweak-grid">
+          {#each filteredFeatures as feature}
+            <button 
+              class="tweak-card" 
+              class:applied={getStatus(feature.FeatureId) === 'Applied'}
+              on:click={() => toggleFeature(feature)}
+              type="button"
+            >
+              <div class="card-top">
+                <span class="card-label">{feature.Label}</span>
+                <div class="card-indicator" class:applied={getStatus(feature.FeatureId) === 'Applied'}>
+                  {#if applyingFeature === feature.FeatureId}
+                    <RefreshCw size={10} class="spin" />
+                  {:else if getStatus(feature.FeatureId) === 'Applied'}
+                    <Check size={10} />
+                  {/if}
+                </div>
+              </div>
+
+              <div class="card-footer">
+                <div class="status-dot" style="--dot-color: {getStatus(feature.FeatureId) === 'Applied' ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)'}"></div>
+                {#if feature.ToolTip}
+                  <button 
+                    class="tooltip-trigger" 
+                    on:click|stopPropagation 
+                    type="button"
+                    aria-label="Tweak Information"
+                  >
+                    <Info size={10} />
+                    <div class="tooltip-content">{feature.ToolTip}</div>
+                  </button>
+                {/if}
+              </div>
             </button>
-          </div>
-        {/each}
-      </div>
-    {/if}
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 </div>
 
 <style>
-  .tweaks-panel {
+  .panel-container {
     display: flex;
     height: 100%;
-    background: #0f0f0f;
+    background: var(--grad-main);
+    overflow: hidden;
   }
 
+  /* Sidebar Styling */
   .sidebar {
-    width: 240px;
-    background: rgba(255, 255, 255, 0.02);
+    width: 220px;
+    background: rgba(18, 24, 26, 0.6);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 24px 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    flex-shrink: 0;
   }
 
-  .cat-btn {
+  .sidebar-header {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  .sidebar-header span {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .cat-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
     background: transparent;
     border: none;
-    padding: 12px 16px;
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.5);
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     text-align: left;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .cat-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
+  .cat-item:hover {
+    background: rgba(255, 255, 255, 0.03);
     color: #fff;
-    border: 1px solid rgba(var(--accent-rgb), 0.2);
-    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
   }
 
-  .cat-btn.active {
-    background: rgba(79, 195, 247, 0.1);
-    color: #4fc3f7;
+  .cat-item.active {
+    background: rgba(var(--accent-rgb), 0.08);
+    color: #fff;
   }
 
-  .cat-btn .icon {
+  .cat-item .icon {
     font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets";
-    font-size: 18px;
+    font-size: 16px;
+    width: 20px;
+    display: flex;
+    justify-content: center;
   }
 
-  .content {
+  .cat-item .label {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .active-indicator {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    background: var(--accent-color);
+    box-shadow: 0 0 8px var(--accent-color);
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* Main Content Styling */
+  .main-content {
     flex: 1;
-    padding: 40px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.1);
   }
 
-  .header {
+  .toolbar {
+    height: 48px;
+    background: rgba(18, 24, 26, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .header h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-  }
-
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    padding: 0 24px;
     gap: 20px;
+    flex-shrink: 0;
   }
 
-  .feature-card {
-    background: rgba(255, 255, 255, 0.03);
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 0 12px;
+    width: 280px;
+    height: 28px;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .search-box input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 12px;
+    outline: none;
+    width: 100%;
+  }
+
+  .spacer { flex: 1; }
+
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 48px;
+  }
+
+  .header-banner {
+    margin-bottom: 40px;
+  }
+
+  .banner-content h1 {
+    font-size: 32px;
+    font-weight: 900;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  .banner-content p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0;
+  }
+
+  .state-view {
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+  }
+
+  .tweak-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .tweak-card {
+    position: relative;
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 8px;
+    padding: 12px 14px;
+    height: 80px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 20px;
-    transition: all 0.2s;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .feature-card:hover {
-    border-color: rgba(var(--accent-rgb), 0.5);
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      0 0 20px rgba(var(--accent-rgb), 0.3);
-    transform: translateY(-2px);
-    z-index: 10;
+  .tweak-card:hover {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
-  .feature-card.applied {
-    background: rgba(76, 175, 80, 0.02);
+  .tweak-card.applied {
+    background: rgba(var(--accent-rgb), 0.05);
+    border-color: rgba(var(--accent-rgb), 0.2);
   }
 
-  .info h3 {
-    margin: 0 0 8px 0;
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.9);
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
   }
 
-  .info p {
-    margin: 0;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.4);
-    line-height: 1.5;
+  .card-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.02em;
+    max-width: 80%;
   }
 
-  .action-btn {
-    align-self: flex-start;
+  .card-indicator {
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.6);
+    justify-content: center;
+    color: var(--accent-color);
     transition: all 0.2s;
+    background: rgba(0, 0, 0, 0.1);
   }
 
-  .action-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border-color: rgba(var(--accent-rgb), 0.5);
-    box-shadow: 
-      0 0 20px rgba(var(--accent-rgb), 0.3),
-      0 0 4px rgba(var(--accent-rgb), 0.4);
+  .card-indicator.applied {
+    background: rgba(var(--accent-rgb), 0.1);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.2);
   }
 
-  .action-btn.applied {
-    background: rgba(76, 175, 80, 0.1);
-    border-color: rgba(76, 175, 80, 0.3);
-    color: #81c784;
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .status-dot {
+    width: 3px;
+    height: 3px;
+    background: var(--dot-color);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--dot-color);
+    margin-left: 2px;
+  }
+
+  .tooltip-trigger {
+    color: rgba(255, 255, 255, 0.15);
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: help;
+    display: flex;
+  }
+
+  .tooltip-trigger:hover {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .tooltip-content {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: 0;
+    background: #0b0f10;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    width: 200px;
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+  }
+
+  .tooltip-trigger:hover .tooltip-content {
+    display: block;
   }
 
   .spin {
@@ -291,18 +478,7 @@
   }
 
   @keyframes spin {
+    from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
-
-  .loading, .error {
-    height: 300px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    color: rgba(255, 255, 255, 0.4);
-  }
-
-  .error p { color: #ef5350; }
 </style>

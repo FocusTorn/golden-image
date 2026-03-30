@@ -172,7 +172,7 @@ fn parse_appx_json(stdout: Vec<u8>) -> Result<Vec<AppEntry>, Box<dyn std::error:
             let version = item["Version"].as_str().map(|s| s.to_string());
 
             apps.push(AppEntry {
-                app_id,
+                app_id: app_id.clone(),
                 friendly_name: name,
                 recommendation: "optional".to_string(),
                 category: "Appx".to_string(),

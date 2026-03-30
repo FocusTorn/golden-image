@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Home, Cog, LayoutList, Settings } from 'lucide-svelte';
+  import { Home, Cog, LayoutList, Settings, Zap } from 'lucide-svelte';
   export let activeTab: string;
 </script>
 
@@ -9,14 +9,19 @@
       <Home size={24} color={activeTab === 'dashboard' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
-  <button class:active={activeTab === 'tweaks'} on:click={() => activeTab = 'tweaks'} title="Tweaks">
-    <span class="icon-wrapper">
-      <Cog size={24} color={activeTab === 'tweaks' ? 'var(--accent-color)' : 'currentColor'} />
-    </span>
-  </button>
   <button class:active={activeTab === 'apps'} on:click={() => activeTab = 'apps'} title="Apps">
     <span class="icon-wrapper">
       <LayoutList size={24} color={activeTab === 'apps' ? 'var(--accent-color)' : 'currentColor'} />
+    </span>
+  </button>
+  <button class:active={activeTab === 'provisioning'} on:click={() => activeTab = 'provisioning'} title="Provisioning">
+    <span class="icon-wrapper">
+      <Zap size={24} color={activeTab === 'provisioning' ? 'var(--accent-color)' : 'currentColor'} />
+    </span>
+  </button>
+  <button class:active={activeTab === 'tweaks'} on:click={() => activeTab = 'tweaks'} title="Tweaks">
+    <span class="icon-wrapper">
+      <Cog size={24} color={activeTab === 'tweaks' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <div class="spacer"></div>

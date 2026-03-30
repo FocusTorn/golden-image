@@ -4,23 +4,29 @@
   export let height: string = "28px";
   export let style: string = "";
   export let title: string = "";
+  export let disabled: boolean = false;
+  export let small: boolean = false;
   let className: string = "";
   export { className as class };
+
+  $: finalHeight = small ? "22px" : height;
 
   // Forwarding Click
   import { createEventDispatcher } from 'svelte';
   const dispatch = createEventDispatcher();
 
   function handleClick(e: MouseEvent) {
-    dispatch('click', e);
+    if (!disabled) dispatch('click', e);
   }
 </script>
 
 <button 
   class="bloom-control {className}" 
   class:active
+  class:disabled
   {title}
-  style="--width: {width}; --height: {height}; {style}"
+  {disabled}
+  style="--width: {width}; --height: {finalHeight}; {style}"
   on:click={handleClick}
 >
   <slot />

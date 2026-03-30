@@ -35,8 +35,6 @@ impl SettingsField {
 - [ ] **Future Use Categorization**: specifically for `DashboardUpdateBatch`, `CommandConfig`, and `ToolDetector`, use `#[allow(dead_code)]` with `// (for future use)` comments.
 
 ## 3. :: Global References
-The following core protocols MUST be followed alongside these project lessons:
-- **BUILD**: [rust-build-protocol.md](file:///p:/Projects/golden-image/.agents/rules/by-language/rust/rust-build-protocol.md)
-- **LOGIC**: [rust-patterns-logic.md](file:///p:/Projects/golden-image/.agents/rules/by-language/rust/rust-patterns-logic.md)
-- **ARCH**: [rust-patterns-architecture.md](file:///p:/Projects/golden-image/.agents/rules/by-language/rust/rust-patterns-architecture.md)
-- **INFRA**: [rust-patterns-infrastructure.md](file:///p:/Projects/golden-image/.agents/rules/by-language/rust/rust-patterns-infrastructure.md)
+The following core standards MUST be followed alongside these project lessons:
+- **CORE**: [Rust Development skill](file:///p:/Projects/golden-image/.agents/skills/rust_development/SKILL.md)
+- **REINFORCEMENTS**: [rust-core-reinforcements.md](file:///p:/Projects/golden-language/rust/rust-core-reinforcements.md)
