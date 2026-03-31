@@ -8,7 +8,16 @@
     Minus,
     ChevronDown,
     LayoutGrid,
-    Info
+    Zap,
+    Activity,
+    ShieldCheck,
+    Target,
+    Cpu,
+    Brain,
+    RectangleEllipsis,
+    FileStack,
+    Palette,
+    Grid2x2
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import TacticalToolbar from "./TacticalToolbar.svelte";
@@ -113,14 +122,55 @@
   let hoveredDescription: string | null = null;
   let hoveredFeatureId: string | null = null;
 
-  $: categories = featuresConfig?.Categories || [];
-  
-  function getFilteredFeatures(categoryName: string) {
-    return (featuresConfig?.Features || []).filter(f => {
-      const matchesCat = f.Category === categoryName;
+  // Mapping for categorical merging and renaming
+  const CATEGORY_MAP: Record<string, string> = {
+    "AI": "COPILOT",
+    "Windows Updates": "WINDOWS",
+    "Windows Features": "WINDOWS",
+    "Optional Windows Features": "WINDOWS"
+  };
+
+  $: rawCategories = featuresConfig?.Categories || [];
+  $: displayCategories = (() => {
+    const seen = new Set<string>();
+    return rawCategories.map(c => {
+      const mapped = CATEGORY_MAP[c.Name] || c.Name.toUpperCase();
+      return { ...c, displayName: mapped };
+    }).filter(c => {
+      if (seen.has(c.displayName)) return false;
+      seen.add(c.displayName);
+      return true;
+    });
+  })();
+
+  function getFilteredFeatures(displayName: string) {
+    const allFeatures = featuresConfig?.Features || [];
+    return allFeatures.filter(f => {
+      const mappedName = CATEGORY_MAP[f.Category] || f.Category.toUpperCase();
+      const matchesCat = mappedName === displayName;
       const matchesSearch = f.Label.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCat && matchesSearch;
     });
+  }
+
+  // Balanced distribution for 3 columns
+  $: [col1, col2, col3] = distributeCategories(displayCategories);
+
+  function distributeCategories(cats: any[]) {
+    const cols: any[][] = [[], [], []];
+    const heights = [0, 0, 0];
+    
+    // Weight: 30 units base + 10 per feature
+    cats.forEach(cat => {
+      const features = getFilteredFeatures(cat.displayName);
+      const weight = 30 + (features.length * 10);
+      
+      const minIdx = heights.indexOf(Math.min(...heights));
+      cols[minIdx].push(cat);
+      heights[minIdx] += weight;
+    });
+    
+    return cols;
   }
 
   function getStatusColor(id: string) {
@@ -152,37 +202,6 @@
 
   $: appliedCount = auditResults.filter(r => r.status === 'Applied').length;
   $: totalCount = auditResults.length;
-
-  // Balanced Height Distribution Logic
-  function distributeCategories(cats: any[], features: any[]) {
-    const columns: any[][] = [[], [], []];
-    const itemWeights = [0, 0, 0];
-    
-    if (!cats || cats.length === 0) return columns;
-
-    // Create a copy to sort or process if needed, but here we just iterate
-    // and greedily place into the shortest column
-    cats.forEach(cat => {
-      const featureCount = (features || []).filter(f => f.Category === cat.Name).length;
-      // We add a "tax" of 6 items for the Card Header/Margins to account for visual height
-      const categoryWeight = featureCount + 6;
-      
-      // Find shortest column
-      let shortestIdx = 0;
-      if (itemWeights[1] < itemWeights[0]) shortestIdx = 1;
-      if (itemWeights[2] < itemWeights[shortestIdx]) shortestIdx = 2;
-      
-      columns[shortestIdx].push(cat);
-      itemWeights[shortestIdx] += categoryWeight;
-    });
-    
-    return columns;
-  }
-
-  $: balancedCols = distributeCategories(categories, featuresConfig?.Features);
-  $: col1 = balancedCols[0];
-  $: col2 = balancedCols[1];
-  $: col3 = balancedCols[2];
 </script>
 
 <div class="panel">
@@ -215,16 +234,40 @@
       <div class="tweak-grid">
         {#each [col1, col2, col3] as col}
           <div class="tweak-column">
-            {#each col as category}
+            {#each col as cat}
               <div class="category-card">
                 <div class="card-header">
-                  <span class="cat-icon">{@html category.Icon}</span>
-                  <h3>{category.Name.toUpperCase()}</h3>
+                  <span class="cat-icon-lucide">
+                    {#if cat.displayName === "COPILOT"}
+                      <Brain size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName === "WINDOWS"}
+                      <Grid2x2 size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName.includes("ESSENTIALS")}
+                      <Zap size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName.includes("APPEARANCE")}
+                      <Palette size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName.includes("TASKBAR")}
+                      <RectangleEllipsis size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName.includes("EXPLORER")}
+                      <FileStack size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName.includes("ADVANCED")}
+                      <Activity size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName.includes("PRIVACY")}
+                      <ShieldCheck size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName.includes("GAMING")}
+                      <Target size={16} strokeWidth={3.5} />
+                    {:else if cat.displayName.includes("SYSTEM")}
+                      <Cpu size={16} strokeWidth={3.5} />
+                    {:else}
+                      <Cog size={16} strokeWidth={3.5} />
+                    {/if}
+                  </span>
+                  <h3>{cat.displayName}</h3>
                   <div class="spacer"></div>
                 </div>
                 
                 <div class="card-body">
-                  {#each getFilteredFeatures(category.Name) as feature}
+                  {#each getFilteredFeatures(cat.displayName) as feature}
                     <div 
                       class="tweak-row" 
                       role="button"
@@ -324,87 +367,103 @@
 
   .category-card {
     width: 100%;
-    background: #1a1f21; /* Dark-grey card background */
-    border: 1px solid rgba(255, 255, 255, 0.05); /* Subtle light-grey border */
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* Slight drop shadow */
+    background: #1a1f22; /* Calibrated slate charcoal from reference */
+    border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle high-def border */
+    border-radius: 8px;
+    /* Misted atmospheric glow from reference */
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.7),
+      inset 0 1px 1px rgba(255, 255, 255, 0.02); 
     overflow: hidden;
     flex-shrink: 0;
   }
 
   .card-header {
-    height: 32px;
+    height: 36px;
     display: flex;
     align-items: center;
-    padding: 0 12px;
-    background: rgba(255, 255, 255, 0.02); /* Very subtle header differentiation */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    margin-bottom: 4px;
+    padding: 0 14px;
+    background: transparent;
+    border-bottom: none; /* Removed divider line */
+    margin-bottom: 0px;
   }
 
   .card-header h3 {
-    font-size: 10px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 0.15em;
+    font-size: 10px; /* Parity with Apps.svelte table-header */
+    font-weight: 800; /* Parity with Apps.svelte table-header */
+    color: #fff; /* Brighter, high-contrast header text */
+    letter-spacing: 0.18em;
     margin: 0;
     text-transform: uppercase;
+    opacity: 0.8;
   }
 
-  .cat-icon {
-    font-size: 14px;
-    width: 24px;
+  .cat-icon-lucide {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.15);
+    color: #fff; /* Synchronized with title text luminosity */
+    margin-right: 12px;
+    opacity: 0.8;
   }
 
   .card-body {
-    padding: 8px;
+    padding: 8px 10px;
     display: flex;
     flex-direction: column;
-    gap: 6px; /* Row separation */
+    gap: 5px; /* Precise gap from reference */
   }
 
   .tweak-row {
     position: relative;
     display: flex;
     align-items: center;
-    height: 34px;
+    height: 31px; /* Tighter industrial density */
     padding: 0 12px;
-    padding-left: 14px; /* Room for the accent stripe */
+    padding-left: 16px;
     font-size: 11px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    background: #23282a; /* Slightly lighter dark-grey for rows */
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    border-radius: 4px;
+    transition: all 0.15s ease;
+    
+    /* Matte Charcoal Plate from reference */
+    background: #242a2d; 
+    
+    /* Hardware Rim / Outer Shadow */
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 5px;
     flex-shrink: 0;
     overflow: hidden;
+    
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
-  /* Vertical Status Accent Stripe */
+  /* Radiant Status Hub (Vertical Strip) */
   .tweak-row::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 4px;
-    bottom: 4px;
-    width: 3px; /* Slightly wider for better visibility */
-    background: var(--status-color); /* Dynamically assigned from JS */
-    opacity: 0.95;
-    box-shadow: 0 0 8px var(--status-color); /* Subtle glow for the indicator */
+    top: 5px;
+    bottom: 5px;
+    width: 4px;
+    background: var(--status-color);
+    opacity: 1;
+    /* High-fidelity LED glow logic */
+    filter: blur(0.3px);
+    box-shadow: 0 0 12px var(--status-color); 
+    z-index: 2;
+    border-radius: 0 2px 2px 0;
   }
 
   .tweak-row:hover {
-    background: #2a3033;
-    border-color: rgba(255, 255, 255, 0.1);
+    filter: brightness(1.2);
+    box-shadow: 
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 4px 16px rgba(0, 0, 0, 0.5);
   }
 
   .tweak-row.selected {
-    background: #2d3437;
-    border-color: rgba(0, 188, 212, 0.3);
+    background: linear-gradient(to bottom, #3a3a3a 0%, #2a2a2a 100%);
+    border-color: rgba(0, 188, 212, 0.2);
   }
 
   .tweak-name {
@@ -482,19 +541,53 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    color: rgba(255, 255, 255, 0.3);
+    gap: 20px;
+    color: rgba(255, 255, 255, 0.4);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Industrial Glow Spinner */
+  .state-view :global(.spin) {
+    color: #00bcd4; /* Active Bloom Color */
+    filter: drop-shadow(0 0 10px rgba(0, 188, 212, 0.5));
+    animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite, pulse-glow-active 2s ease-in-out infinite;
+  }
+
+  .state-view span {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.75); /* Brighter Text */
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 255, 255, 0.2);
+  }
+
+  @keyframes pulse-glow-active {
+    0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 188, 212, 0.3)); opacity: 0.8; }
+    50% { filter: drop-shadow(0 0 18px rgba(0, 188, 212, 0.6)); opacity: 1; }
   }
 
   .error { color: var(--risk-unsafe); }
   
   .retry-btn {
+    background: rgba(var(--risk-unsafe-rgb, 255, 61, 96), 0.1);
+    border: 1px solid var(--risk-unsafe);
+    color: var(--risk-unsafe);
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .retry-btn:hover {
     background: var(--risk-unsafe);
     color: #fff;
-    border: none;
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 11px;
-    cursor: pointer;
+    box-shadow: 0 0 12px rgba(255, 61, 96, 0.4);
   }
 </style>
