@@ -111,8 +111,8 @@ async fn get_theme_info() -> ThemeInfo {
     // Default Windows Blue (0x0078D4 in ABGR)
     let (r, g, b, is_dark) = if let Ok(dwm_key) = hkcu.open_subkey("Software\\Microsoft\\Windows\\DWM") {
         let color_val: u32 = dwm_key.get_value("AccentColor").unwrap_or(0xFFD47800);
-        #[cfg(debug_assertions)]
-        println!("[DEBUG] Registry AccentColor: 0x{:08X}", color_val);
+        /* #[cfg(debug_assertions)]
+        println!("[DEBUG] Registry AccentColor: 0x{:08X}", color_val); */
         
         let r = (color_val & 0xFF) as u8;
         let g = ((color_val >> 8) & 0xFF) as u8;
@@ -121,13 +121,13 @@ async fn get_theme_info() -> ThemeInfo {
         let personalization = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
         let is_dark = personalization.and_then(|k| k.get_value::<u32, _>("AppsUseLightTheme")).map(|v| v == 0).unwrap_or(true);
         
-        #[cfg(debug_assertions)]
-        println!("[DEBUG] Parsed Theme: R={}, G={}, B={}, DarkMode={}", r, g, b, is_dark);
+        /* #[cfg(debug_assertions)]
+        println!("[DEBUG] Parsed Theme: R={}, G={}, B={}, DarkMode={}", r, g, b, is_dark); */
         
         (r, g, b, is_dark)
     } else {
-        #[cfg(debug_assertions)]
-        println!("[DEBUG] DWM registry key not found, using default blue.");
+        /* #[cfg(debug_assertions)]
+        println!("[DEBUG] DWM registry key not found, using default blue."); */
         (0, 120, 212, true)
     };
 
@@ -341,43 +341,43 @@ async fn close_window(window: tauri::Window) -> Result<(), String> {
 }
 
 fn resolve_path(app: &tauri::AppHandle, path: &str) -> Option<std::path::PathBuf> {
-    #[cfg(debug_assertions)]
-    println!("[DEBUG] resolve_path beginning for: '{}'", path);
+    /* #[cfg(debug_assertions)]
+    println!("[DEBUG] resolve_path beginning for: '{}'", path); */
 
     // 1. Try Tauri's resolver
     if let Some(r) = app.path_resolver().resolve_resource(path) {
-        #[cfg(debug_assertions)]
-        println!("[DEBUG]   Testing Tauri resolve: {:?} (Exists: {})", r, r.exists());
+        /* #[cfg(debug_assertions)]
+        println!("[DEBUG]   Testing Tauri resolve: {:?} (Exists: {})", r, r.exists()); */
         if r.exists() { return Some(r); }
     }
     
     // 2. Try prefixed with resources/
     if let Some(r) = app.path_resolver().resolve_resource(format!("resources/{}", path)) {
-        #[cfg(debug_assertions)]
-        println!("[DEBUG]   Testing Tauri prefix resolve: {:?} (Exists: {})", r, r.exists());
+        /* #[cfg(debug_assertions)]
+        println!("[DEBUG]   Testing Tauri prefix resolve: {:?} (Exists: {})", r, r.exists()); */
         if r.exists() { return Some(r); }
     }
 
     // 3. Try relative to CWD
     let cwd_path = std::path::Path::new("resources").join(path);
-    #[cfg(debug_assertions)]
-    println!("[DEBUG]   Testing CWD/resources: {:?} (Exists: {})", cwd_path, cwd_path.exists());
+    /* #[cfg(debug_assertions)]
+    println!("[DEBUG]   Testing CWD/resources: {:?} (Exists: {})", cwd_path, cwd_path.exists()); */
     if cwd_path.exists() { return Some(cwd_path); }
 
     // 4. Try parent's resources
     let parent_path = std::path::Path::new("../resources").join(path);
-    #[cfg(debug_assertions)]
-    println!("[DEBUG]   Testing ../resources: {:?} (Exists: {})", parent_path, parent_path.exists());
+    /* #[cfg(debug_assertions)]
+    println!("[DEBUG]   Testing ../resources: {:?} (Exists: {})", parent_path, parent_path.exists()); */
     if parent_path.exists() { return Some(parent_path); }
 
     // 5. Try parent's src-tauri resources
     let src_tauri_path = std::path::Path::new("src-tauri/resources").join(path);
-    #[cfg(debug_assertions)]
-    println!("[DEBUG]   Testing src-tauri/resources: {:?} (Exists: {})", src_tauri_path, src_tauri_path.exists());
+    /* #[cfg(debug_assertions)]
+    println!("[DEBUG]   Testing src-tauri/resources: {:?} (Exists: {})", src_tauri_path, src_tauri_path.exists()); */
     if src_tauri_path.exists() { return Some(src_tauri_path); }
 
-    #[cfg(debug_assertions)]
-    println!("[DEBUG] !!! All resolve_path attempts failed for '{}'", path);
+    /* #[cfg(debug_assertions)]
+    println!("[DEBUG] !!! All resolve_path attempts failed for '{}'", path); */
     None
 }
 
@@ -459,7 +459,7 @@ async fn get_apps(app: tauri::AppHandle) -> Result<Vec<apps::AppEntry>, String> 
     
     // Fallback for dev mode: prioritized original GoldenImager path
     if resource_path.is_none() || (resource_path.is_some() && !resource_path.as_ref().unwrap().exists()) {
-        println!("[DEBUG] resolve_resource failed or path missing, trying original imager fallback...");
+        /* println!("[DEBUG] resolve_resource failed or path missing, trying original imager fallback..."); */
         let original_path = std::path::Path::new("../GoldenImager/Foundation/Win11Debloat/Config/Apps.json");
         if original_path.exists() {
             resource_path = Some(original_path.to_path_buf());
@@ -488,8 +488,13 @@ async fn get_apps(app: tauri::AppHandle) -> Result<Vec<apps::AppEntry>, String> 
     // Load config for recommendations
     let config = apps::load_apps_config(&path).map_err(|e| format!("Failed to read/parse {:?}: {}", path, e))?;
     
-    // Scan system with integrated merge logic
+// Scan system with integrated merge logic
     Ok(apps::scan_installed_apps(&config.apps))
+}
+
+#[tauri::command]
+fn log_geometry(container: f64, scroll: f64, data: f64) {
+    println!("[GEOMETRY] Container: {:.1}px, Scroll: {:.1}px, Data: {:.1}px", container, scroll, data);
 }
 
 fn main() {
@@ -539,7 +544,8 @@ fn main() {
             run_provisioning_stage,
             install_app,
             minimize_window,
-            close_window
+            close_window,
+            log_geometry
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { settings, accentRgb } from './lib/store';
+  import { invoke } from '@tauri-apps/api/tauri';
   import Sidebar from './lib/Sidebar.svelte';
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
@@ -12,26 +13,21 @@
   let activeTab = 'apps';
   let isDark = true;
   let appCount = 0;
+  let hasLoggedGeometry = false;
   
-  // GEOMETRY PROBE LOGIC
   let containerRef: HTMLElement;
   let listRef: HTMLElement;
-  let metrics = { cTop: 0, lTop: 0, sTop: 0 };
 
-  import { onMount } from 'svelte';
-  onMount(() => {
-    const updateMetrics = () => {
-      if (containerRef && listRef) {
-        metrics = {
-          cTop: containerRef.getBoundingClientRect().top,
-          lTop: listRef.getBoundingClientRect().top,
-          sTop: listRef.getBoundingClientRect().top // Scrollbar track starts where list starts
-        };
-      }
-      requestAnimationFrame(updateMetrics);
-    };
-    updateMetrics();
-  });
+  /* GEOMETRY PROBE LOGIC (Logs once per app pane load) */
+  $: if (activeTab === 'apps' && containerRef && listRef && !hasLoggedGeometry) {
+    const cTop = containerRef.getBoundingClientRect().top;
+    const lTop = listRef.getBoundingClientRect().top;
+    invoke('log_geometry', { container: cTop, scroll: lTop, data: lTop });
+    hasLoggedGeometry = true;
+  }
+  $: if (activeTab !== 'apps') {
+    hasLoggedGeometry = false; // Reset for next time the tab is opened
+  }
   let tweakAppliedCount = 0;
   let tweakTotalCount = 0;
   
@@ -66,12 +62,6 @@
       </div>
 
     <div class="content-area">
-      <!-- GEOMETRY PROBE OVERLAY -->
-      <div class="test-probe">
-        <div class="probe-row"><span class="label">CONTAINER:</span> {metrics.cTop.toFixed(1)}px</div>
-        <div class="probe-row"><span class="label">SCROLL START:</span> {metrics.sTop.toFixed(1)}px</div>
-        <div class="probe-row"><span class="label">DATA TOP:</span> {metrics.lTop.toFixed(1)}px</div>
-      </div>
         {#if activeTab === 'dashboard'}
           <Dashboard />
         {:else if activeTab === 'apps'}
@@ -216,22 +206,4 @@
     text-align: center;
     opacity: 0.3;
   }
-  .test-probe {
-    position: absolute;
-    top: 60px;
-    right: 20px;
-    z-index: 9999;
-    background: rgba(var(--accent-rgb), 0.1);
-    border: 1px solid rgba(var(--accent-rgb), 0.4);
-    backdrop-filter: blur(8px);
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--accent-color);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    pointer-events: none;
-  }
-  .probe-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
-  .label { opacity: 0.6; font-weight: 800; }
 </style>

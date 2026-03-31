@@ -111,7 +111,7 @@
     isPolicyOpen = false;
     isRiskOpen = false;
     isProfileOpen = false;
-    activeCopyMenu = null;
+    contextMenuApp = null;
   }
 
   function togglePolicy(e?: any) {
@@ -137,13 +137,22 @@
     isProfileOpen = false;
   }
 
-  function selectPolicy(id: string) {
-    viewFilter = id;
-    isPolicyOpen = false;
-  }
   function selectProfile(p: string) {
     selectedProfile = p;
     isProfileOpen = false;
+  }
+
+  let contextMenuPos = { x: 0, y: 0 };
+  let contextMenuApp: any = null;
+
+  function openContextMenu(app: any, e: MouseEvent) {
+    e.preventDefault();
+    contextMenuApp = app;
+    contextMenuPos = { x: e.clientX, y: e.clientY };
+  }
+
+  function closeContextMenu() {
+    contextMenuApp = null;
   }
 
   $: appCount = filteredApps ? filteredApps.length : 0;
@@ -269,7 +278,7 @@
     }
   }
 
-  async function deleteProfile(p: string, event: MouseEvent) {
+  async function deleteProfile(p: string, event: any) {
     event.stopPropagation();
     if (!p || !isTauri) return;
     if (!confirm(`Delete profile "${p.replace(".json", "")}"?`)) return;
@@ -434,6 +443,7 @@
     isPolicyOpen = false;
     isProfileOpen = false;
     isRiskOpen = false;
+    contextMenuApp = null;
   }
 
   /* Selector Width Reactivity */
@@ -449,16 +459,6 @@
   );
   $: profileCalcWidth = Math.max(120, (maxProfileLen + 5) * 6.2) + "px";
 
-  let activeCopyMenu: string | null = null;
-  function toggleCopyMenu(id: string, e: MouseEvent) {
-    e.stopPropagation();
-    if (activeCopyMenu === id) {
-      activeCopyMenu = null;
-    } else {
-      activeCopyMenu = id;
-    }
-  }
-
   async function copyToClipboard(
     text: string | null | undefined,
     e?: MouseEvent,
@@ -470,7 +470,7 @@
     } catch (err) {
       console.error("Copy failed", err);
     }
-    activeCopyMenu = null;
+    contextMenuApp = null;
   }
 
   async function toggleAppInstall(appId: string) {
@@ -550,7 +550,10 @@
 
 <svelte:window on:click={closeAll} />
 
-<div class="panel">
+<div 
+  class="panel"
+  style="--col-name-w: {nameWidth}px; --col-id-w: {idWidth}px;"
+>
   <TacticalToolbar 
     policyOptions={FILTER_OPTIONS}
     profiles={profiles}
@@ -571,7 +574,6 @@
 
   <div
     class="table-header"
-    style="--col-name-w: {nameWidth}px; --col-id-w: {idWidth}px;"
   >
     <div class="col-check">
       <input
@@ -693,8 +695,6 @@
         {/if}
       </div>
     </div>
-    <div class="col-status"></div>
-    <div class="col-copy"></div>
     <div class="col-name">Friendly Name</div>
     <div class="col-appid">System Identifier / Package Name</div>
   </div>
@@ -719,6 +719,7 @@
               style="--row-hue: {getRowHue(app.Recommendation)}"
               class:selected={selectionList.includes(app.AppId)}
               on:click={() => toggleSelect(app.AppId)}
+              on:contextmenu={(e) => openContextMenu(app, e)}
               on:keydown={(e) =>
                 (e.key === "Enter" || e.key === " ") && toggleSelect(app.AppId)}
               role="row"
@@ -726,10 +727,10 @@
             >
               <div class="col-check">
                 <input
-                  type="checkbox"
-                  checked={selectionList.includes(app.AppId)}
-                  on:change={() => toggleSelect(app.AppId)}
-                  on:click|stopPropagation
+                   type="checkbox"
+                   checked={selectionList.includes(app.AppId)}
+                   on:change={() => toggleSelect(app.AppId)}
+                   on:click|stopPropagation
                 />
               </div>
               <div class="col-status">
@@ -740,35 +741,6 @@
                       !["safe", "warn", "unsafe"].includes(app.Recommendation))}
                   style="--dot-color: {getStatusColor(app)}"
                 ></div>
-              </div>
-              <div class="col-copy">
-                <div class="copy-trigger-wrapper">
-                  <button 
-                    class="row-copy-btn" 
-                    on:click={(e) => toggleCopyMenu(app.AppId, e)}
-                    title="Copy application data"
-                  >
-                    <Copy size={12} />
-                  </button>
-
-                  {#if activeCopyMenu === app.AppId}
-                    <div class="copy-flyout" on:click|stopPropagation>
-                      <button class="flyout-item" on:click={(e) => copyToClipboard(app.FriendlyName, e)}>
-                        <Copy size={10} /> <span>Copy Name</span>
-                      </button>
-                      <button class="flyout-item" on:click={(e) => copyToClipboard(app.AppId, e)}>
-                        <Copy size={10} /> <span>Copy Identifier</span>
-                      </button>
-                      <button class="flyout-item" on:click={(e) => copyToClipboard(app.UninstallString, e)}>
-                        <Terminal size={10} /> <span>Copy Uninstall</span>
-                      </button>
-                      <div class="flyout-divider"></div>
-                      <button class="flyout-item" on:click={(e) => copyToClipboard(`Name: ${app.FriendlyName}\nID: ${app.AppId}\nUninstall: ${app.UninstallString || "N/A"}`, e)}>
-                        <Zap size={10} /> <span>Copy Complete Info</span>
-                      </button>
-                    </div>
-                  {/if}
-                </div>
               </div>
               <div class="col-name">
                 <span class="text-main">{app.FriendlyName}</span>
@@ -797,6 +769,32 @@
   </div>
 </div>
 
+{#if contextMenuApp}
+  <div 
+    class="context-menu" 
+    style="left: {contextMenuPos.x}px; top: {contextMenuPos.y}px;"
+    on:click|stopPropagation
+    on:contextmenu|preventDefault
+  >
+    <div class="menu-header">
+      <span class="menu-title truncate">{contextMenuApp.FriendlyName}</span>
+    </div>
+    <button class="menu-item" on:click={(e) => copyToClipboard(contextMenuApp.FriendlyName, e)}>
+      <Copy size={12} /> <span>Copy Friendly Name</span>
+    </button>
+    <button class="menu-item" on:click={(e) => copyToClipboard(contextMenuApp.AppId, e)}>
+      <Copy size={12} /> <span>Copy Identifier</span>
+    </button>
+    <button class="menu-item" on:click={(e) => copyToClipboard(contextMenuApp.UninstallString, e)}>
+      <Terminal size={12} /> <span>Copy Uninstall String</span>
+    </button>
+    <div class="menu-divider"></div>
+    <button class="menu-item primary" on:click={(e) => copyToClipboard(`Name: ${contextMenuApp.FriendlyName}\nID: ${contextMenuApp.AppId}\nUninstall: ${contextMenuApp.UninstallString || "N/A"}`, e)}>
+      <Zap size={12} /> <span>Copy Complete Diagnostic</span>
+    </button>
+  </div>
+{/if}
+
 <style>
   :root {
     --risk-safe: #00e676;
@@ -820,8 +818,8 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 4px 6px; /* 4px top padding + 2px row margin = 6px gap from top */
-    margin-top: 10px;
+    padding: 0 6px 4px 6px; /* Optimized bottom breathing room */
+    margin-top: 4px; /* Matches 4px inter-row gap for top-most entry */
     display: flex;
     flex-direction: column;
     scrollbar-gutter: stable;
@@ -830,7 +828,7 @@
   .table-header {
     display: flex;
     align-items: center;
-    padding: 0 12px 0 18px; /* Aligned: 6px container inset + 12px row padding */
+    padding: 0 25px; /* Synchronized: 24px panel + 1px border shift */
     height: 32px;
     font-size: 10px;
     font-weight: 800;
@@ -838,7 +836,7 @@
     background: #1a1f21 !important; /* Industrial Grey Bar */
     border: none; /* REMOVED RIM PER USER REQ */
     border-radius: 4px;
-    margin-bottom: 4px; /* Separation from TacticalContainer */
+    margin-bottom: 0px; /* Gap handled by table-body margin-top */
     text-transform: uppercase;
     letter-spacing: 0.8px;
     flex-shrink: 0;
@@ -846,8 +844,9 @@
     position: relative;
     cursor: pointer;
   }
-
-
+  .row:first-child {
+    margin-top: 0; /* Absolute alignment with scrollbar start */
+  }
 
   .row {
     position: relative;
@@ -978,42 +977,63 @@
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
     filter: brightness(1.15);
   }
-  .copy-flyout {
-    position: absolute;
-    top: -4px;
-    left: 28px;
+  .menu-header {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 4px;
+  }
+  .menu-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .context-menu {
+    position: fixed;
     background: #0b0f10;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
-    padding: 4px;
-    z-index: 5000;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+    padding: 2px;
+    z-index: 10000;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(var(--accent-rgb), 0.1);
     display: flex;
     flex-direction: column;
-    min-width: 140px;
+    min-width: 180px;
+    animation: menu-pop 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .flyout-item {
+  @keyframes menu-pop {
+    from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .menu-item {
     background: transparent;
     border: none;
-    padding: 6px 10px;
-    font-size: 10px;
+    padding: 8px 12px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.6);
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     border-radius: 4px;
+    transition: all 0.2s;
     text-align: left;
-    white-space: nowrap;
   }
-  .flyout-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-  }
-  .flyout-divider {
-    height: 1px;
+  .menu-item:hover {
     background: rgba(255, 255, 255, 0.05);
-    margin: 4px 0;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .menu-item.primary:hover {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent-color);
+  }
+  .menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 4px 6px;
   }
   .col-name {
     width: var(--col-name-w, 360px);
