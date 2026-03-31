@@ -249,130 +249,123 @@
     padding: 12px 12px 12px 24px;
     gap: 8px;
     overflow: hidden;
+    background: transparent; /* Synchronized with Apps.svelte */
   }
-
-
-
   .tweak-grid {
     column-count: 3;
     column-gap: 16px;
     padding: 16px;
-    padding-top: 32px; /* Breathing room for industrial shadow */
+    padding-top: 32px;
     overflow-y: auto;
     flex: 1;
-    display: block; /* Override default flex from TacticalContainer if any, though it should be block for columns */
+    display: block;
+    scrollbar-gutter: stable; /* Synchronized with Apps.svelte */
+  }
+
+  /* Industrial Scrollbar - Synchronized with Apps.svelte */
+  .tweak-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+  .tweak-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .tweak-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px 12px 0 0;
+  }
+  .tweak-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
   }
 
   .category-card {
-    display: inline-block; /* Essential for masonry-like column flow */
+    display: inline-block;
     width: 100%;
     break-inside: avoid-column;
-    margin-bottom: 24px; /* Matches the vertical breathing room in the provided image */
-    background: rgba(255, 255, 255, 0.01);
-    border: 1px solid rgba(255, 255, 255, 0.02);
-    border-radius: 4px;
+    margin-bottom: 24px;
+    background: #1a1f21; /* Dark-grey card background */
+    border: 1px solid rgba(255, 255, 255, 0.05); /* Subtle light-grey border */
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* Slight drop shadow */
+    overflow: hidden;
   }
 
   .card-header {
-    height: 28px;
+    height: 32px;
     display: flex;
     align-items: center;
-    padding: 0 8px; /* Slightly more room */
-    background: #1a1f21 !important; /* Industrial Grey Bar */
-    border: 1px solid rgba(255, 255, 255, 0.08); /* Consistent Machined Rim */
-    border-radius: 4px 4px 0 0; /* Cap the card with industrial rounding */
-    margin-bottom: 8px;
+    padding: 0 12px;
+    background: rgba(255, 255, 255, 0.02); /* Very subtle header differentiation */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 4px;
   }
 
   .card-header h3 {
     font-size: 10px;
     font-weight: 800;
     color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 0.15em; /* Industrial high-density spacing */
+    letter-spacing: 0.15em;
     margin: 0;
     text-transform: uppercase;
   }
 
   .cat-icon {
-    font-family: inherit; /* Use standard icon for now */
     font-size: 14px;
     width: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255, 0.15);
-    opacity: 0.5;
   }
 
   .info-icon {
-    opacity: 0.15;
+    opacity: 0.25;
+    color: rgba(255, 255, 255, 0.5);
   }
 
   .card-body {
-    padding: 0px 4px 4px 4px; /* Tighter padding to flush against header */
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 0; /* REMOVED GAP: FUSED INDUSTRIAL STACK */
+    gap: 6px; /* Row separation */
   }
 
   .tweak-row {
     position: relative;
     display: flex;
     align-items: center;
-    height: 32px;
-    margin: 0; /* Flush industrial alignment */
+    height: 34px;
     padding: 0 12px;
+    padding-left: 14px; /* Room for the accent stripe */
     font-size: 11px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    /* v7 Material Standard: FUSED INDUSTRIAL GREY */
-    background: linear-gradient(to right, var(--slab-edge) 0%, var(--slab-base) 15%, var(--slab-base) 85%, var(--slab-edge) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid #000; /* Darker physical groove at bottom */
+    transition: all 0.2s ease;
+    background: #23282a; /* Slightly lighter dark-grey for rows */
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
     flex-shrink: 0;
+    overflow: hidden;
   }
 
-  /* TOP ROW: Cap the slab */
-  .tweak-row:first-child {
-    border-radius: 4px 4px 0 0;
-    border-top: 1px solid var(--slab-rim); /* MACHINED RIM */
+  /* Vertical Green Accent Stripe */
+  .tweak-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: #00e676; /* Vibrant Green */
+    opacity: 0.8;
   }
 
-  /* BOTTOM ROW: Seal the slab */
-  .tweak-row:last-child {
-    border-radius: 0 0 4px 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.02); /* Slight specular bottom edge */
-  }
-
-  /* INTERNAL ROWS: Remove top border to prevent double-line thickness */
-  .tweak-row:not(:first-child) {
-    border-top: none;
-  }
-
-  .tweak-row:hover:not(.selected) {
-    background: var(--slab-base);
-    filter: brightness(1.2);
+  .tweak-row:hover {
+    background: #2a3033;
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .tweak-row.selected {
-    background: 
-      linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.05)),
-      linear-gradient(to right, #1A1C1D 0%, #222526 15%, #222526 85%, #1A1C1D 100%) !important;
-    border: 1px solid rgba(var(--accent-rgb), 0.6) !important; 
-    box-shadow:
-      0 0 12px rgba(var(--accent-rgb), 0.15),
-      inset 0 0 0 1px rgba(var(--accent-rgb), 0.05);
-  }
-
-  /* Verified Applied Indication */
-  .tweak-row.v-applied {
-    border-left: 2px solid var(--risk-safe);
-  }
-
-  .tweak-row.selected .tweak-name {
-    color: #fff;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    background: #2d3437;
+    border-color: rgba(0, 188, 212, 0.3);
   }
 
   .dot {
@@ -380,18 +373,18 @@
     height: 6px;
     border-radius: 50%;
     background: var(--dot-color);
-    margin-right: 12px;
-    box-shadow: 0 0 8px var(--dot-color);
+    margin-right: 10px;
+    box-shadow: 0 0 6px var(--dot-color);
+    flex-shrink: 0;
   }
 
   .tweak-name {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 180px;
   }
 
   .tweak-tooltip {
@@ -399,7 +392,7 @@
     bottom: 100%;
     left: 24px;
     background: #1a1f21;
-    border: 1px solid var(--accent-color);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 8px 12px;
     border-radius: 4px;
     font-size: 10px;
@@ -412,43 +405,36 @@
   }
 
   .checkbox-container {
-    width: 24px;
+    width: 20px;
     display: flex;
     justify-content: center;
+    margin-left: 8px;
   }
 
   .bloom-checkbox {
-    width: 18px; /* Synchronized with Apps.svelte */
-    height: 18px;
-    background: rgba(0, 0, 0, 0.35) !important; /* Bloom Base - Sunken */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    width: 16px;
+    height: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
   }
 
-  /* INTENT TO APPLY: Luminous Accent Border */
+  /* Cyan Accent for Checked State */
   .bloom-checkbox.checked {
-    border-color: rgba(var(--accent-rgb), 0.85) !important; 
-    box-shadow:
-      0 0 10px rgba(var(--accent-rgb), 0.3),
-      inset 0 1px 3px rgba(0, 0, 0, 0.4);
-    background: rgba(var(--accent-rgb), 0.05) !important;
-    color: #fff;
+    background: #00bcd4 !important; /* Cyan Accent */
+    border-color: #00bcd4 !important;
+    color: #000; /* Dark icon on cyan */
+    box-shadow: 0 0 8px rgba(0, 188, 212, 0.4);
   }
 
-  /* INTENT TO REVERT: Luminous Red Alert Border */
   .bloom-checkbox.reverting {
-    border-color: rgba(255, 61, 96, 0.85) !important;
-    box-shadow:
-      0 0 10px rgba(255, 61, 96, 0.3),
-      inset 0 1px 3px rgba(0, 0, 0, 0.4);
-    background: rgba(255, 61, 96, 0.05) !important;
+    background: #ff1744 !important; /* Red for Revert Intent */
+    border-color: #ff1744 !important;
     color: #fff;
   }
 

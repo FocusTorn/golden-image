@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ShieldCheck, Info } from 'lucide-svelte';
+  import { ShieldCheck, Info, Clock } from 'lucide-svelte';
   export let status = "Ready";
   export let activeTab = "apps";
   export let appCount = 0;
@@ -10,15 +10,17 @@
 <footer class="status-bar">
   <div class="left">
     <ShieldCheck size={12} class="icon-pulse" />
-    <span>GoldenImager2 // {status}</span>
+    <span>{status}</span>
   </div>
   <div class="right">
-    <Info size={12} />
     {#if activeTab === 'apps'}
+      <Info size={12} />
       <span>{appCount} Apps Detected</span>
     {:else if activeTab === 'tweaks'}
+      <Clock size={12} class="dim" />
       <span>{tweakAppliedCount} / {tweakTotalCount} Tweaks Applied</span>
     {:else}
+      <Info size={12} />
       <span>System Optimization Hub</span>
     {/if}
   </div>
