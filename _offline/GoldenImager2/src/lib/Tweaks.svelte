@@ -277,9 +277,10 @@
     height: 28px;
     display: flex;
     align-items: center;
-    padding: 0 4px; /* Tighter industrial gutter */
-    background: transparent;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 0 8px; /* Slightly more room */
+    background: #1a1f21 !important; /* Industrial Grey Bar */
+    border: 1px solid rgba(255, 255, 255, 0.08); /* Consistent Machined Rim */
+    border-radius: 4px 4px 0 0; /* Cap the card with industrial rounding */
     margin-bottom: 8px;
   }
 
@@ -308,10 +309,10 @@
   }
 
   .card-body {
-    padding: 4px;
+    padding: 0px 4px 4px 4px; /* Tighter padding to flush against header */
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0; /* REMOVED GAP: FUSED INDUSTRIAL STACK */
   }
 
   .tweak-row {
@@ -319,19 +320,34 @@
     display: flex;
     align-items: center;
     height: 32px;
-    margin: 0px; /* Flush industrial alignment */
+    margin: 0; /* Flush industrial alignment */
     padding: 0 12px;
     font-size: 11px;
     cursor: pointer;
-    border-radius: 0px; /* Squared off for flush stacking, except for card rounding if applied elsewhere? No, row doesn't need rounding if stacked */
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     
-    /* v7 Material Standard */
-    background: linear-gradient(to right, var(--slab-edge), var(--slab-base));
+    /* v7 Material Standard: FUSED INDUSTRIAL GREY */
+    background: linear-gradient(to right, var(--slab-edge) 0%, var(--slab-base) 15%, var(--slab-base) 85%, var(--slab-edge) 100%);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-top: 1px solid var(--slab-rim);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid #000; /* Darker physical groove at bottom */
     flex-shrink: 0;
+  }
+
+  /* TOP ROW: Cap the slab */
+  .tweak-row:first-child {
+    border-radius: 4px 4px 0 0;
+    border-top: 1px solid var(--slab-rim); /* MACHINED RIM */
+  }
+
+  /* BOTTOM ROW: Seal the slab */
+  .tweak-row:last-child {
+    border-radius: 0 0 4px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02); /* Slight specular bottom edge */
+  }
+
+  /* INTERNAL ROWS: Remove top border to prevent double-line thickness */
+  .tweak-row:not(:first-child) {
+    border-top: none;
   }
 
   .tweak-row:hover:not(.selected) {

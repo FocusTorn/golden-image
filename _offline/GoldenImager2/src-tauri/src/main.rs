@@ -483,7 +483,7 @@ async fn get_apps(app: tauri::AppHandle) -> Result<Vec<apps::AppEntry>, String> 
     })?;
 
     #[cfg(debug_assertions)]
-    println!("[DEBUG] Final resolved path for get_apps: {:?}", path);
+    // println!("[DEBUG] Final resolved path for get_apps: {:?}", path);
 
     // Load config for recommendations
     let config = apps::load_apps_config(&path).map_err(|e| format!("Failed to read/parse {:?}: {}", path, e))?;

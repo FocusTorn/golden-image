@@ -30,6 +30,10 @@
 
   export let selectionList: string[] = [];
   export let appCount = 0;
+  
+  // EXPORTED REFS FOR GEOMETRY PROBE
+  export let containerRef: HTMLElement | null = null;
+  export let listRef: HTMLElement | null = null;
   let apps: any[] = [];
   let loading = true;
   let error: string | null = null;
@@ -694,100 +698,103 @@
     <div class="col-name">Friendly Name</div>
     <div class="col-appid">System Identifier / Package Name</div>
   </div>
+  <div bind:this={containerRef} style="display: contents;">
+    <TacticalContainer padding="0 6px">
+      <div 
+        class="table-body" 
+        bind:this={listRef} 
+      >
+        {#if loading}
+          <div class="state-msg">
+            Loading system database...
+          </div>
+        {:else if error}
+          <div class="state-msg error">
+            Database Error: {error}
+          </div>
+        {:else}
+          {#each filteredByRisk as app}
+            <div
+              class="row"
+              style="--row-hue: {getRowHue(app.Recommendation)}"
+              class:selected={selectionList.includes(app.AppId)}
+              on:click={() => toggleSelect(app.AppId)}
+              on:keydown={(e) =>
+                (e.key === "Enter" || e.key === " ") && toggleSelect(app.AppId)}
+              role="row"
+              tabindex="0"
+            >
+              <div class="col-check">
+                <input
+                  type="checkbox"
+                  checked={selectionList.includes(app.AppId)}
+                  on:change={() => toggleSelect(app.AppId)}
+                  on:click|stopPropagation
+                />
+              </div>
+              <div class="col-status">
+                <div
+                  class="dot"
+                  class:is-off={app.Recommendation === "unmapped" ||
+                    (!app.IsUser &&
+                      !["safe", "warn", "unsafe"].includes(app.Recommendation))}
+                  style="--dot-color: {getStatusColor(app)}"
+                ></div>
+              </div>
+              <div class="col-copy">
+                <div class="copy-trigger-wrapper">
+                  <button 
+                    class="row-copy-btn" 
+                    on:click={(e) => toggleCopyMenu(app.AppId, e)}
+                    title="Copy application data"
+                  >
+                    <Copy size={12} />
+                  </button>
 
-  <TacticalContainer padding="0 6px">
-
-    <div class="table-body">
-      {#if loading}
-        <div class="state-msg">
-          Loading system database...
-        </div>
-      {:else if error}
-        <div class="state-msg error">
-          Database Error: {error}
-        </div>
-      {:else}
-        {#each filteredByRisk as app}
-          <div
-            class="row"
-            style="--row-hue: {getRowHue(app.Recommendation)}"
-            class:selected={selectionList.includes(app.AppId)}
-            on:click={() => toggleSelect(app.AppId)}
-            on:keydown={(e) =>
-              (e.key === "Enter" || e.key === " ") && toggleSelect(app.AppId)}
-            role="row"
-            tabindex="0"
-          >
-            <div class="col-check">
-              <input
-                type="checkbox"
-                checked={selectionList.includes(app.AppId)}
-                on:change={() => toggleSelect(app.AppId)}
-                on:click|stopPropagation
-              />
-            </div>
-            <div class="col-status">
-              <div
-                class="dot"
-                class:is-off={app.Recommendation === "unmapped" ||
-                  (!app.IsUser &&
-                    !["safe", "warn", "unsafe"].includes(app.Recommendation))}
-                style="--dot-color: {getStatusColor(app)}"
-              ></div>
-            </div>
-            <div class="col-copy">
-              <div class="copy-trigger-wrapper">
+                  {#if activeCopyMenu === app.AppId}
+                    <div class="copy-flyout" on:click|stopPropagation>
+                      <button class="flyout-item" on:click={(e) => copyToClipboard(app.FriendlyName, e)}>
+                        <Copy size={10} /> <span>Copy Name</span>
+                      </button>
+                      <button class="flyout-item" on:click={(e) => copyToClipboard(app.AppId, e)}>
+                        <Copy size={10} /> <span>Copy Identifier</span>
+                      </button>
+                      <button class="flyout-item" on:click={(e) => copyToClipboard(app.UninstallString, e)}>
+                        <Terminal size={10} /> <span>Copy Uninstall</span>
+                      </button>
+                      <div class="flyout-divider"></div>
+                      <button class="flyout-item" on:click={(e) => copyToClipboard(`Name: ${app.FriendlyName}\nID: ${app.AppId}\nUninstall: ${app.UninstallString || "N/A"}`, e)}>
+                        <Zap size={10} /> <span>Copy Complete Info</span>
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+              <div class="col-name">
+                <span class="text-main">{app.FriendlyName}</span>
+              </div>
+              <div class="col-appid">
+                <span class="text-mono">{app.AppId}</span>
+              </div>
+              <div class="col-actions">
                 <button 
-                  class="row-copy-btn" 
-                  on:click={(e) => toggleCopyMenu(app.AppId, e)}
-                  title="Copy application data"
+                  class="row-action-btn install"
+                  on:click={(e) => { e.stopPropagation(); toggleAppInstall(app.AppId); }}
+                  title={app.Status === 'installed' ? 'Uninstall app' : 'Install app'}
                 >
-                  <Copy size={12} />
+                  {#if app.Status === 'installed'}
+                    <X size={12} />
+                  {:else}
+                    <Check size={12} />
+                  {/if}
                 </button>
-
-                {#if activeCopyMenu === app.AppId}
-                  <div class="copy-flyout" on:click|stopPropagation>
-                    <button class="flyout-item" on:click={(e) => copyToClipboard(app.FriendlyName, e)}>
-                      <Copy size={10} /> <span>Copy Name</span>
-                    </button>
-                    <button class="flyout-item" on:click={(e) => copyToClipboard(app.AppId, e)}>
-                      <Copy size={10} /> <span>Copy Identifier</span>
-                    </button>
-                    <button class="flyout-item" on:click={(e) => copyToClipboard(app.UninstallString, e)}>
-                      <Terminal size={10} /> <span>Copy Uninstall</span>
-                    </button>
-                    <div class="flyout-divider"></div>
-                    <button class="flyout-item" on:click={(e) => copyToClipboard(`Name: ${app.FriendlyName}\nID: ${app.AppId}\nUninstall: ${app.UninstallString || "N/A"}`, e)}>
-                      <Zap size={10} /> <span>Copy Complete Info</span>
-                    </button>
-                  </div>
-                {/if}
               </div>
             </div>
-            <div class="col-name">
-              <span class="text-main">{app.FriendlyName}</span>
-            </div>
-            <div class="col-appid">
-              <span class="text-mono">{app.AppId}</span>
-            </div>
-            <div class="col-actions">
-              <button 
-                class="row-action-btn install"
-                on:click={(e) => { e.stopPropagation(); toggleAppInstall(app.AppId); }}
-                title={app.Status === 'installed' ? 'Uninstall app' : 'Install app'}
-              >
-                {#if app.Status === 'installed'}
-                  <X size={12} />
-                {:else}
-                  <Check size={12} />
-                {/if}
-              </button>
-            </div>
-          </div>
-        {/each}
-      {/if}
-    </div>
-  </TacticalContainer>
+          {/each}
+        {/if}
+      </div>
+    </TacticalContainer>
+  </div>
 </div>
 
 <style>
@@ -814,6 +821,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 4px 6px; /* 4px top padding + 2px row margin = 6px gap from top */
+    margin-top: 10px;
     display: flex;
     flex-direction: column;
     scrollbar-gutter: stable;
@@ -827,10 +835,10 @@
     font-size: 10px;
     font-weight: 800;
     color: #fff;
-    background: linear-gradient(to right, #fff, #94a3b8);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    background: #1a1f21 !important; /* Industrial Grey Bar */
+    border: none; /* REMOVED RIM PER USER REQ */
+    border-radius: 4px;
+    margin-bottom: 4px; /* Separation from TacticalContainer */
     text-transform: uppercase;
     letter-spacing: 0.8px;
     flex-shrink: 0;
@@ -1200,7 +1208,7 @@
   }
   .table-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: 12px 12px 0 0;
   }
   .table-body::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);

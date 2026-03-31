@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-:: Step 0: Enter the project directory BEFORE any logic occurs
+:: Step 0: Enter the project directory
 if exist "GoldenImager2" (
     cd GoldenImager2
 )
@@ -10,97 +10,123 @@ if exist "GoldenImager2" (
 :: --- Argument Normalization ---
 set "choice=%~1"
 
-:: Map words to existing menu numbers
-if /i "%choice%"=="server" set "choice=1"
-if /i "%choice%"=="gui"    set "choice=2"
-if /i "%choice%"=="build"  set "choice=3"
-if /i "%choice%"=="audit"  set "choice=4"
+:: Map words and help flags
+if /i "%choice%"=="server"  set "choice=1"
+if /i "%choice%"=="gui"     set "choice=2"
+if /i "%choice%"=="build"   set "choice=3"
+if /i "%choice%"=="audit"   set "choice=4"
+if /i "%choice%"=="web"     set "choice=5"
+if /i "%choice%"=="help"    goto :show_help
+if /i "%choice%"=="/?"      goto :show_help
 
-:: If a valid argument was passed, skip the visual menu and go straight to processing
+:: If a valid argument was passed, skip the visual menu
 if not "%choice%"=="" goto :process_choice
 
+:menu
 echo ==================================================
 echo   GoldenImager2: Modernized Native Engine + GUI
 echo ==================================================
-echo.
-
-:: Check for Node.js
-where npm >nul 2>nul || (echo [ERROR] npm not found! && pause && exit /b)
-
-:: Check for Rust
-where cargo >nul 2>nul || (echo [ERROR] cargo not found! && pause && exit /b)
-
-:: Ensure dependencies are installed
-if not exist "node_modules" (
-    echo [INFO] First run: Installing dependencies...
-    call npm install
-)
-
 echo [1] Start UI Dev Server (Fast / Browser Mode)
 echo [2] Launch App GUI (Tauri / Native Engine)
 echo [3] Build Prod Binary (.exe)
 echo [4] Run Audit CLI (No GUI)
+echo [5] Open Browser to Localhost (Preview Appearance)
+echo [H] Help / Usage
 echo.
 
-set /p choice="Select an option [1-4] or press Enter to exit: "
+set /p choice="Select an option [1-5, H] or press Enter to exit: "
 
 :process_choice
 if "%choice%"=="1" goto :ui_dev
 if "%choice%"=="2" goto :dev
 if "%choice%"=="3" goto :build
 if "%choice%"=="4" goto :audit
+if "%choice%"=="5" goto :open_url
+if /i "%choice%"=="h" goto :show_help
 exit /b
 
 :ui_dev
-echo Launching UI Dev Server in Browser...
-echo Keep this window open for instant refreshes!
-call npm run dev <nul
+echo Launching UI Dev Server...
+call npm run dev
 goto :eof
 
 :dev
-echo Launching GoldenImager2 App...
-echo Connecting to UI Server...
-:: We override beforeDevCommand to empty because we assume Terminal 1 is running it.
-call npx -y @tauri-apps/cli@^1 dev --config "{\"build\": {\"beforeDevCommand\": \"\"}}"  <nul
+echo Launching GoldenImager2 App (Tauri)...
+call npx -y @tauri-apps/cli@^1 dev --config "{\"build\": {\"beforeDevCommand\": \"\"}}"
 goto :eof
 
 :build
-echo Building GoldenImager2 Production Binary...
+echo Building Production Binary...
 call npm run tauri build
-echo.
-echo Done! Your binary is in: src-tauri\target\release\GoldenImager2.exe
 pause
 goto :eof
 
 :audit
 echo Running System Audit...
-cd src-tauri
-cargo run --quiet -- audit
+cd src-tauri && cargo run --quiet -- audit
 pause
 goto :eof
+
+:open_url
+echo Opening UI preview in your default browser...
+:: Standard Vite port is 5173; change if your tauri.conf.json uses a different port
+start http://localhost:1420
+goto :eof
+
+:show_help
+echo.
+echo GoldenImager2 CLI Usage:
+echo --------------------------------------------------
+echo   server  (1)  Starts the Node/Vite dev server.
+echo   gui     (2)  Runs the Tauri app in development mode.
+echo   build   (3)  Compiles the project into a native .exe.
+echo   audit   (4)  Runs the Rust backend audit command.
+echo   web     (5)  Opens the frontend URL in your browser.
+echo   help         Displays this help message.
+echo.
+pause
+goto :eof
+
+
 
 
 @REM @echo off
 @REM setlocal
 @REM cd /d "%~dp0"
 
+@REM :: Step 0: Enter the project directory BEFORE any logic occurs
+@REM if exist "GoldenImager2" (
+@REM     cd GoldenImager2
+@REM )
+
+@REM :: --- Argument Normalization ---
+@REM set "choice=%~1"
+
+@REM :: Map words to existing menu numbers
+@REM if /i "%choice%"=="server" set "choice=1"
+@REM if /i "%choice%"=="gui"    set "choice=2"
+@REM if /i "%choice%"=="build"  set "choice=3"
+@REM if /i "%choice%"=="audit"  set "choice=4"
+
+@REM :: If a valid argument was passed, skip the visual menu and go straight to processing
+@REM if not "%choice%"=="" goto :process_choice
+
 @REM echo ==================================================
 @REM echo   GoldenImager2: Modernized Native Engine + GUI
 @REM echo ==================================================
 @REM echo.
 
-@REM rem Enter the project directory
-@REM if exist "GoldenImager2" cd GoldenImager2
+@REM :: Check for Node.js
+@REM where npm >nul 2>nul || (echo [ERROR] npm not found! && pause && exit /b)
 
-@REM rem Check for Node.js
-@REM where npm >nul 2>nul || echo [ERROR] npm not found! && pause && exit /b
+@REM :: Check for Rust
+@REM where cargo >nul 2>nul || (echo [ERROR] cargo not found! && pause && exit /b)
 
-@REM rem Check for Rust
-@REM where cargo >nul 2>nul || echo [ERROR] cargo not found! && pause && exit /b
-
-@REM rem Ensure dependencies are installed
-@REM if not exist "node_modules" echo [INFO] First run: Installing dependencies...
-@REM if not exist "node_modules" call npm install
+@REM :: Ensure dependencies are installed
+@REM if not exist "node_modules" (
+@REM     echo [INFO] First run: Installing dependencies...
+@REM     call npm install
+@REM )
 
 @REM echo [1] Start UI Dev Server (Fast / Browser Mode)
 @REM echo [2] Launch App GUI (Tauri / Native Engine)
@@ -108,9 +134,9 @@ goto :eof
 @REM echo [4] Run Audit CLI (No GUI)
 @REM echo.
 
-@REM set "choice="
 @REM set /p choice="Select an option [1-4] or press Enter to exit: "
 
+@REM :process_choice
 @REM if "%choice%"=="1" goto :ui_dev
 @REM if "%choice%"=="2" goto :dev
 @REM if "%choice%"=="3" goto :build
@@ -120,15 +146,14 @@ goto :eof
 @REM :ui_dev
 @REM echo Launching UI Dev Server in Browser...
 @REM echo Keep this window open for instant refreshes!
-@REM call npm run dev
+@REM call npm run dev <nul
 @REM goto :eof
 
 @REM :dev
 @REM echo Launching GoldenImager2 App...
 @REM echo Connecting to UI Server...
-@REM rem We override beforeDevCommand to empty because we assume Terminal 1 is running it.
-@REM rem If Terminal 1 is NOT running, this will show a 'Connection Refused' error in the App window.
-@REM call npx tauri dev --config "{\"build\": {\"beforeDevCommand\": \"\"}}"
+@REM :: We override beforeDevCommand to empty because we assume Terminal 1 is running it.
+@REM call npx -y @tauri-apps/cli@^1 dev --config "{\"build\": {\"beforeDevCommand\": \"\"}}"  <nul
 @REM goto :eof
 
 @REM :build
@@ -145,3 +170,4 @@ goto :eof
 @REM cargo run --quiet -- audit
 @REM pause
 @REM goto :eof
+

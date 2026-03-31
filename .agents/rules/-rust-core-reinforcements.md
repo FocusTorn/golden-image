@@ -1,6 +1,5 @@
 ---
-globs: **/*.rs
-alwaysApply: true
+trigger: always_on
 ---
 
 # Rust Core Reinforcements
