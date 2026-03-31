@@ -1,7 +1,10 @@
 <script lang="ts">
   import { ShieldCheck, Info } from 'lucide-svelte';
   export let status = "Ready";
+  export let activeTab = "apps";
   export let appCount = 0;
+  export let tweakAppliedCount = 0;
+  export let tweakTotalCount = 0;
 </script>
 
 <footer class="status-bar">
@@ -11,7 +14,13 @@
   </div>
   <div class="right">
     <Info size={12} />
-    <span>{appCount} Apps Detected</span>
+    {#if activeTab === 'apps'}
+      <span>{appCount} Apps Detected</span>
+    {:else if activeTab === 'tweaks'}
+      <span>{tweakAppliedCount} / {tweakTotalCount} Tweaks Applied</span>
+    {:else}
+      <span>System Optimization Hub</span>
+    {/if}
   </div>
 </footer>
 

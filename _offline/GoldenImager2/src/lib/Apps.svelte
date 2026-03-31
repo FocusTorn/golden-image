@@ -20,11 +20,15 @@
     Plus,
     Copy,
     Terminal,
+    ShieldCheck,
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
+  import TacticalToolbar from "./TacticalToolbar.svelte";
+  import TacticalContainer from "./TacticalContainer.svelte";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
+  export let selectionList: string[] = [];
   export let appCount = 0;
   let apps: any[] = [];
   let loading = true;
@@ -36,6 +40,9 @@
   let selectedApps = new Set<string>();
   let showConfirm = false;
   let viewFilter = "all";
+
+  $: selectionList = Array.from(selectedApps);
+  $: appCount = selectionList.length;
 
   let showSaveModal = false;
   let saveName = "";
@@ -118,6 +125,13 @@
   }
 
   let selectedRisks = new Set(["safe", "warn", "unsafe", "user", "unmapped"]);
+
+  function toggleRiskMenu(e?: any) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    isRiskOpen = !isRiskOpen;
+    isPolicyOpen = false;
+    isProfileOpen = false;
+  }
 
   function selectPolicy(id: string) {
     viewFilter = id;
@@ -313,7 +327,7 @@
     return selectedRisks.has(effectiveRisk);
   });
 
-  function toggleRisk(id: string) {
+  function toggleRiskOption(id: string) {
     if (selectedRisks.has(id)) {
       if (selectedRisks.size === 1) return; // Prevent complete deselection
       selectedRisks.delete(id);
@@ -389,12 +403,12 @@
     isApplied = false;
   };
 
-  function handleToggleAll(e: Event) {
-    const target = e.currentTarget as HTMLInputElement;
-    if (target.checked) {
-      filteredApps.forEach((a) => selectedApps.add(a.AppId));
+  function toggleSelectAll() {
+    const allSelected = filteredByRisk.length > 0 && filteredByRisk.every((a) => selectedApps.has(a.AppId));
+    if (allSelected) {
+      filteredByRisk.forEach((a) => selectedApps.delete(a.AppId));
     } else {
-      filteredApps.forEach((a) => selectedApps.delete(a.AppId));
+      filteredByRisk.forEach((a) => selectedApps.add(a.AppId));
     }
     selectedApps = new Set(selectedApps);
   }
@@ -455,22 +469,28 @@
     activeCopyMenu = null;
   }
 
-  async function installApp(app: any, event: MouseEvent) {
-    if (event) event.stopPropagation();
+  async function toggleAppInstall(appId: string) {
+    const app = apps.find(a => a.AppId === appId);
+    if (!app) return;
+
     if (!isTauri) {
-      alert(`[MOCK] Installing ${app.FriendlyName}...`);
+      alert(`[MOCK] Toggling ${app.FriendlyName}...`);
       return;
     }
-    
+
     try {
-      await invoke("install_app", { 
-        appId: app.AppId, 
-        appName: app.FriendlyName,
-        isSystem: app.IsProvisioned || app.IsUser
-      });
-      alert(`Installation of ${app.FriendlyName} initiated.`);
+      if (app.Status === 'installed') {
+        await invoke("uninstall_app", { appId });
+      } else {
+        await invoke("install_app", { 
+          appId: app.AppId, 
+          appName: app.FriendlyName,
+          isSystem: app.IsProvisioned || app.IsUser
+        });
+      }
+      await loadData(); // Refresh list to update status
     } catch (e) {
-      alert(`Failed to install ${app.FriendlyName}: ${e}`);
+      alert(`Action failed: ${e}`);
     }
   }
 </script>
@@ -527,161 +547,23 @@
 <svelte:window on:click={closeAll} />
 
 <div class="panel">
-  <div class="toolbar">
-    <div class="tool-group">
-      <div
-        class="custom-select-container"
-        on:click|stopPropagation={() => {}}
-        on:keydown={() => {}}
-        role="button"
-        tabindex="-1"
-      >
-        <BloomControl
-          width={policyCalcWidth}
-          active={isPolicyOpen}
-          on:click={togglePolicy}
-          style="padding: 0 8px; justify-content: flex-start !important;"
-        >
-          <span class="select-label truncate"
-            >{FILTER_OPTIONS.find((o) => o.id === viewFilter)?.label ||
-              "Select Policy"}</span
-          >
-          <div class="chevron-wrapper" class:open={isPolicyOpen}>
-            <ChevronDown size={14} />
-          </div>
-        </BloomControl>
+  <TacticalToolbar 
+    policyOptions={FILTER_OPTIONS}
+    profiles={profiles}
+    bind:selectedPolicy={viewFilter}
+    bind:selectedProfile={selectedProfile}
+    bind:searchTerm={searchTerm}
+    loading={loading}
+    selectionCount={selectionList.length}
+    policyCalcWidth={policyCalcWidth}
+    profileCalcWidth={profileCalcWidth}
+    on:loadProfile={loadProfile}
+    on:saveProfile={saveProfile}
+    on:saveAsProfile={() => { showSaveModal = true; saveName = selectedProfile.replace(".json", "") || ""; }}
+  on:deleteProfile={(e) => deleteProfile(e.detail, e)}
+    on:refresh={loadData}
+  />
 
-        {#if isPolicyOpen}
-          <div class="dropdown-list">
-            {#each FILTER_OPTIONS as opt}
-              <button
-                class="dropdown-item"
-                class:active={viewFilter === opt.id}
-                on:click={() => selectPolicy(opt.id)}
-                title={opt.description}
-              >
-                {opt.label}
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </div>
-
-      <div class="segmented-control profile-group">
-        <div
-          class="custom-select-container"
-          on:click|stopPropagation={() => {}}
-          on:keydown={() => {}}
-          role="button"
-          tabindex="-1"
-        >
-          <BloomControl
-            width={profileCalcWidth}
-            active={isProfileOpen}
-            on:click={toggleProfile}
-            style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative; justify-content: flex-start !important;"
-          >
-            <span class="select-label truncate"
-              >{selectedProfile.replace(".json", "") || "App-Profiles"}</span
-            >
-            <div class="chevron-wrapper" class:open={isProfileOpen}>
-              <ChevronDown size={14} />
-            </div>
-          </BloomControl>
-
-          {#if isProfileOpen}
-            <div class="dropdown-list">
-              <button
-                class="dropdown-item"
-                class:active={!selectedProfile}
-                on:click={() => selectProfile("")}
-              >
-                Clear Selection
-              </button>
-              {#each profiles as p}
-                <div class="dropdown-item-wrapper">
-                  <button
-                    class="dropdown-item"
-                    class:active={selectedProfile === p}
-                    on:click={() => selectProfile(p)}
-                  >
-                    <span class="truncate">{p.replace(".json", "")}</span>
-                  </button>
-                  <button
-                    class="delete-profile-btn"
-                    on:click={(e) => deleteProfile(p, e)}
-                    title="Delete Profile"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-
-        <BloomControl
-          width="34px"
-          on:click={loadProfile}
-          style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
-          title="Load Profile Selection"
-        >
-          <Download size={13} />
-        </BloomControl>
-
-        <BloomControl
-          width="34px"
-          on:click={() => { showSaveModal = true; saveName = selectedProfile.replace(".json", "") || ""; }}
-          style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
-          title="Save As New Profile"
-        >
-          <Plus size={13} />
-        </BloomControl>
-
-        <BloomControl
-          width="34px"
-          on:click={saveProfile}
-          style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
-          title="Save Current Profile"
-        >
-          <Save size={13} />
-        </BloomControl>
-      </div>
-
-      <div class="segmented-control search-group">
-        <div class="search-box">
-          <BloomControl
-            width="180px"
-            class="locked-sunken"
-            style="border-radius: 4px 0 0 4px !important;"
-          >
-            <Search size={13} class="search-icon" />
-            <input
-              type="text"
-              bind:value={searchTerm}
-              placeholder="Filter apps..."
-              class="bloom-input"
-            />
-          </BloomControl>
-        </div>
-        <BloomControl
-          width="34px"
-          on:click={loadData}
-          title="Refresh System List"
-          style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
-          class="refresh-btn"
-        >
-          <RefreshCw size={13} strokeWidth={2.5} />
-        </BloomControl>
-      </div>
-    </div>
-
-    <div class="tool-group right">
-      <button class="action-btn" class:active={selectedApps.size > 0}>
-        Apply Changes ({selectedApps.size})
-      </button>
-    </div>
-  </div>
 
   <div
     class="table-header"
@@ -690,9 +572,9 @@
     <div class="col-check">
       <input
         type="checkbox"
-        checked={filteredApps.length > 0 &&
-          filteredApps.every((a) => selectedApps.has(a.AppId))}
-        on:change={handleToggleAll}
+        checked={filteredByRisk.length > 0 &&
+          filteredByRisk.every((a) => selectedApps.has(a.AppId))}
+        on:change={toggleSelectAll}
       />
     </div>
     <div class="col-status">
@@ -708,7 +590,7 @@
             width="18px"
             height="18px"
             active={isRiskOpen}
-            on:click={() => (isRiskOpen = !isRiskOpen)}
+            on:click={toggleRiskMenu}
             style="padding: 0; border-radius: 50%; border-color: rgba(255, 255, 255, 0.1) !important; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.1) !important; background: rgba(0, 0, 0, 0.35) !important;"
           >
             <div
@@ -787,7 +669,7 @@
             {#each RISK_OPTIONS as opt}
               <button
                 class="dropdown-item risk-item"
-                on:click|stopPropagation={() => toggleRisk(opt.id)}
+                on:click|stopPropagation={() => toggleRiskOption(opt.id)}
               >
                 <div class="risk-check-row">
                   <div class="risk-active-mark-container">
@@ -811,18 +693,19 @@
     <div class="col-copy"></div>
     <div class="col-name">Friendly Name</div>
     <div class="col-appid">System Identifier / Package Name</div>
-    <div class="col-actions">Actions</div>
   </div>
 
-  <div
-    class="table-container"
-    style="--col-name-w: {nameWidth}px; --col-id-w: {idWidth}px;"
-  >
+  <TacticalContainer padding="0 6px">
+
     <div class="table-body">
       {#if loading}
-        <div class="state-msg">Scanning system...</div>
+        <div class="state-msg">
+          Loading system database...
+        </div>
       {:else if error}
-        <div class="state-msg error">{error}</div>
+        <div class="state-msg error">
+          Database Error: {error}
+        </div>
       {:else}
         {#each filteredByRisk as app}
           <div
@@ -834,7 +717,6 @@
               (e.key === "Enter" || e.key === " ") && toggleSelect(app.AppId)}
             role="row"
             tabindex="0"
-            title={app.Description || "No description available"}
           >
             <div class="col-check">
               <input
@@ -890,18 +772,22 @@
             </div>
             <div class="col-actions">
               <button 
-                class="row-action-btn install" 
-                on:click={(e) => installApp(app, e)}
-                title="Install application individually"
+                class="row-action-btn install"
+                on:click={(e) => { e.stopPropagation(); toggleAppInstall(app.AppId); }}
+                title={app.Status === 'installed' ? 'Uninstall app' : 'Install app'}
               >
-                <Download size={12} />
+                {#if app.Status === 'installed'}
+                  <X size={12} />
+                {:else}
+                  <Check size={12} />
+                {/if}
               </button>
             </div>
           </div>
         {/each}
       {/if}
     </div>
-  </div>
+  </TacticalContainer>
 </div>
 
 <style>
@@ -923,203 +809,20 @@
     background: transparent;
   }
 
-  .toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 4px;
-    gap: 12px;
-    position: relative;
-    z-index: 2000; /* Master priority above table assets */
-  }
-
-  .tool-group {
-    display: flex;
-    align-items: center;
-    gap: 6px; /* Uniform spacing for all industrial slots */
-  }
-
-  .custom-select-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  .toolbar :global(svg) {
-    color: #fff;
-    opacity: 0.35; /* Master Sidebar resting weight */
-    filter: drop-shadow(
-      0 1px 2px rgba(0, 0, 0, 0.5)
-    ); /* Professional lift - Synced with Search Magnifier */
-    transition: all 0.25s ease;
-  }
-
-  .toolbar :global(.bloom-control:hover:not(.locked-sunken) svg),
-  .toolbar :global(.bloom-control.active:not(.locked-sunken) svg) {
-    opacity: 1; /* Brightens to full intensity on hover/active like Sidebar */
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))
-      drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
-  }
-
-  .search-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  :global(.search-icon) {
-    position: absolute;
-    left: 8px; /* Industrial tight anchor: 8px gap */
-    opacity: 0.75; /* Synced to new industrial baseline */
-    color: #fff;
-    pointer-events: none;
-    filter: drop-shadow(
-      0 1px 2px rgba(0, 0, 0, 0.5)
-    ); /* Professional lift shadow */
-  }
-
-  .bloom-input {
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 11px;
-    padding: 0 0 0 28px; /* Standard 8px gap after 12px icon */
-    width: 100%;
-    outline: none;
-    margin-top: 1px; /* Subtle downward nudge for industrial balance */
-  }
-
-  .bloom-input:focus::placeholder {
-    color: transparent;
-  }
-
-  :global(.locked-sunken) {
-    padding: 0 !important; /* Force reset of component padding to ensure symmetry */
-  }
-
-  .chevron-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .segmented-control {
-    display: flex;
-    align-items: center;
-    position: relative;
-    z-index: 20;
-    gap: 0; /* Forced industrial seal */
-  }
-
-  .profile-group {
-    margin-right: 4px; /* Space before search box */
-  }
-
-  .action-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.35); /* Matched to Sidebar resting weight */
-    font-size: 11px;
-    font-weight: 700;
-    padding: 0 16px;
-    height: 28px; /* Matched to Bloom inputs */
-    border-radius: 4px;
-    cursor: default;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .action-btn.active {
-    background: rgba(
-      var(--accent-rgb),
-      0.15
-    ) !important; /* Industrial Sunken Teal */
-    color: var(--accent-color); /* Vibrant Teal Text */
-    border: 1px solid rgba(var(--accent-rgb), 0.6) !important;
-    cursor: pointer;
-    box-shadow: none; /* REMOVED GLOW PER USER REQ */
-    text-shadow: none; /* REMOVED GLOW PER USER REQ */
-  }
-
-  .action-btn.active:hover {
-    filter: brightness(1.15);
-    box-shadow:
-      0 0 15px rgba(var(--accent-rgb), 0.2),
-      0 0 4px rgba(var(--accent-rgb), 0.4);
-    border-color: rgba(
-      var(--accent-rgb),
-      0.8
-    ) !important; /* Brighter on hover */
-  }
-
-  :global(.refresh-btn svg) {
-    opacity: 0.35 !important;
-  }
-
-  :global(.refresh-btn:hover svg) {
-    opacity: 1 !important;
-  }
-
-  :global(.refresh-btn:active svg) {
-    transform: rotate(180deg);
-  }
-
-  .table-container {
+  .table-body {
     flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 6px; /* 4px top padding + 2px row margin = 6px gap from top */
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: none; /* Flush with industrial floor */
-    border-radius: 12px 12px 0 0;
-    overflow: hidden;
-    position: relative;
-    padding: 0 6px; /* First half of gutter */
-    z-index: 1; /* Lowest industrial stack */
-    box-shadow:
-      inset 0 0 0 1px #12181a,
-      inset 0 24px 24px -12px rgba(0, 0, 0, 0.48); /* Only top industrial shadow */
-  }
-
-  .table-container::before {
-    top: 0;
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.48) 0%,
-      rgba(var(--bg-main-rgb), 0) 100%
-    );
-    height: 32px;
-    z-index: 15;
-    pointer-events: none;
-  }
-
-  .table-container::after {
-    bottom: 0;
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.4) 0%,
-      rgba(0, 0, 0, 0) 100%
-    );
-    height: 16px; /* Tighter fade to ensure pixel parity at bottom */
-    z-index: 15;
-    pointer-events: none;
+    scrollbar-gutter: stable;
   }
 
   .table-header {
     display: flex;
-    align-items: center; /* Centered with row content */
-    padding: 0 12px 0 24px; /* Offset by 12px (6+6) to match container and body gutters */
+    align-items: center;
+    padding: 0 12px 0 18px; /* Aligned: 6px container inset + 12px row padding */
     height: 32px;
     font-size: 10px;
     font-weight: 800;
@@ -1131,30 +834,23 @@
     text-transform: uppercase;
     letter-spacing: 0.8px;
     flex-shrink: 0;
-    z-index: 1000; /* Lifts entire header above body/rows */
+    z-index: 1000;
     position: relative;
+    cursor: pointer;
   }
 
-  .table-body {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 0 6px 0 6px; /* Removed bottom padding for list-to-divider parity */
-    display: flex;
-    flex-direction: column;
-    scrollbar-gutter: stable;
-  }
+
 
   .row {
     position: relative;
     display: flex;
     align-items: center;
     height: 36px;
-    margin: 4px 0;
+    margin: 2px 0; /* Slight modular gap */
     padding: 0 12px;
     font-size: 11px;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: 4px; /* Slight corner rounding */
     
     /* THE INDUSTRIAL SLAB (v7) - BRING BACK THE LIGHT */
     background: 
@@ -1259,6 +955,20 @@
   .row-copy-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--accent-color);
+  }
+  .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #fff;
+    border-color: rgba(
+      var(--accent-rgb),
+      0.85
+    ) !important; /* Brighter Bloom Reveal */
+    box-shadow:
+      0 0 15px rgba(var(--accent-rgb), 0.2),
+      0 0 4px rgba(var(--accent-rgb), 0.4);
+    z-index: 50;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    filter: brightness(1.15);
   }
   .copy-flyout {
     position: absolute;
@@ -1517,16 +1227,14 @@
     left: 0;
     right: 0;
     width: 100%;
-    background-color: #0b0f10 !important; /* Absolute Opaque Black */
-    background: #0b0f10 !important;
+    background-color: #1a1f21 !important; /* Industrial Grey Hub */
+    background: #1a1f21 !important;
     opacity: 1 !important; /* Force full non-transparency */
     border: 1px solid rgba(255, 255, 255, 0.1); /* Matched to BloomControl Industrial Rim */
     border-radius: 6px;
     padding: 4px;
     z-index: 10000; /* Absolute topmost layer */
-    box-shadow:
-      0 32px 64px rgba(0, 0, 0, 1),
-      /* Massive shadow for depth */ 0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -1750,6 +1458,27 @@
   .modal-btn.confirm.active:hover {
     filter: brightness(1.15);
   }
+  .header-selection-btn {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .header-selection-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(var(--accent-rgb), 0.4);
+    color: rgba(var(--accent-rgb), 0.6);
+  }
+
   .risk-filter-container {
     position: relative;
     z-index: 5000; /* Absolute top-row priority */

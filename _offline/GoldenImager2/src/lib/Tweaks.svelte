@@ -3,24 +3,19 @@
   import { invoke } from "@tauri-apps/api/tauri";
   import { 
     Cog, 
-    Shield, 
-    Zap, 
-    Cpu, 
-    Eye, 
-    ShieldAlert, 
     RefreshCw, 
     Check, 
-    X,
-    Search,
+    Minus,
     ChevronDown,
-    Download,
-    Save,
-    Plus,
-    Trash2,
-    Info,
-    LayoutGrid
+    LayoutGrid,
+    Info
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
+  import TacticalToolbar from "./TacticalToolbar.svelte";
+  import TacticalContainer from "./TacticalContainer.svelte";
+
+  export let appliedCount = 0;
+  export let totalCount = 0;
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
@@ -31,6 +26,7 @@
   let activeCategory = "Titus Essentials";
   let applyingFeature: string | null = null;
   let searchQuery = "";
+  let stagedChanges = new Set<string>();
 
   async function loadData() {
     loading = true;
@@ -39,6 +35,7 @@
       if (isTauri) {
         featuresConfig = await invoke("get_features_config");
         auditResults = await invoke("get_audit_results");
+        profiles = await invoke("list_app_profiles");
       } else {
         // High-fidelity Mock Data
         featuresConfig = {
@@ -78,24 +75,38 @@
     return res ? res.status : "Unknown";
   }
 
-  async function toggleFeature(feature: any) {
-    const status = getStatus(feature.FeatureId);
-    applyingFeature = feature.FeatureId;
+  function toggleStage(id: string) {
+    if (stagedChanges.has(id)) {
+      stagedChanges.delete(id);
+    } else {
+      stagedChanges.add(id);
+    }
+    stagedChanges = stagedChanges;
+  }
+
+  async function executeChanges() {
+    if (stagedChanges.size === 0) return;
     
+    loading = true;
     try {
-      if (status === "Applied") {
-        await invoke("undo_feature", { feature_id: feature.FeatureId });
-      } else {
-        await invoke("apply_feature", { feature_id: feature.FeatureId });
+      for (const id of Array.from(stagedChanges)) {
+        const feature = (featuresConfig?.Features || []).find(f => f.FeatureId === id);
+        if (!feature) continue;
+        
+        const currentStatus = getStatus(id);
+        if (currentStatus === "Applied") {
+          await invoke("undo_feature", { feature_id: id });
+        } else {
+          await invoke("apply_feature", { feature_id: id });
+        }
       }
-      
-      if (isTauri) {
-        auditResults = await invoke("get_audit_results");
-      }
+      stagedChanges.clear();
+      stagedChanges = stagedChanges;
+      await loadData(); // Refresh system audit
     } catch (e) {
       console.error("Action failed:", e);
     } finally {
-      applyingFeature = null;
+      loading = false;
     }
   }
 
@@ -112,14 +123,17 @@
     });
   }
 
-  function getDotColor(category: string) {
-    switch (category) {
-      case "Titus Essentials": return "#00e676"; // Risk Safe Green
-      case "Titus Advanced": return "#ff3d60"; // Risk Alert Red
-      case "Privacy & Suggested": return "#9900ff"; // Risk User Purple
-      case "System": return "#ffd600"; // Risk Warn Yellow
-      case "AI": return "#00ffff"; // AI Cyan
-      default: return "#565f67";
+  function getStatusColor(id: string) {
+    const res = auditResults.find(r => r.feature_id === id);
+    if (!res) return "#ffd600"; // Unknown Yellow
+    
+    switch (res.status) {
+      case "Applied": 
+        return "var(--risk-safe)"; // #00e676
+      case "Not Applied": 
+        return "var(--risk-unsafe)"; // #ff3d60
+      default: 
+        return "var(--risk-warn)";  // #ffd600 (Unknown / Error / Unsupported)
     }
   }
 
@@ -132,44 +146,29 @@
     hoveredDescription = null;
     hoveredFeatureId = null;
   }
+
+  let profiles: string[] = [];
+  let selectedProfile = "";
+
+  $: appliedCount = auditResults.filter(r => r.status === 'Applied').length;
+  $: totalCount = auditResults.length;
 </script>
 
 <div class="panel">
-  <div class="toolbar">
-    <div class="tool-group">
-      <div class="segmented-control profile-group">
-        <BloomControl small style="border-radius: 4px 0 0 4px !important;">
-          <LayoutGrid size={14} />
-          <span class="btn-text">App-Profiles</span>
-          <ChevronDown size={14} />
-        </BloomControl>
-        <button class="icon-btn" title="Load Profile"><Download size={14} /></button>
-        <button class="icon-btn" title="Save Profile"><Save size={14} /></button>
-        <button class="icon-btn" title="Save As New"><Plus size={14} /></button>
-        <button class="icon-btn" title="Delete Profile"><Trash2 size={14} /></button>
-      </div>
+  <TacticalToolbar 
+    showPolicy={false}
+    profiles={profiles}
+    bind:selectedProfile={selectedProfile}
+    bind:searchTerm={searchQuery}
+    loading={loading}
+    selectionCount={stagedChanges.size}
+    profileLabel="Tweak-Profiles"
+    applyLabel="Update Changes"
+    on:refresh={loadData}
+    on:apply={executeChanges}
+  />
 
-      <BloomControl small on:click={loadData} disabled={loading} title="Re-Audit System">
-        <RefreshCw size={14} class={loading ? "spin" : ""} />
-      </BloomControl>
-    </div>
-
-    <div class="spacer"></div>
-
-    <div class="tool-group">
-      <div class="search-box">
-        <Search size={14} class="search-icon" />
-        <input 
-          type="text" 
-          placeholder="Filter tweaks..." 
-          class="bloom-input" 
-          bind:value={searchQuery} 
-        />
-      </div>
-    </div>
-  </div>
-
-  <div class="recessed-tray">
+  <TacticalContainer padding="0 6px">
     {#if loading}
       <div class="state-view">
         <RefreshCw size={32} class="spin dim" />
@@ -177,7 +176,7 @@
       </div>
     {:else if error}
       <div class="state-view error">
-        <ShieldAlert size={32} />
+        <RefreshCw size={32} class="dim" />
         <span>Sync Failure: {error}</span>
         <button class="retry-btn" on:click={loadData}>Retry Connection</button>
       </div>
@@ -196,11 +195,13 @@
               {#each getFilteredFeatures(category.Name) as feature}
                 <div 
                   class="tweak-row" 
+                  class:selected={stagedChanges.has(feature.FeatureId)}
+                  class:v-applied={getStatus(feature.FeatureId) === 'Applied'}
                   on:mouseenter={() => handleMouseEnter(feature)}
                   on:mouseleave={handleMouseLeave}
-                  on:click={() => toggleFeature(feature)}
+                  on:click={() => toggleStage(feature.FeatureId)}
                 >
-                  <div class="dot" style="--dot-color: {getDotColor(category.Name)}"></div>
+                  <div class="dot" style="--dot-color: {getStatusColor(feature.FeatureId)}"></div>
                   <span class="tweak-name">{feature.Label}</span>
                   
                   {#if hoveredFeatureId === feature.FeatureId && hoveredDescription}
@@ -215,9 +216,17 @@
                     {#if applyingFeature === feature.FeatureId}
                       <RefreshCw size={10} class="spin" />
                     {:else}
-                      <div class="bloom-checkbox" class:checked={getStatus(feature.FeatureId) === 'Applied'}>
-                        {#if getStatus(feature.FeatureId) === 'Applied'}
-                          <Check size={10} strokeWidth={4} />
+                      <div 
+                        class="bloom-checkbox" 
+                        class:checked={stagedChanges.has(feature.FeatureId)}
+                        class:reverting={stagedChanges.has(feature.FeatureId) && getStatus(feature.FeatureId) === 'Applied'}
+                      >
+                        {#if stagedChanges.has(feature.FeatureId)}
+                          {#if getStatus(feature.FeatureId) === 'Applied'}
+                            <Minus size={10} strokeWidth={4} />
+                          {:else}
+                            <Check size={10} strokeWidth={4} />
+                          {/if}
                         {/if}
                       </div>
                     {/if}
@@ -229,15 +238,7 @@
         {/each}
       </div>
     {/if}
-    
-    <div class="tray-footer">
-      <div class="stats">
-        <span>{auditResults.filter(r => r.status === 'Applied').length} APPLIED</span>
-        <span class="divider">|</span>
-        <span>{auditResults.length} TOTAL AUDITED</span>
-      </div>
-    </div>
-  </div>
+  </TacticalContainer>
 </div>
 
 <style>
@@ -250,132 +251,56 @@
     overflow: hidden;
   }
 
-  .toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 4px;
-    gap: 12px;
-    position: relative;
-    z-index: 2000;
-  }
 
-  .tool-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .segmented-control {
-    display: flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    padding: 2px;
-  }
-
-  .icon-btn {
-    background: transparent;
-    border: none;
-    color: #fff;
-    opacity: 0.35;
-    width: 28px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .icon-btn:hover {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .btn-text {
-    font-size: 11px;
-    font-weight: 600;
-    margin: 0 4px;
-    white-space: nowrap;
-  }
-
-  .search-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-    width: 200px;
-  }
-
-  .search-icon {
-    position: absolute;
-    left: 8px;
-    opacity: 0.35;
-    color: #fff;
-  }
-
-  .bloom-input {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    color: #fff;
-    font-size: 11px;
-    padding: 6px 10px 6px 30px;
-    width: 100%;
-    outline: none;
-    border-radius: 4px;
-  }
-
-  .recessed-tray {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
 
   .tweak-grid {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    padding: 12px;
+    column-count: 3;
+    column-gap: 16px;
+    padding: 16px;
+    padding-top: 32px; /* Breathing room for industrial shadow */
     overflow-y: auto;
+    flex: 1;
+    display: block; /* Override default flex from TacticalContainer if any, though it should be block for columns */
   }
 
   .category-card {
-    display: flex;
-    flex-direction: column;
+    display: inline-block; /* Essential for masonry-like column flow */
+    width: 100%;
+    break-inside: avoid-column;
+    margin-bottom: 24px; /* Matches the vertical breathing room in the provided image */
     background: rgba(255, 255, 255, 0.01);
     border: 1px solid rgba(255, 255, 255, 0.02);
     border-radius: 4px;
-    height: fit-content;
   }
 
   .card-header {
-    height: 32px;
+    height: 28px;
     display: flex;
     align-items: center;
-    padding: 0 12px;
-    background: rgba(255, 255, 255, 0.02);
+    padding: 0 4px; /* Tighter industrial gutter */
+    background: transparent;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
   }
 
   .card-header h3 {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 800;
     color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em; /* Industrial high-density spacing */
     margin: 0;
+    text-transform: uppercase;
   }
 
   .cat-icon {
-    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets";
+    font-family: inherit; /* Use standard icon for now */
     font-size: 14px;
-    width: 20px;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: rgba(255, 255, 255, 0.15);
+    opacity: 0.5;
   }
 
   .info-icon {
@@ -391,23 +316,47 @@
 
   .tweak-row {
     position: relative;
-    height: 28px;
     display: flex;
     align-items: center;
-    padding: 0 8px;
+    height: 32px;
+    margin: 0px; /* Flush industrial alignment */
+    padding: 0 12px;
+    font-size: 11px;
     cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.2s;
+    border-radius: 0px; /* Squared off for flush stacking, except for card rounding if applied elsewhere? No, row doesn't need rounding if stacked */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     
     /* v7 Material Standard */
     background: linear-gradient(to right, var(--slab-edge), var(--slab-base));
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-top: 1px solid var(--slab-rim);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
   }
 
-  .tweak-row:hover {
+  .tweak-row:hover:not(.selected) {
     background: var(--slab-base);
     filter: brightness(1.2);
+  }
+
+  .tweak-row.selected {
+    background: 
+      linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.05)),
+      linear-gradient(to right, #1A1C1D 0%, #222526 15%, #222526 85%, #1A1C1D 100%) !important;
+    border: 1px solid rgba(var(--accent-rgb), 0.6) !important; 
+    box-shadow:
+      0 0 12px rgba(var(--accent-rgb), 0.15),
+      inset 0 0 0 1px rgba(var(--accent-rgb), 0.05);
+  }
+
+  /* Verified Applied Indication */
+  .tweak-row.v-applied {
+    border-left: 2px solid var(--risk-safe);
+  }
+
+  .tweak-row.selected .tweak-name {
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
   }
 
   .dot {
@@ -453,43 +402,40 @@
   }
 
   .bloom-checkbox {
-    width: 14px;
-    height: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 2px;
+    width: 18px; /* Synchronized with Apps.svelte */
+    height: 18px;
+    background: rgba(0, 0, 0, 0.35) !important; /* Bloom Base - Sunken */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent-color);
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
   }
 
+  /* INTENT TO APPLY: Luminous Accent Border */
   .bloom-checkbox.checked {
-    background: var(--accent-color);
-    border-color: var(--accent-color);
-    color: #000;
-    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.4);
+    border-color: rgba(var(--accent-rgb), 0.85) !important; 
+    box-shadow:
+      0 0 10px rgba(var(--accent-rgb), 0.3),
+      inset 0 1px 3px rgba(0, 0, 0, 0.4);
+    background: rgba(var(--accent-rgb), 0.05) !important;
+    color: #fff;
   }
 
-  .tray-footer {
-    height: 32px;
-    background: rgba(0, 0, 0, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 0 16px;
-    display: flex;
-    align-items: center;
+  /* INTENT TO REVERT: Luminous Red Alert Border */
+  .bloom-checkbox.reverting {
+    border-color: rgba(255, 61, 96, 0.85) !important;
+    box-shadow:
+      0 0 10px rgba(255, 61, 96, 0.3),
+      inset 0 1px 3px rgba(0, 0, 0, 0.4);
+    background: rgba(255, 61, 96, 0.05) !important;
+    color: #fff;
   }
 
-  .stats {
-    display: flex;
-    gap: 12px;
-    font-size: 9px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.2);
-    letter-spacing: 0.05em;
-  }
-
-  .divider { opacity: 0.2; }
   .spacer { flex: 1; }
   .spin { animation: spin 1s linear infinite; }
   .dim { opacity: 0.5; }

@@ -12,6 +12,8 @@
   let activeTab = 'apps';
   let isDark = true;
   let appCount = 0;
+  let tweakAppliedCount = 0;
+  let tweakTotalCount = 0;
   
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 </script>
@@ -49,7 +51,7 @@
         {:else if activeTab === 'apps'}
           <Apps bind:appCount />
         {:else if activeTab === 'tweaks'}
-          <Tweaks />
+          <Tweaks bind:appliedCount={tweakAppliedCount} bind:totalCount={tweakTotalCount} />
         {:else if activeTab === 'provisioning'}
           <Provisioning />
         {:else if activeTab === 'settings'}
@@ -71,7 +73,12 @@
     </div>
 
     <!-- Full-Width Status Bar -->
-    <StatusBar {appCount} />
+    <StatusBar 
+      {activeTab}
+      {appCount} 
+      {tweakAppliedCount} 
+      {tweakTotalCount} 
+    />
   </div>
 </main>
 
