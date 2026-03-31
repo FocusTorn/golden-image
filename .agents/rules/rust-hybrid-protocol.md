@@ -23,5 +23,9 @@ trigger: always_on
 
 ### 2.2. :: Tauri Integration Integrity
 - [ ] **Handler Registry Audit**: For every new `#[tauri::command]`, you MUST verify it is registered in `tauri::generate_handler![]` within `main.rs` before implementing the frontend `invoke()` call.
-- [ ] **Resilient Resource Resolution**: Use `app.path_resolver()` for all asset lookups. Always implement a verified fallback (via `find_by_name`) for development-mode paths.
 - [ ] **Command Registration Lock**: Before finalizing any turn with a new IPC command, perform a targeted `grep` on `main.rs` to ensure the command name exists in the `generate_handler!` list.
+
+### 2.3. :: Resilient Resource & Geometry
+- [ ] **Geometry Reporting Baseline**: For every new UI panel (e.g., Provisioning, Tweaks), implement a one-time reactive bridge that logs container and list geometry to the backend terminal on the initial load to prevent 'One-Pixel-At-A-Time' alignment loops.
+- [ ] **Parity Alignment**: Maintain strict parity between the reported frontend `getBoundingClientRect()` metrics and the backend expectation for scrollbar synchronization.
+- [ ] **Asset Resolution**: Use `app.path_resolver()` for all asset lookups. Always implement a verified fallback (via `find_by_name`) for development-mode paths.
