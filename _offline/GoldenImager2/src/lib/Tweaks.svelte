@@ -152,6 +152,37 @@
 
   $: appliedCount = auditResults.filter(r => r.status === 'Applied').length;
   $: totalCount = auditResults.length;
+
+  // Balanced Height Distribution Logic
+  function distributeCategories(cats: any[], features: any[]) {
+    const columns: any[][] = [[], [], []];
+    const itemWeights = [0, 0, 0];
+    
+    if (!cats || cats.length === 0) return columns;
+
+    // Create a copy to sort or process if needed, but here we just iterate
+    // and greedily place into the shortest column
+    cats.forEach(cat => {
+      const featureCount = (features || []).filter(f => f.Category === cat.Name).length;
+      // We add a "tax" of 6 items for the Card Header/Margins to account for visual height
+      const categoryWeight = featureCount + 6;
+      
+      // Find shortest column
+      let shortestIdx = 0;
+      if (itemWeights[1] < itemWeights[0]) shortestIdx = 1;
+      if (itemWeights[2] < itemWeights[shortestIdx]) shortestIdx = 2;
+      
+      columns[shortestIdx].push(cat);
+      itemWeights[shortestIdx] += categoryWeight;
+    });
+    
+    return columns;
+  }
+
+  $: balancedCols = distributeCategories(categories, featuresConfig?.Features);
+  $: col1 = balancedCols[0];
+  $: col2 = balancedCols[1];
+  $: col3 = balancedCols[2];
 </script>
 
 <div class="panel">
@@ -182,58 +213,64 @@
       </div>
     {:else}
       <div class="tweak-grid">
-        {#each categories as category}
-          <div class="category-card">
-            <div class="card-header">
-              <span class="cat-icon">{@html category.Icon}</span>
-              <h3>{category.Name.toUpperCase()}</h3>
-              <div class="spacer"></div>
-              <Info size={12} class="info-icon" />
-            </div>
-            
-            <div class="card-body">
-              {#each getFilteredFeatures(category.Name) as feature}
-                <div 
-                  class="tweak-row" 
-                  class:selected={stagedChanges.has(feature.FeatureId)}
-                  class:v-applied={getStatus(feature.FeatureId) === 'Applied'}
-                  on:mouseenter={() => handleMouseEnter(feature)}
-                  on:mouseleave={handleMouseLeave}
-                  on:click={() => toggleStage(feature.FeatureId)}
-                >
-                  <div class="dot" style="--dot-color: {getStatusColor(feature.FeatureId)}"></div>
-                  <span class="tweak-name">{feature.Label}</span>
-                  
-                  {#if hoveredFeatureId === feature.FeatureId && hoveredDescription}
-                    <div class="tweak-tooltip">
-                      {hoveredDescription}
-                    </div>
-                  {/if}
-
+        {#each [col1, col2, col3] as col}
+          <div class="tweak-column">
+            {#each col as category}
+              <div class="category-card">
+                <div class="card-header">
+                  <span class="cat-icon">{@html category.Icon}</span>
+                  <h3>{category.Name.toUpperCase()}</h3>
                   <div class="spacer"></div>
-                  
-                  <div class="checkbox-container">
-                    {#if applyingFeature === feature.FeatureId}
-                      <RefreshCw size={10} class="spin" />
-                    {:else}
-                      <div 
-                        class="bloom-checkbox" 
-                        class:checked={stagedChanges.has(feature.FeatureId)}
-                        class:reverting={stagedChanges.has(feature.FeatureId) && getStatus(feature.FeatureId) === 'Applied'}
-                      >
-                        {#if stagedChanges.has(feature.FeatureId)}
-                          {#if getStatus(feature.FeatureId) === 'Applied'}
-                            <Minus size={10} strokeWidth={4} />
-                          {:else}
-                            <Check size={10} strokeWidth={4} />
-                          {/if}
+                </div>
+                
+                <div class="card-body">
+                  {#each getFilteredFeatures(category.Name) as feature}
+                    <div 
+                      class="tweak-row" 
+                      role="button"
+                      tabindex="0"
+                      class:selected={stagedChanges.has(feature.FeatureId)}
+                      class:v-applied={getStatus(feature.FeatureId) === 'Applied'}
+                      style="--status-color: {getStatusColor(feature.FeatureId)}"
+                      on:mouseenter={() => handleMouseEnter(feature)}
+                      on:mouseleave={handleMouseLeave}
+                      on:click={() => toggleStage(feature.FeatureId)}
+                      on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleStage(feature.FeatureId); }}
+                    >
+                      <div class="checkbox-container">
+                        {#if applyingFeature === feature.FeatureId}
+                          <RefreshCw size={10} class="spin" />
+                        {:else}
+                          <div 
+                            class="bloom-checkbox" 
+                            class:checked={stagedChanges.has(feature.FeatureId)}
+                            class:reverting={stagedChanges.has(feature.FeatureId) && getStatus(feature.FeatureId) === 'Applied'}
+                          >
+                            {#if stagedChanges.has(feature.FeatureId)}
+                              {#if getStatus(feature.FeatureId) === 'Applied'}
+                                <Minus size={10} strokeWidth={4} />
+                              {:else}
+                                <Check size={10} strokeWidth={4} />
+                              {/if}
+                            {/if}
+                          </div>
                         {/if}
                       </div>
-                    {/if}
-                  </div>
+
+                      <span class="tweak-name">{feature.Label}</span>
+                      
+                      {#if hoveredFeatureId === feature.FeatureId && hoveredDescription}
+                        <div class="tweak-tooltip">
+                          {hoveredDescription}
+                        </div>
+                      {/if}
+
+                      <div class="spacer"></div>
+                    </div>
+                  {/each}
                 </div>
-              {/each}
-            </div>
+              </div>
+            {/each}
           </div>
         {/each}
       </div>
@@ -251,15 +288,23 @@
     overflow: hidden;
     background: transparent; /* Synchronized with Apps.svelte */
   }
+
   .tweak-grid {
-    column-count: 3;
-    column-gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 16px;
     padding: 16px;
     padding-top: 32px;
     overflow-y: auto;
     flex: 1;
-    display: block;
-    scrollbar-gutter: stable; /* Synchronized with Apps.svelte */
+    scrollbar-gutter: stable;
+    align-items: flex-start;
+  }
+
+  .tweak-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px; /* Vertical gap between stacked cards */
   }
 
   /* Industrial Scrollbar - Synchronized with Apps.svelte */
@@ -278,15 +323,13 @@
   }
 
   .category-card {
-    display: inline-block;
     width: 100%;
-    break-inside: avoid-column;
-    margin-bottom: 24px;
     background: #1a1f21; /* Dark-grey card background */
     border: 1px solid rgba(255, 255, 255, 0.05); /* Subtle light-grey border */
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* Slight drop shadow */
     overflow: hidden;
+    flex-shrink: 0;
   }
 
   .card-header {
@@ -317,11 +360,6 @@
     color: rgba(255, 255, 255, 0.15);
   }
 
-  .info-icon {
-    opacity: 0.25;
-    color: rgba(255, 255, 255, 0.5);
-  }
-
   .card-body {
     padding: 8px;
     display: flex;
@@ -346,16 +384,17 @@
     overflow: hidden;
   }
 
-  /* Vertical Green Accent Stripe */
+  /* Vertical Status Accent Stripe */
   .tweak-row::before {
     content: '';
     position: absolute;
     left: 0;
     top: 4px;
     bottom: 4px;
-    width: 2px;
-    background: #00e676; /* Vibrant Green */
-    opacity: 0.8;
+    width: 3px; /* Slightly wider for better visibility */
+    background: var(--status-color); /* Dynamically assigned from JS */
+    opacity: 0.95;
+    box-shadow: 0 0 8px var(--status-color); /* Subtle glow for the indicator */
   }
 
   .tweak-row:hover {
@@ -366,16 +405,6 @@
   .tweak-row.selected {
     background: #2d3437;
     border-color: rgba(0, 188, 212, 0.3);
-  }
-
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--dot-color);
-    margin-right: 10px;
-    box-shadow: 0 0 6px var(--dot-color);
-    flex-shrink: 0;
   }
 
   .tweak-name {
@@ -408,7 +437,7 @@
     width: 20px;
     display: flex;
     justify-content: center;
-    margin-left: 8px;
+    margin-right: 12px;
   }
 
   .bloom-checkbox {
