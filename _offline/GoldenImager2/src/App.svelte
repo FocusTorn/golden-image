@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { settings, accentRgb } from './lib/store';
   import Sidebar from './lib/Sidebar.svelte';
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
@@ -10,19 +10,16 @@
   import StatusBar from './lib/StatusBar.svelte';
 
   let activeTab = 'apps';
-  let r = 75, g = 155, b = 149; // Brightened Teal
   let isDark = true;
   let appCount = 0;
   
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
-
-  $: accentRgb = `${r}, ${g}, ${b}`;
 </script>
 
 <main 
   class="app-container" 
   class:mock-window={!isTauri}
-  style="--accent-color: rgb({accentRgb}); --accent-rgb: {accentRgb};"
+  style="--accent-color: {$settings.accentColor}; --accent-rgb: {$accentRgb};"
 >
   <div class="app-frame">
     <!-- Full-Width Title Bar -->

@@ -1,10 +1,15 @@
 <script lang="ts">
-  import { Settings, Shield, LayoutGrid, Palette, Save, RefreshCw, Cpu, Database, Bell } from "lucide-svelte";
+  import { Settings, Shield, LayoutGrid, Palette, Save, RefreshCw, Cpu, Database, Bell, Check } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
+  import { settings } from "./store";
 
-  let accentColor = "#4fb995";
-  let riskyThreshold = 3;
-  let glassOpacity = 10;
+  let saved = false;
+
+  async function saveSettings() {
+    saved = true;
+    setTimeout(() => saved = false, 2000);
+    // Note: LocalStorage persistence is handled automatically by the store subscription
+  }
 </script>
 
 <div class="panel-container">
@@ -30,7 +35,7 @@
               <label for="risk-threshold">Risk Threshold</label>
               <p>Warning level for unmapped applications.</p>
             </div>
-            <input id="risk-threshold" type="number" bind:value={riskyThreshold} />
+            <input id="risk-threshold" type="number" bind:value={$settings.riskyThreshold} />
           </div>
 
           <div class="setting-item">
@@ -38,7 +43,7 @@
               <label for="auto-scan">Auto-Scan on Boot</label>
               <p>Execute audit cycle immediately upon Sysprep login.</p>
             </div>
-            <input id="auto-scan" type="checkbox" checked />
+            <input id="auto-scan" type="checkbox" bind:checked={$settings.autoScan} />
           </div>
 
           <div class="setting-item">
@@ -46,7 +51,7 @@
               <label for="enforce-policy">Enforce Hard Policy</label>
               <p>Prevent imaging if high-risk apps are detected.</p>
             </div>
-            <input id="enforce-policy" type="checkbox" />
+            <input id="enforce-policy" type="checkbox" bind:checked={$settings.enforcePolicy} />
           </div>
         </div>
 
@@ -60,7 +65,7 @@
               <label for="log-retention">Log Retention</label>
               <p>Days to keep tactical deployment logs.</p>
             </div>
-            <input id="log-retention" type="number" value="30" />
+            <input id="log-retention" type="number" bind:value={$settings.logRetention} />
           </div>
         </div>
       </div>
@@ -78,7 +83,7 @@
               <label for="match-versioning">Match Versioning</label>
               <p>Treat version-suffixed AppIDs as identical for merging.</p>
             </div>
-            <input id="match-versioning" type="checkbox" checked />
+            <input id="match-versioning" type="checkbox" bind:checked={$settings.matchVersioning} />
           </div>
 
           <div class="setting-item">
@@ -94,7 +99,7 @@
               <label for="curated-only">Curated Only Mode</label>
               <p>Only show apps that exist in the master policy list.</p>
             </div>
-            <input id="curated-only" type="checkbox" />
+            <input id="curated-only" type="checkbox" bind:checked={$settings.curatedOnly} />
           </div>
         </div>
 
@@ -108,7 +113,7 @@
               <label for="parallel-audit">Parallel Audit</label>
               <p>Use multi-threaded registry scanning.</p>
             </div>
-            <input id="parallel-audit" type="checkbox" checked />
+            <input id="parallel-audit" type="checkbox" bind:checked={$settings.parallelAudit} />
           </div>
         </div>
       </div>
@@ -126,7 +131,7 @@
               <label for="accent-color">Accent Color</label>
               <p>Primary bloom luminosity hue.</p>
             </div>
-            <input id="accent-color" type="color" bind:value={accentColor} />
+            <input id="accent-color" type="color" bind:value={$settings.accentColor} />
           </div>
 
           <div class="setting-item">
@@ -134,7 +139,7 @@
               <label for="glass-opacity">Glass Transparency</label>
               <p>Opacity level for industrial panels.</p>
             </div>
-            <input id="glass-opacity" type="range" min="0" max="100" bind:value={glassOpacity} />
+            <input id="glass-opacity" type="range" min="0" max="100" bind:value={$settings.glassOpacity} />
           </div>
 
           <div class="setting-item">
@@ -142,13 +147,17 @@
               <label for="show-notifications">System Notifications</label>
               <p>Show toast alerts for critical audit failures.</p>
             </div>
-            <input id="show-notifications" type="checkbox" checked />
+            <input id="show-notifications" type="checkbox" bind:checked={$settings.showNotifications} />
           </div>
         </div>
 
         <div class="footer-actions">
-           <BloomControl>
-             <Save size={14} /> Save Global Policy
+           <BloomControl on:click={saveSettings}>
+             {#if saved}
+               <Check size={14} /> Saved Successfully
+             {:else}
+               <Save size={14} /> Save Global Policy
+             {/if}
            </BloomControl>
         </div>
       </div>

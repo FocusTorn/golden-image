@@ -1,0 +1,47 @@
+import { writable, derived } from 'svelte/store';
+
+export interface SystemSettings {
+  accentColor: string;
+  riskyThreshold: number;
+  glassOpacity: number;
+  autoScan: boolean;
+  enforcePolicy: boolean;
+  logRetention: number;
+  matchVersioning: boolean;
+  curatedOnly: boolean;
+  parallelAudit: boolean;
+  showNotifications: boolean;
+}
+
+const DEFAULT_SETTINGS: SystemSettings = {
+  accentColor: "#4fb995",
+  riskyThreshold: 3,
+  glassOpacity: 10,
+  autoScan: true,
+  enforcePolicy: false,
+  logRetention: 30,
+  matchVersioning: true,
+  curatedOnly: false,
+  parallelAudit: true,
+  showNotifications: true
+};
+
+// Load initial settings from localStorage if available
+const storedSettings = localStorage.getItem('golden-imager-settings');
+const initialSettings = storedSettings ? JSON.parse(storedSettings) : DEFAULT_SETTINGS;
+
+export const settings = writable<SystemSettings>(initialSettings);
+
+// Persist settings on change
+settings.subscribe(value => {
+  localStorage.setItem('golden-imager-settings', JSON.stringify(value));
+});
+
+// Derived RGB string for CSS variables
+export const accentRgb = derived(settings, $s => {
+  const hex = $s.accentColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+});

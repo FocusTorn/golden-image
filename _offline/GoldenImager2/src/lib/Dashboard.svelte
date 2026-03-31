@@ -316,23 +316,67 @@
   }
 
   .audit-item {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
-    opacity: 0.7;
+    height: 34px;
+    margin: 4px 0;
+    padding: 0 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    
+    /* THE INDUSTRIAL SLAB (v7) - BRING BACK THE LIGHT */
+    background: 
+      linear-gradient(to right, var(--slab-edge) 0%, var(--slab-base) 15%, var(--slab-base) 85%, var(--slab-edge) 100%);
+
+    /* MACHINED EDGES: Sharp Milled Silver-Grey (#6A6E72) */
+    border-top: 1px solid var(--slab-rim);
+    border-bottom: 1px solid #000000;
+    border-left: 1px solid #000000;
+    border-right: 1px solid #000000;
+    
+    box-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+
+  /* REFINED CELLULAR GRAIN: 10% Opacity Overlay */
+  .audit-item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='voronoiFilter'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.45' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23voronoiFilter)'/%3E%3C/svg%3E");
+    opacity: 0.10; 
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    z-index: 1;
+  }
+
+  .audit-item:hover {
+    filter: brightness(1.1);
   }
 
   .status-dot {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
     background: var(--risk-safe);
-    box-shadow: 0 0 6px var(--risk-safe);
+    box-shadow: 
+      0 0 10px var(--risk-safe),
+      0 0 2px rgba(255, 255, 255, 0.5);
+    z-index: 2;
+    filter: saturate(1.8) brightness(1.2) drop-shadow(0 0 3px var(--risk-safe));
   }
 
   .audit-item.fail .status-dot {
     background: var(--risk-unsafe);
-    box-shadow: 0 0 6px var(--risk-unsafe);
+    box-shadow: 
+      0 0 10px var(--risk-unsafe),
+      0 0 2px rgba(255, 255, 255, 0.5);
+    filter: saturate(1.8) brightness(1.2) drop-shadow(0 0 3px var(--risk-unsafe));
   }
 
   .info {
@@ -340,6 +384,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    z-index: 2;
+    padding-left: 8px;
   }
 
   label {

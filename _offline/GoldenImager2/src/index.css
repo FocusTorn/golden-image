@@ -13,6 +13,12 @@
   --risk-warn: #ffd600;
   --risk-unsafe: #ff1744;
   
+  /* Industrial Slab v7: BRING BACK THE LIGHT */
+  --slab-base: #323638;
+  --slab-edge: #3A3E40;
+  --slab-rim: #6A6E72;
+  --slab-patina: #1A1D20;
+  
   --text-main-rgb: 201, 209, 217;
   --text-dim-rgb: 139, 148, 158;
   --bg-main-rgb: 24, 34, 36;

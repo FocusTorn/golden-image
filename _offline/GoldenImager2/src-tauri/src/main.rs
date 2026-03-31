@@ -9,12 +9,10 @@ use serde::Serialize;
 
 #[tauri::command]
 async fn get_audit_results(app: tauri::AppHandle) -> Result<Vec<audit::AuditResult>, String> {
-    let resource_path = app.path_resolver()
-        .resolve_resource("resources/config/Features.json")
+    let resource_path = resolve_path(&app, "config/Features.json")
         .ok_or("Failed to resolve Features.json")?;
     
-    let reg_path = app.path_resolver()
-        .resolve_resource("resources/regfiles")
+    let reg_path = resolve_path(&app, "regfiles")
         .ok_or("Failed to resolve regfiles directory")?;
 
     let config = config::load_config(resource_path).map_err(|e| e.to_string())?;
@@ -24,8 +22,7 @@ async fn get_audit_results(app: tauri::AppHandle) -> Result<Vec<audit::AuditResu
 
 #[tauri::command]
 async fn get_features_config(app: tauri::AppHandle) -> Result<config::FeaturesConfig, String> {
-    let resource_path = app.path_resolver()
-        .resolve_resource("resources/config/Features.json")
+    let resource_path = resolve_path(&app, "config/Features.json")
         .ok_or("Failed to resolve Features.json")?;
     
     config::load_config(resource_path).map_err(|e| e.to_string())
@@ -33,12 +30,10 @@ async fn get_features_config(app: tauri::AppHandle) -> Result<config::FeaturesCo
 
 #[tauri::command]
 async fn apply_feature(app: tauri::AppHandle, feature_id: String) -> Result<(), String> {
-    let resource_path = app.path_resolver()
-        .resolve_resource("resources/config/Features.json")
+    let resource_path = resolve_path(&app, "config/Features.json")
         .ok_or("Failed to resolve Features.json")?;
     
-    let reg_dir = app.path_resolver()
-        .resolve_resource("resources/regfiles")
+    let reg_dir = resolve_path(&app, "regfiles")
         .ok_or("Failed to resolve regfiles directory")?;
 
     let config = config::load_config(resource_path).map_err(|e| e.to_string())?;
@@ -67,12 +62,10 @@ async fn apply_feature(app: tauri::AppHandle, feature_id: String) -> Result<(), 
 
 #[tauri::command]
 async fn undo_feature(app: tauri::AppHandle, feature_id: String) -> Result<(), String> {
-    let resource_path = app.path_resolver()
-        .resolve_resource("resources/config/Features.json")
+    let resource_path = resolve_path(&app, "config/Features.json")
         .ok_or("Failed to resolve Features.json")?;
     
-    let reg_dir = app.path_resolver()
-        .resolve_resource("resources/regfiles")
+    let reg_dir = resolve_path(&app, "regfiles")
         .ok_or("Failed to resolve regfiles directory")?;
 
     let config = config::load_config(resource_path).map_err(|e| e.to_string())?;

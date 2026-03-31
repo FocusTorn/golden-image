@@ -1146,31 +1146,55 @@
   }
 
   .row {
+    position: relative;
     display: flex;
     align-items: center;
-    height: 28px;
-    margin: 3px 0;
+    height: 36px;
+    margin: 4px 0;
     padding: 0 12px;
     font-size: 11px;
     cursor: pointer;
-    background: var(--bg-card);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    border-radius: 4px;
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
+    border-radius: 2px;
+    
+    /* THE INDUSTRIAL SLAB (v7) - BRING BACK THE LIGHT */
+    background: 
+      linear-gradient(to right, var(--slab-edge) 0%, var(--slab-base) 15%, var(--slab-base) 85%, var(--slab-edge) 100%);
+
+    /* MACHINED EDGES: Sharp Milled Silver-Grey (#6A6E72) */
+    border-top: 1px solid var(--slab-rim);
+    border-bottom: 1px solid #000000;
+    border-left: 1px solid #000000;
+    border-right: 1px solid #000000;
+    
+    box-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05); /* Lighter internal catch */
+      
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     flex-shrink: 0;
-    color: var(--text-main);
+  }
+
+  /* REFINED CELLULAR GRAIN: 10% Opacity Overlay - Visible Pits */
+  .row::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='voronoiFilter'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.45' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23voronoiFilter)'/%3E%3C/svg%3E");
+    opacity: 0.10;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    z-index: 1;
   }
 
   .row:hover {
-    background: rgba(var(--accent-rgb), 0.08);
-    border-color: rgba(var(--accent-rgb), 0.9) !important; /* Brighter Reveal than selected state */
+    background-color: rgba(255, 255, 255, 0.03); /* Subtle blend on hover over gradient */
+    border-color: rgba(var(--accent-rgb), 0.85) !important;
     box-shadow:
-      0 0 15px rgba(var(--accent-rgb), 0.25),
-      0 0 4px rgba(var(--accent-rgb), 0.45);
+      0 0 15px rgba(var(--accent-rgb), 0.2),
+      0 2px 10px rgba(0, 0, 0, 0.6);
     z-index: 50;
-    filter: brightness(1.15);
+    filter: brightness(1.1);
   }
 
   .row:hover .text-main,
@@ -1185,11 +1209,10 @@
   }
 
   .row.selected {
-    background: rgba(var(--accent-rgb), 0.08); /* Synchronized with Hover Base */
-    border-color: rgba(
-      var(--accent-rgb),
-      0.6
-    ) !important; 
+    background: 
+      linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.05)), /* ACCENT TINT */
+      linear-gradient(to right, #1A1C1D 0%, #222526 15%, #222526 85%, #1A1C1D 100%) !important; /* MAINTAIN SLAB GEOMETRY */
+    border-color: rgba(var(--accent-rgb), 0.6) !important; 
     box-shadow:
       0 0 12px rgba(var(--accent-rgb), 0.15),
       inset 0 0 0 1px rgba(var(--accent-rgb), 0.05);
@@ -1329,12 +1352,18 @@
     height: 11px;
     border-radius: 50%;
     background: var(--dot-color);
-    box-shadow: 0 0 10px var(--dot-color); /* Intensified bloom radiance */
-    filter: saturate(1.8) brightness(1.2);
+    box-shadow: 
+      0 0 14px var(--dot-color), /* Primary Radiant Bloom */
+      0 0 3px rgba(255, 255, 255, 0.6); /* Sharper filament catch */
+    
+    /* SPECULAR SPECKLE: Light catches on surface grain micro-pits */
+    filter: saturate(2.0) brightness(1.3) drop-shadow(0 0 5px var(--dot-color));
+    
     opacity: 0.95;
     flex-shrink: 0;
-    transition: all 0.25s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box; /* PREVENT SIZE BLOATING */
+    z-index: 10;
   }
 
   .dot.is-off {
