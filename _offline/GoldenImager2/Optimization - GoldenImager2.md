@@ -107,11 +107,11 @@ IMPLEMENTATION PRIORITY: Focus on HIGH IMPACT optimizations (Caching and Async I
 
 ### Phase 1: Core Engine & Responsiveness
 **Goal**: Immediate performance gains and backend cleanup.
-- [ ] **Memory Caching for Config**: Implement Tauri State (`tauri::State`) to store parsed `Features.json` in memory.
-- [ ] **Async I/O Migration**: Replace blocking `std::fs` and `std::process::Command` with `tokio` equivalents or `spawn_blocking`.
-- [ ] **Main.rs Logic Sharding**: Begin moving provisioning, apps, and tweak logic into specialized modules (`tweaks.rs`, `apps.rs`).
-- [ ] **Production Cleanup**: Remove geometry probe logs and commented debug statements.
-- [ ] **Absolute Path Removal**: Resolve hardcoded values like `taskbar.ico` using dynamic path resolution (Current icon does not work correctly and shows the OneDrive icon instead).
+- [x] **Memory Caching for Config**: Implement Tauri State (`tauri::State`) to store parsed `Features.json` in memory.
+- [x] **Async I/O Migration**: Replace blocking `std::fs` and `std::process::Command` with `tokio` equivalents or `spawn_blocking`.
+- [x] **Main.rs Logic Sharding**: Begin moving provisioning, apps, and tweak logic into specialized modules (`tweaks.rs`, `apps.rs`).
+- [x] **Production Cleanup**: Remove geometry probe logs and commented debug statements.
+- [x] **Absolute Path Removal**: Resolve hardcoded values like `taskbar.ico` using dynamic path resolution (Current icon does not work correctly and shows the OneDrive icon instead).
 
 ### Phase 2: Standardization & Scale
 **Goal**: Architectural consistency and improved developer experience.

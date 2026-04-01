@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FeaturesConfig {
     #[serde(rename = "Version")]
     pub version: String,
@@ -14,7 +14,7 @@ pub struct FeaturesConfig {
     pub features: Vec<Feature>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Category {
     #[serde(rename = "Name")]
     pub name: String,
@@ -22,7 +22,7 @@ pub struct Category {
     pub icon: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UiGroup {
     #[serde(rename = "GroupId")]
     pub group_id: String,
@@ -38,7 +38,7 @@ pub struct UiGroup {
     pub values: Vec<UiGroupValue>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UiGroupValue {
     #[serde(rename = "Label")]
     pub label: String,

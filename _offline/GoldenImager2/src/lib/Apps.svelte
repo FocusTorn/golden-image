@@ -705,12 +705,15 @@
         bind:this={listRef} 
       >
         {#if loading}
-          <div class="state-msg">
-            Loading system database...
+          <div class="state-view">
+            <RefreshCw size={32} class="spin dim" />
+            <span>Synchronizing System Inventory...</span>
           </div>
         {:else if error}
-          <div class="state-msg error">
-            Database Error: {error}
+          <div class="state-view error">
+            <RefreshCw size={32} class="dim" />
+            <span>Sync Failure: {error}</span>
+            <button class="retry-btn" on:click={loadData}>Retry Connection</button>
           </div>
         {:else}
           {#each filteredByRisk as app}
@@ -1160,6 +1163,67 @@
 
   .state-msg.error {
     color: #f44336;
+  }
+
+  .state-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    color: rgba(255, 255, 255, 0.4);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .state-view :global(.spin) {
+    color: #00bcd4;
+    filter: drop-shadow(0 0 10px rgba(0, 188, 212, 0.5));
+    animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite, pulse-glow-active 2s ease-in-out infinite;
+  }
+
+  .state-view span {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.75);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 255, 255, 0.2);
+  }
+
+  .state-view.error {
+    color: var(--risk-unsafe);
+  }
+
+  .retry-btn {
+    background: rgba(255, 61, 96, 0.1);
+    border: 1px solid var(--risk-unsafe);
+    color: var(--risk-unsafe);
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .retry-btn:hover {
+    background: rgba(255, 61, 96, 0.2);
+    box-shadow: 0 0 12px rgba(255, 61, 96, 0.3);
+  }
+
+  @keyframes pulse-glow-active {
+    0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 188, 212, 0.3)); opacity: 0.8; }
+    50% { filter: drop-shadow(0 0 18px rgba(0, 188, 212, 0.6)); opacity: 1; }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   input[type="checkbox"] {

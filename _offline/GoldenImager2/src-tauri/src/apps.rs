@@ -52,7 +52,7 @@ pub fn load_apps_config<P: AsRef<Path>>(path: P) -> Result<AppConfig, Box<dyn st
     Ok(config)
 }
 
-pub fn scan_installed_apps(config_apps: &Vec<AppEntry>) -> Vec<AppEntry> {
+pub async fn scan_installed_apps(config_apps: &Vec<AppEntry>) -> Vec<AppEntry> {
     use windows::Win32::System::Registry::HKEY_CURRENT_USER;
     
     let mut system_apps = Vec::new();
@@ -71,13 +71,13 @@ pub fn scan_installed_apps(config_apps: &Vec<AppEntry>) -> Vec<AppEntry> {
     }
     
     // Appx Scan (User)
-    if let Ok(mut appx_apps) = scan_appx_packages() {
+    if let Ok(mut appx_apps) = scan_appx_packages().await {
         for app in &mut appx_apps { app.origin_type = "Appx".to_string(); }
         system_apps.append(&mut appx_apps);
     }
 
     // Provisioned Appx Scan
-    if let Ok(mut prov_apps) = scan_appx_provisioned_packages() {
+    if let Ok(mut prov_apps) = scan_appx_provisioned_packages().await {
         for app in &mut prov_apps { 
             app.origin_type = "Provisioned".to_string();
             app.uninstall_string = Some(format!("Remove-AppxProvisionedPackage -Online -PackageName {}", app.app_id));
@@ -133,28 +133,30 @@ pub fn scan_installed_apps(config_apps: &Vec<AppEntry>) -> Vec<AppEntry> {
     final_list
 }
 
-fn scan_appx_packages() -> Result<Vec<AppEntry>, Box<dyn std::error::Error>> {
-    use std::process::Command;
-    let output = Command::new("powershell")
+async fn scan_appx_packages() -> Result<Vec<AppEntry>, Box<dyn std::error::Error>> {
+    let output = tokio::process::Command::new("powershell")
         .args([
             "-NoProfile",
             "-Command",
             "Get-AppxPackage | Select-Object Name, PackageFullName, Publisher, Version | ConvertTo-Json"
         ])
-        .output()?;
+        .output()
+        .await
+        .map_err(|e: std::io::Error| e.to_string())?;
 
     parse_appx_json(output.stdout)
 }
 
-fn scan_appx_provisioned_packages() -> Result<Vec<AppEntry>, Box<dyn std::error::Error>> {
-    use std::process::Command;
-    let output = Command::new("powershell")
+async fn scan_appx_provisioned_packages() -> Result<Vec<AppEntry>, Box<dyn std::error::Error>> {
+    let output = tokio::process::Command::new("powershell")
         .args([
             "-NoProfile",
             "-Command",
             "Get-AppxProvisionedPackage -Online | Select-Object @{N='Name';E={$_.DisplayName}}, @{N='PackageFullName';E={$_.PackageName}}, Publisher, Version | ConvertTo-Json"
         ])
-        .output()?;
+        .output()
+        .await
+        .map_err(|e: std::io::Error| e.to_string())?;
 
     parse_appx_json(output.stdout)
 }
