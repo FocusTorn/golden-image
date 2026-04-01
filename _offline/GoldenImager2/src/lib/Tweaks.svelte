@@ -275,8 +275,9 @@
     "Optional Windows Features": "WINDOWS"
   };
 
-  $: rawCategories = featuresConfig?.Categories || [];
   $: displayCategories = (() => {
+    if (!featuresConfig) return [];
+    const rawCategories = featuresConfig.Categories || [];
     const seen = new Set<string>();
     const cats = rawCategories.map(c => {
       const name = c.Name || "Other";
@@ -296,12 +297,28 @@
     return cats;
   })();
 
+  // Filter categories that have no items matching the search query
+  $: visibleCategories = displayCategories.filter(cat => {
+    return getCombinedItems(cat.displayName).length > 0;
+  });
+
+  // Set of feature IDs that belong to a group (to hide standalone toggles)
+  $: groupedFeatureIds = new Set(
+    (featuresConfig?.UiGroups || []).flatMap(g => 
+      (g.Values || []).flatMap(v => v.FeatureIds || [])
+    )
+  );
+
+  // Re-run distribution when visible categories OR search query changes
+  $: [col1, col2, col3] = distributeCategories(visibleCategories, searchQuery);
+
   function getCombinedItems(displayName: string) {
     const allFeatures = featuresConfig?.Features || [];
     const allGroups = featuresConfig?.UiGroups || [];
 
     const features = allFeatures.filter(f => {
       if (DASHBOARD_ACTIONS.has(f.FeatureId)) return false;
+      if (groupedFeatureIds.has(f.FeatureId)) return false; // HIDE IF IN GROUP
       const categoryRaw = f.Category || "Other";
       const mappedName = CATEGORY_MAP[categoryRaw] || categoryRaw.toUpperCase();
       return mappedName === displayName && (f.Label || "").toLowerCase().includes(searchQuery.toLowerCase());
@@ -318,9 +335,7 @@
   }
 
   // Balanced distribution for 3 columns
-  $: [col1, col2, col3] = distributeCategories(displayCategories);
-
-  function distributeCategories(cats: any[]) {
+  function distributeCategories(cats: any[], _trigger: string) {
     const cols: any[][] = [[], [], []];
     const heights = [0, 0, 0];
     

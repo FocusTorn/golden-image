@@ -94,7 +94,7 @@
     },
     {
       "GroupId": "MultiMon",
-      "Label": "Show taskbar apps on",
+      "Label": "taskbar app icons (multi-monitor)",
       "ToolTip": "This setting allows you to choose where taskbar app buttons are shown when using multiple monitors.",
       "Category": "Taskbar",
       "Values": [
@@ -172,7 +172,7 @@
     },
     {
       "GroupId": "ClearStart",
-      "Label": "Remove pinned apps from the start menu",
+      "Label": "pinned apps on the Start Menu",
       "ToolTip": "This setting allows you to quickly remove all pinned apps from the start menu.",
       "Category": "Start Menu & Search",
       "Values": [
@@ -192,7 +192,7 @@
     },
     {
       "GroupId": "ExplorerLocation",
-      "Label": "Open File Explorer to",
+      "Label": "File Explorer startup location",
       "ToolTip": "This setting allows you to choose the default location that File Explorer opens to.",
       "Category": "File Explorer",
       "Values": [
@@ -224,7 +224,7 @@
     },
     {
       "GroupId": "ShowTabsInAltTab",
-      "Label": "Show tabs from apps when snapping or pressing Alt+Tab",
+      "Label": "app tabs in Alt+Tab and snapping",
       "ToolTip": "This setting allows you to choose whether to show tabs from apps (such as Edge browser tabs) when snapping windows or pressing Alt+Tab.",
       "Category": "Multi-tasking",
       "Priority": 10,
@@ -953,7 +953,7 @@
     },
     {
       "FeatureId": "DisableSnapAssist",
-      "Label": "showing app suggestions when snapping windows",
+      "Label": "app suggestions when snapping windows",
       "ToolTip": "This will turn off app suggestions when you snap windows to the sides or corners of the screen.",
       "Category": "Multi-tasking",
       "Priority": 2,
@@ -981,7 +981,7 @@
     },
     {
       "FeatureId": "HideTabsInAltTab",
-      "Label": "tabs from apps when snapping or pressing Alt+Tab",
+      "Label": "app tabs in Alt+Tab and snapping (Disabled)",
       "Category": "Multi-tasking",
       "Action": "Hide",
       "RegistryKey": "Hide_Tabs_In_Alt_Tab.reg",
@@ -993,7 +993,7 @@
     },
     {
       "FeatureId": "Show3TabsInAltTab",
-      "Label": "tabs from apps when snapping or pressing Alt+Tab",
+      "Label": "app tabs (3 Recent) in Alt+Tab and snapping",
       "Category": "Multi-tasking",
       "Action": "Show 3",
       "RegistryKey": "Show_3_Tabs_In_Alt_Tab.reg",
@@ -1005,7 +1005,7 @@
     },
     {
       "FeatureId": "Show5TabsInAltTab",
-      "Label": "tabs from apps when snapping or pressing Alt+Tab",
+      "Label": "app tabs (5 Recent) in Alt+Tab and snapping",
       "Category": "Multi-tasking",
       "Action": "Show 5",
       "RegistryKey": "Show_5_Tabs_In_Alt_Tab.reg",
@@ -1017,7 +1017,7 @@
     },
     {
       "FeatureId": "Show20TabsInAltTab",
-      "Label": "tabs from apps when snapping or pressing Alt+Tab",
+      "Label": "app tabs (20 Recent) in Alt+Tab and snapping",
       "Category": "Multi-tasking",
       "Action": "Show 20",
       "RegistryKey": "Show_20_Tabs_In_Alt_Tab.reg",
@@ -1146,7 +1146,7 @@
     },
     {
       "FeatureId": "DisableFastStartup",
-      "Label": "fast start-up",
+      "Label": "Fast Start-up",
       "ToolTip": "Fast Start-up helps your PC start faster after shutdown by saving a system image to disk. Disabling Fast Start-up can help with certain issues, but may result in slightly longer boot times.",
       "Category": "System",
       "Action": "Disable",
@@ -1213,7 +1213,7 @@
     },
     {
       "FeatureId": "CombineTaskbarAlways",
-      "Label": "Always combine taskbar buttons and hide labels for the main display",
+      "Label": "Always combine taskbar buttons and labels (main display)",
       "Category": "Taskbar",
       "Action": "Combine Taskbar Always",
       "RegistryKey": "Combine_Taskbar_Always.reg",
@@ -1225,7 +1225,7 @@
     },
     {
       "FeatureId": "CombineMMTaskbarAlways",
-      "Label": "Always combine taskbar buttons and hide labels for secondary displays",
+      "Label": "Always combine taskbar buttons and labels (secondary displays)",
       "Category": "Taskbar",
       "Action": "Combine Multi-Monitor Taskbar Always",
       "RegistryKey": "Combine_MMTaskbar_Always.reg",
@@ -1237,7 +1237,7 @@
     },
     {
       "FeatureId": "CombineTaskbarWhenFull",
-      "Label": "Combine taskbar buttons and hide labels when taskbar is full for the main display",
+      "Label": "Combine taskbar buttons and labels when full (main display)",
       "Category": "Taskbar",
       "Action": "Combine Taskbar When Full",
       "RegistryKey": "Combine_Taskbar_When_Full.reg",
@@ -1249,7 +1249,7 @@
     },
     {
       "FeatureId": "CombineMMTaskbarWhenFull",
-      "Label": "Combine taskbar buttons and hide labels when taskbar is full for secondary displays",
+      "Label": "Combine taskbar buttons and labels when full (secondary displays)",
       "Category": "Taskbar",
       "Action": "Combine Multi-Monitor Taskbar When Full",
       "RegistryKey": "Combine_MMTaskbar_When_Full.reg",
@@ -1261,7 +1261,7 @@
     },
     {
       "FeatureId": "CombineTaskbarNever",
-      "Label": "Never combine taskbar buttons and show labels for the main display",
+      "Label": "Never combine taskbar buttons and labels (main display)",
       "Category": "Taskbar",
       "Action": "Never Combine Taskbar",
       "RegistryKey": "Combine_Taskbar_Never.reg",
@@ -1273,7 +1273,7 @@
     },
     {
       "FeatureId": "CombineMMTaskbarNever",
-      "Label": "Never combine taskbar buttons and show labels for secondary displays",
+      "Label": "Never combine taskbar buttons and labels (secondary displays)",
       "Category": "Taskbar",
       "Action": "Never Combine Multi-Monitor Taskbar",
       "RegistryKey": "Combine_MMTaskbar_Never.reg",
@@ -1297,7 +1297,7 @@
     },
     {
       "FeatureId": "MMTaskbarModeMainActive",
-      "Label": "Show app icons on main taskbar and on taskbar where the windows is open",
+      "Label": "app icons on main taskbar and active taskbar",
       "Category": "Taskbar",
       "Action": "Show Taskbar Icons Main + Active",
       "RegistryKey": "MMTaskbarMode_Main_Active.reg",
@@ -1309,7 +1309,7 @@
     },
     {
       "FeatureId": "MMTaskbarModeActive",
-      "Label": "Show app icons only on taskbar where the window is open",
+      "Label": "app icons only on active taskbar",
       "Category": "Taskbar",
       "Action": "Show Taskbar Icons Active Only",
       "RegistryKey": "MMTaskbarMode_Active.reg",
@@ -1321,7 +1321,7 @@
     },
     {
       "FeatureId": "ExplorerToHome",
-      "Label": "default location that File Explorer opens to 'Home'",
+      "Label": "File Explorer: Home",
       "Category": "File Explorer",
       "Action": "Change",
       "RegistryKey": "Launch_File_Explorer_To_Home.reg",
@@ -1333,7 +1333,7 @@
     },
     {
       "FeatureId": "ExplorerToThisPC",
-      "Label": "default location that File Explorer opens to 'This PC'",
+      "Label": "File Explorer: This PC",
       "Category": "File Explorer",
       "Action": "Change",
       "RegistryKey": "Launch_File_Explorer_To_This_PC.reg",
@@ -1345,7 +1345,7 @@
     },
     {
       "FeatureId": "ExplorerToDownloads",
-      "Label": "Change the default location that File Explorer opens to 'Downloads'",
+      "Label": "File Explorer: Downloads",
       "Category": "File Explorer",
       "Action": "Explorer to Downloads",
       "RegistryKey": "Launch_File_Explorer_To_Downloads.reg",
@@ -1357,7 +1357,7 @@
     },
     {
       "FeatureId": "ExplorerToOneDrive",
-      "Label": "Change the default location that File Explorer opens to 'OneDrive'",
+      "Label": "File Explorer: OneDrive",
       "Category": "File Explorer",
       "Action": "Explorer to OneDrive",
       "RegistryKey": "Launch_File_Explorer_To_OneDrive.reg",
