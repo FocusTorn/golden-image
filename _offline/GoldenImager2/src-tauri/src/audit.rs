@@ -8,6 +8,7 @@ use windows::Win32::System::Registry::{
 use windows::core::PCWSTR;
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct AuditResult {
     pub feature_id: String,
     pub status: String, // "Applied", "Not Applied", "Error", "Unsupported"

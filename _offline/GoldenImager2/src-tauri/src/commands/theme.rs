@@ -2,12 +2,12 @@ use serde::Serialize;
 use tauri::command;
 
 #[derive(Serialize)]
-#[allow(non_snake_case)]
+#[serde(rename_all = "PascalCase")]
 pub struct ThemeInfo {
-    pub R: u8,
-    pub G: u8,
-    pub B: u8,
-    pub IsDark: bool,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub is_dark: bool,
 }
 
 #[command]
@@ -29,16 +29,18 @@ pub async fn get_theme_info() -> ThemeInfo {
         (0, 120, 212, true)
     };
 
-    ThemeInfo { R: r, G: g, B: b, IsDark: is_dark }
+    ThemeInfo { r, g, b, is_dark }
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct DashboardStats {
     pub connection: ConnectionAudit,
     pub stages: StagesAudit,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ConnectionAudit {
     pub limit_blank: bool,
     pub winrm: bool,
@@ -47,6 +49,7 @@ pub struct ConnectionAudit {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct StagesAudit {
     pub pwsh7: bool,
     pub msvc: bool,

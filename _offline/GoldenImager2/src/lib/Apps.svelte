@@ -165,6 +165,32 @@
       if (isTauri) {
         apps = await invoke("get_apps");
         profiles = await invoke("list_app_profiles");
+      } else {
+        apps = [
+          {
+            AppId: "Microsoft.WindowsCalculator",
+            FriendlyName: "Windows Calculator",
+            Recommendation: "safe",
+            Publisher: "Microsoft Corporation",
+            OriginType: "Appx",
+            IsCurated: false,
+            IsInstalled: true,
+            IsProvisioned: false,
+            IsUser: true
+          },
+          {
+            AppId: "Microsoft.YourPhone",
+            FriendlyName: "Phone Link",
+            Recommendation: "unsafe",
+            Publisher: "Microsoft Corporation",
+            OriginType: "Provisioned",
+            IsCurated: true,
+            IsInstalled: true,
+            IsProvisioned: true,
+            IsUser: false
+          }
+        ];
+        profiles = ["DefaultProfile.json", "Aggressive.json"];
       }
     } catch (e) {
       error = typeof e === "string" ? e : JSON.stringify(e);

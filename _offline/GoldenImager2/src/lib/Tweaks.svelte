@@ -48,7 +48,13 @@
     try {
       if (isTauri) {
         featuresConfig = await invoke("get_features_config");
-        auditResults = await invoke("get_audit_results");
+        
+        // Pass only the non-dashboard items to the lazy audit engine
+        const auditTargets = (featuresConfig?.Features || [])
+          .filter((f: any) => !DASHBOARD_ACTIONS.has(f.FeatureId))
+          .map((f: any) => f.FeatureId);
+          
+        auditResults = await invoke("get_audit_results", { featureIds: auditTargets });
         profiles = await invoke("list_tweak_profiles");
       } else {
         // High-fidelity Mock Data
@@ -67,8 +73,8 @@
           ]
         };
         auditResults = [
-          { feature_id: "DisableWPBT", status: "Applied" },
-          { feature_id: "DisableTelemetry", status: "Not Applied" }
+          { FeatureId: "DisableWPBT", Status: "Applied" },
+          { FeatureId: "DisableTelemetry", Status: "Not Applied" }
         ];
       }
       
@@ -87,8 +93,8 @@
   onMount(loadData);
 
   function getStatus(id: string) {
-    const res = auditResults.find(r => r.feature_id === id);
-    return res ? res.status : "Unknown";
+    const res = auditResults.find(r => r.FeatureId === id);
+    return res ? res.Status : "Unknown";
   }
 
   function toggleStage(id: string) {
@@ -378,7 +384,7 @@
   let profiles: string[] = [];
   let selectedProfile = "";
 
-  $: appliedCount = auditResults.filter(r => r.status === 'Applied').length;
+  $: appliedCount = auditResults.filter(r => r.Status === 'Applied').length;
   $: totalCount = auditResults.length;
 </script>
 

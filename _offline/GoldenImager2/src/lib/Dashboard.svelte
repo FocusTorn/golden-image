@@ -37,11 +37,16 @@
           os_build: "22631.PRO",
           uptime: "04:12:15",
           audit_mode: true,
-          connection: {
-            limit_blank: true,
-            winrm: false,
-            keyiso: true,
-            admin_enabled: true
+          Connection: {
+            LimitBlank: true,
+            Winrm: false,
+            Keyiso: true,
+            AdminEnabled: true
+          },
+          Stages: {
+            Pwsh7: true,
+            Msvc: false,
+            AppInfra: true
           }
         };
       }
@@ -66,16 +71,16 @@
         await loadStats(); // Refresh to show new state
       } else {
         await new Promise(r => setTimeout(r, 1000));
-        if (isToggle && stats?.connection) {
+        if (isToggle && stats?.Connection) {
           // Mock toggle logic
           const map: any = {
-            "LimitBlank": "limit_blank",
-            "WinRM": "winrm",
-            "KeyIso": "keyiso",
-            "AdminAccount": "admin_enabled"
+            "LimitBlank": "LimitBlank",
+            "WinRM": "Winrm",
+            "KeyIso": "Keyiso",
+            "AdminAccount": "AdminEnabled"
           };
           const key = map[actionId];
-          if (key) stats.connection[key] = !stats.connection[key];
+          if (key) stats.Connection[key] = !stats.Connection[key];
         }
       }
     } catch (e) {
@@ -122,74 +127,74 @@
           <div class="divider"></div>
 
           <!-- SESSION AUDIT ITEMS (4 Items) -->
-          <div class="tweak-row status-row" style="--status-color: {stats?.connection?.limit_blank ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
+          <div class="tweak-row status-row" style="--status-color: {stats?.Connection?.LimitBlank ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
             <span class="tweak-name">LSA Admin Passwords</span>
             <div class="spacer"></div>
             <button 
               class="bloom-select" 
-              class:deactivate={stats?.connection?.limit_blank}
-              class:activate={!stats?.connection?.limit_blank}
+              class:deactivate={stats?.Connection?.LimitBlank}
+              class:activate={!stats?.Connection?.LimitBlank}
               class:executing={executingActions.has('LimitBlank')}
               on:click={() => runAction('LimitBlank', true)}
             >
               {#if executingActions.has('LimitBlank')}
                  <RefreshCw size={10} class="spin" />
               {:else}
-                 {stats?.connection?.limit_blank ? 'DEACTIVATE' : 'ACTIVATE'}
+                 {stats?.Connection?.LimitBlank ? 'DEACTIVATE' : 'ACTIVATE'}
               {/if}
             </button>
           </div>
 
-          <div class="tweak-row status-row" style="--status-color: {stats?.connection?.winrm ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
+          <div class="tweak-row status-row" style="--status-color: {stats?.Connection?.Winrm ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
             <span class="tweak-name">WinRM Management Stack</span>
             <div class="spacer"></div>
             <button 
               class="bloom-select" 
-              class:deactivate={stats?.connection?.winrm}
-              class:activate={!stats?.connection?.winrm}
+              class:deactivate={stats?.Connection?.Winrm}
+              class:activate={!stats?.Connection?.Winrm}
               class:executing={executingActions.has('WinRM')}
               on:click={() => runAction('WinRM', true)}
             >
               {#if executingActions.has('WinRM')}
                  <RefreshCw size={10} class="spin" />
               {:else}
-                 {stats?.connection?.winrm ? 'DEACTIVATE' : 'ACTIVATE'}
+                 {stats?.Connection?.Winrm ? 'DEACTIVATE' : 'ACTIVATE'}
               {/if}
             </button>
           </div>
 
-          <div class="tweak-row status-row" style="--status-color: {stats?.connection?.keyiso ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
+          <div class="tweak-row status-row" style="--status-color: {stats?.Connection?.Keyiso ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
             <span class="tweak-name">Isolated Key Service (KeyIso)</span>
             <div class="spacer"></div>
             <button 
               class="bloom-select" 
-              class:deactivate={stats?.connection?.keyiso}
-              class:activate={!stats?.connection?.keyiso}
+              class:deactivate={stats?.Connection?.Keyiso}
+              class:activate={!stats?.Connection?.Keyiso}
               class:executing={executingActions.has('KeyIso')}
               on:click={() => runAction('KeyIso', true)}
             >
               {#if executingActions.has('KeyIso')}
                  <RefreshCw size={10} class="spin" />
               {:else}
-                 {stats?.connection?.keyiso ? 'DEACTIVATE' : 'ACTIVATE'}
+                 {stats?.Connection?.Keyiso ? 'DEACTIVATE' : 'ACTIVATE'}
               {/if}
             </button>
           </div>
 
-          <div class="tweak-row status-row" style="--status-color: {stats?.connection?.admin_enabled ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
+          <div class="tweak-row status-row" style="--status-color: {stats?.Connection?.AdminEnabled ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
             <span class="tweak-name">Local Admin Account State</span>
             <div class="spacer"></div>
             <button 
               class="bloom-select" 
-              class:deactivate={stats?.connection?.admin_enabled}
-              class:activate={!stats?.connection?.admin_enabled}
+              class:deactivate={stats?.Connection?.AdminEnabled}
+              class:activate={!stats?.Connection?.AdminEnabled}
               class:executing={executingActions.has('AdminAccount')}
               on:click={() => runAction('AdminAccount', true)}
             >
               {#if executingActions.has('AdminAccount')}
                  <RefreshCw size={10} class="spin" />
               {:else}
-                 {stats?.connection?.admin_enabled ? 'DEACTIVATE' : 'ACTIVATE'}
+                 {stats?.Connection?.AdminEnabled ? 'DEACTIVATE' : 'ACTIVATE'}
               {/if}
             </button>
           </div>

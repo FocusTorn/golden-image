@@ -5,8 +5,8 @@ use windows::Win32::System::Registry::{HKEY, HKEY_LOCAL_MACHINE, RegOpenKeyExW, 
 use windows::core::{PCWSTR, PWSTR};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "PascalCase")]
 pub struct AppConfig {
-    #[serde(rename = "Apps")]
     pub apps: Vec<AppEntry>,
 }
 
