@@ -9,6 +9,7 @@
   import Provisioning from './lib/Provisioning.svelte';
   import Settings from './lib/Settings.svelte';
   import StatusBar from './lib/StatusBar.svelte';
+  import ToastStack from './lib/ToastStack.svelte';
 
   let activeTab = 'apps';
   let isDark = true;
@@ -95,6 +96,9 @@
       {tweakAppliedCount} 
       {tweakTotalCount} 
     />
+    
+    <!-- Global Notifications -->
+    <ToastStack />
   </div>
 </main>
 

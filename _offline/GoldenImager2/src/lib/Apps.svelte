@@ -25,6 +25,7 @@
   import BloomControl from "./BloomControl.svelte";
   import TacticalToolbar from "./TacticalToolbar.svelte";
   import TacticalContainer from "./TacticalContainer.svelte";
+  import { notificationStore } from "./notifications";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
@@ -247,9 +248,9 @@
 
       selectedApps = newSelection;
       isApplied = true;
+      notificationStore.add(`Profile "${selectedProfile}" loaded.`, 'info');
     } catch (e) {
-      console.error("[Apps] Load Conflict:", e);
-      alert(`Sync Error: ${e}`);
+      notificationStore.add(`Load failed: ${e}`, 'error');
     }
   }
 
@@ -273,8 +274,9 @@
       selectedProfile = finalName;
       profiles = await invoke("list_app_profiles");
       showSaveModal = false;
+      notificationStore.add(`Profile "${finalName}" saved successfully.`, 'success');
     } catch (e) {
-      console.error("Failed to save profile:", e);
+      notificationStore.add(`Save failed: ${e}`, 'error');
     }
   }
 
@@ -287,8 +289,9 @@
       await invoke("delete_app_profile", { name: p });
       if (selectedProfile === p) selectedProfile = "";
       profiles = await invoke("list_app_profiles");
+      notificationStore.add(`Profile "${p}" deleted.`, 'warning');
     } catch (e) {
-      console.error("Failed to delete profile:", e);
+      notificationStore.add(`Delete failed: ${e}`, 'error');
     }
   }
 

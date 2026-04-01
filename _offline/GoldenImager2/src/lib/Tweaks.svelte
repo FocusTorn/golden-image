@@ -26,6 +26,7 @@
   import TacticalToolbar from "./TacticalToolbar.svelte";
   import TacticalContainer from "./TacticalContainer.svelte";
   import TweakSelect from "./TweakSelect.svelte";
+  import { notificationStore } from "./notifications";
 
   export let appliedCount = 0;
   export let totalCount = 0;
@@ -198,8 +199,9 @@
       }
       stagedChanges = stagedChanges;
       groupStagedChanges = groupStagedChanges;
+      notificationStore.add(`Profile "${selectedProfile}" loaded.`, 'info');
     } catch (e) {
-      console.error("Failed to load profile:", e);
+      notificationStore.add(`Load failed: ${e}`, 'error');
     } finally {
       loading = false;
     }
@@ -234,16 +236,23 @@
     
     try {
       await invoke("save_tweak_profile", { name, settings });
+      notificationStore.add(`Profile "${name}" saved successfully.`, 'success');
     } catch (e) {
-      alert("Save failed: " + e);
+      notificationStore.add(`Save failed: ${e}`, 'error');
     }
   }
 
   async function handleDeleteProfile(name: any) {
-    if (confirm(`Delete profile ${name}?`)) {
-      await invoke("delete_tweak_profile", { name: name.detail || name });
-      profiles = await invoke("list_tweak_profiles");
-      if (selectedProfile === name) selectedProfile = "";
+    const profileName = name.detail || name;
+    if (confirm(`Delete profile ${profileName}?`)) {
+      try {
+        await invoke("delete_tweak_profile", { name: profileName });
+        profiles = await invoke("list_tweak_profiles");
+        if (selectedProfile === profileName) selectedProfile = "";
+        notificationStore.add(`Profile "${profileName}" deleted.`, 'warning');
+      } catch (e) {
+        notificationStore.add(`Delete failed: ${e}`, 'error');
+      }
     }
   }
 

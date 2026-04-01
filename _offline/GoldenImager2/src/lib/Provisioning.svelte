@@ -16,6 +16,7 @@
     Info
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
+  import { notificationStore } from "./notifications";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
@@ -54,6 +55,7 @@
     if (running) return;
     running = true;
     logs = [">>> INITIALIZING DEPLOYMENT SEQUENCE...", ">>> HARDWARE LOCK ACQUIRED."];
+    notificationStore.add("Deployment sequence started.", "info");
     
     try {
       if (isTauri) {
@@ -71,6 +73,7 @@
           stages = [...stages];
         }
         logs = [...logs, "\nMISSION ACCOMPLISHED: All provisioning stages finalized successfully."];
+        notificationStore.add("Deployment finalized successfully.", "success");
       } else {
         // Mock execution for dev
         for (let i = 0; i < stages.length; i++) {
@@ -86,6 +89,7 @@
     } catch (e) {
       const errorMsg = typeof e === "string" ? e : JSON.stringify(e);
       logs = [...logs, `\nCRITICAL ERROR: ${errorMsg}`];
+      notificationStore.add(`Deployment failed: ${errorMsg}`, "error");
       if (activeStage > 0) {
         stages[activeStage - 1].status = "error";
         stages = [...stages];
