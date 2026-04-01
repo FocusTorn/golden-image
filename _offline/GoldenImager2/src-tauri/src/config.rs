@@ -70,6 +70,10 @@ pub struct Feature {
     pub min_version: Option<u32>,
     #[serde(rename = "MaxVersion")]
     pub max_version: Option<u32>,
+    #[serde(rename = "InvokeScript")]
+    pub invoke_script: Option<String>,
+    #[serde(rename = "UndoScript")]
+    pub undo_script: Option<String>,
 }
 
 pub fn load_config<P: AsRef<Path>>(path: P) -> Result<FeaturesConfig, Box<dyn std::error::Error>> {

@@ -57,6 +57,18 @@ async fn apply_feature(app: tauri::AppHandle, feature_id: String) -> Result<(), 
         }
     }
 
+    if let Some(script) = &feature.invoke_script {
+        let output = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Feature script failed: {}", err));
+        }
+    }
+
     Ok(())
 }
 
@@ -86,6 +98,18 @@ async fn undo_feature(app: tauri::AppHandle, feature_id: String) -> Result<(), S
         if !output.status.success() {
             let err = String::from_utf8_lossy(&output.stderr);
             return Err(format!("Failed to import undo registry: {}", err));
+        }
+    }
+
+    if let Some(script) = &feature.undo_script {
+        let output = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Undo script failed: {}", err));
         }
     }
 

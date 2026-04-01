@@ -264,7 +264,11 @@
     "RemoveHPApps",
     "ReplaceStart",
     "ReplaceStartAllUsers",
-    "ForceRemoveEdge"
+    "ForceRemoveEdge",
+    "DeleteTemporaryFiles",
+    "RunDiskCleanup",
+    "SystemCorruptionScan",
+    "WinGetReinstall"
   ]);
 
   // Mapping for categorical merging and renaming

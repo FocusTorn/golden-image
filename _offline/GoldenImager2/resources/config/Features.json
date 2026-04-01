@@ -56,6 +56,14 @@
     {
       "Name": "Other",
       "Icon": "&#xE713;"
+    },
+    {
+      "Name": "Performance",
+      "Icon": "&#xE9E9;"
+    },
+    {
+      "Name": "Maintenance",
+      "Icon": "&#xE90F;"
     }
   ],
   "UiGroups": [
@@ -767,7 +775,7 @@
       "MaxVersion": null
     },
     {
-       "FeatureId": "DisableStoreSearchSuggestions",
+      "FeatureId": "DisableStoreSearchSuggestions",
       "Label": "Microsoft Store app suggestions in search",
       "ToolTip": "This will disable the Microsoft Store app suggestions in Windows search.",
       "Category": "Start Menu & Search",
@@ -1644,30 +1652,219 @@
     },
     {
       "FeatureId": "DisableFirstSignInAnim",
-      "Label": "first sign-in animation (OOBE)",
-      "ToolTip": "Disables the 'Hi', 'Preparing Windows' animation on first login.",
+      "Label": "first sign-in animation",
       "Category": "System",
       "Action": "Disable",
       "RegistryKey": "Disable_First_Sign_In_Animation.reg",
-      "ApplyText": "Disabling first sign-in animation..."
+      "ApplyText": "Disabling first sign-in animation...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
     },
     {
       "FeatureId": "DisableOOBEMonitoring",
-      "Label": "OOBE 'Finish setting up your device' screen",
-      "ToolTip": "Prevents Windows from showing the blue 'Let's finish setting up' nag screen after updates.",
-      "Category": "Privacy & Suggested Content",
+      "Label": "OOBE monitoring",
+      "Category": "System",
       "Action": "Disable",
       "RegistryKey": "Disable_OOBE_Monitoring.reg",
-      "ApplyText": "Disabling OOBE 'Finish setting up' nag screen..."
+      "ApplyText": "Disabling OOBE monitoring...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
     },
     {
       "FeatureId": "DisableLockScreenBlur",
-      "Label": "blur effect on the login screen",
-      "ToolTip": "This will disable the acrylic blur effect on the login screen, ensuring a clear background image.",
+      "Label": "lock screen blur",
       "Category": "Appearance",
       "Action": "Disable",
       "RegistryKey": "Disable_Lock_Screen_Blur.reg",
-      "ApplyText": "Disabling lock screen blur..."
+      "ApplyText": "Disabling lock screen blur...",
+      "UndoAction": "Enable Lock Screen Blur",
+      "RegistryUndoKey": "Enable_Lock_Screen_Blur.reg",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableCrossDeviceResume",
+      "Label": "cross-device resume",
+      "Category": "Privacy & Suggested Content",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Cross_Device_Resume.reg",
+      "ApplyText": "Disabling cross-device resume...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableHibernation",
+      "Label": "hibernation (hiberfil.sys)",
+      "Category": "Performance",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Hibernation.reg",
+      "ApplyText": "Disabling hibernation...",
+      "UndoAction": "Enable Hibernation",
+      "RegistryUndoKey": "Enable_Hibernation.reg",
+      "InvokeScript": "powercfg.exe /hibernate off",
+      "UndoScript": "powercfg.exe /hibernate on",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "AdobeNetworkBlock",
+      "Label": "Adobe telemetry/activation (HOSTS)",
+      "Category": "Titus Advanced",
+      "Action": "Block",
+      "RegistryKey": "Adobe_Network_Block.reg",
+      "ApplyText": "Blocking Adobe network connections...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableIPv6",
+      "Label": "IPv6 networking",
+      "Category": "Titus Advanced",
+      "Action": "Disable",
+      "RegistryKey": "Disable_IPv6.reg",
+      "ApplyText": "Disabling IPv6...",
+      "RequiresReboot": true,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableTeredo",
+      "Label": "Teredo tunneling",
+      "Category": "Titus Advanced",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Teredo.reg",
+      "ApplyText": "Disabling Teredo...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "SetDisplayForPerformance",
+      "Label": "visual effects for performance",
+      "Category": "Performance",
+      "Action": "Optimize",
+      "RegistryKey": "Optimize_Display_Performance.reg",
+      "ApplyText": "Optimizing visual effects...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "AddUltimatePerformancePlan",
+      "Label": "Ultimate Performance power plan",
+      "Category": "Performance",
+      "Action": "Enable",
+      "RegistryKey": "Enable_Ultimate_Performance.reg",
+      "ApplyText": "Enabling Ultimate Performance plan...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DeleteTemporaryFiles",
+      "Label": "temporary files cleanup",
+      "Category": "Maintenance",
+      "Action": "Run",
+      "ApplyText": "Cleaning temporary files...",
+      "InvokeScript": "Remove-Item -Path \"$Env:Temp\\*\" -Recurse -Force; Remove-Item -Path \"$Env:SystemRoot\\Temp\\*\" -Recurse -Force -ErrorAction SilentlyContinue",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "RunDiskCleanup",
+      "Label": "Disk Cleanup (Silent)",
+      "Category": "Maintenance",
+      "Action": "Run",
+      "ApplyText": "Running Disk Cleanup...",
+      "InvokeScript": "cleanmgr.exe /d C: /VERYLOWDISK; Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "SetServicesToManual",
+      "Label": "manual startup for non-essential services",
+      "Category": "Performance",
+      "Action": "Optimize",
+      "ApplyText": "Optimizing service startup types...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "SystemCorruptionScan",
+      "Label": "system corruption scan (DISM/SFC)",
+      "Category": "Maintenance",
+      "Action": "Run",
+      "ApplyText": "Running system repair...",
+      "InvokeScript": "sfc /scannow; dism /online /cleanup-image /restorehealth",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "WinGetReinstall",
+      "Label": "WinGet package manager",
+      "Category": "Maintenance",
+      "Action": "Reinstall",
+      "ApplyText": "Repairing WinGet...",
+      "InvokeScript": "$winget = Get-AppxPackage -Name Microsoft.DesktopAppInstaller; if ($winget) { Add-AppxPackage -Register \"$($winget.InstallLocation)\\AppxManifest.xml\" -DisableDevelopmentMode -ForceApplicationShutdown } else { winget install Microsoft.DesktopAppInstaller --source msstore --accept-package-agreements --accept-source-agreements --silent }",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "SetClockUTC",
+      "Label": "system clock to UTC (dual-boot fix)",
+      "Category": "Titus Advanced",
+      "Action": "Apply",
+      "RegistryKey": "Set_Clock_UTC.reg",
+      "ApplyText": "Enabling UTC system clock...",
+      "InvokeScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation' -Name 'RealTimeIsUniversal' -Type DWord -Value 1",
+      "UndoScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation' -Name 'RealTimeIsUniversal' -Type DWord -Value 0",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableVBS",
+      "Label": "Virtualization Based Security (VBS)",
+      "Category": "Performance",
+      "Action": "Disable",
+      "ApplyText": "Disabling VBS/Core Isolation...",
+      "InvokeScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -Type DWord -Value 0",
+      "UndoScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -Type DWord -Value 1",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "EnableF8BootMenu",
+      "Label": "legacy F8 boot menu",
+      "Category": "System",
+      "Action": "Enable",
+      "ApplyText": "Enabling F8 legacy boot menu...",
+      "InvokeScript": "bcdedit /set {default} bootmenupolicy legacy",
+      "UndoScript": "bcdedit /set {default} bootmenupolicy standard",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableStorageSense",
+      "Label": "Storage Sense automatic cleanup",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Storage_Sense.reg",
+      "ApplyText": "Disabling Storage Sense...",
+      "UndoAction": "Enable Storage Sense",
+      "RegistryUndoKey": "Enable_Storage_Sense.reg",
+      "MinVersion": null,
+      "MaxVersion": null
     }
   ]
 }
