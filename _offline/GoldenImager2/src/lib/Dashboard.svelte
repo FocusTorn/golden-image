@@ -2,17 +2,19 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { 
-    Activity, 
-    ShieldCheck, 
+    Monitor, 
     Zap, 
-    Globe, 
-    Server, 
-    Key, 
-    UserCheck,
+    Play,
+    StopCircle,
     RefreshCw,
-    Terminal,
-    ChevronRight,
-    AlertCircle
+    Trash2, 
+    History, 
+    Mail,
+    AlertCircle,
+    UserCheck,
+    ShieldAlert,
+    Wifi,
+    Key
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
 
@@ -21,6 +23,7 @@
   let stats: any = null;
   let loading = true;
   let error: string | null = null;
+  let executingActions = new Set<string>();
 
   async function loadStats() {
     loading = true;
@@ -31,16 +34,14 @@
       } else {
         // Mock stats for dev
         stats = {
+          os_build: "22631.PRO",
+          uptime: "04:12:15",
+          audit_mode: true,
           connection: {
             limit_blank: true,
             winrm: false,
             keyiso: true,
             admin_enabled: true
-          },
-          stages: {
-            pwsh7: true,
-            msvc: true,
-            app_infra: false
           }
         };
       }
@@ -51,446 +52,460 @@
     }
   }
 
-  onMount(loadStats);
+  async function runAction(actionId: string, isToggle = false) {
+    if (executingActions.has(actionId)) return;
+    executingActions.add(actionId);
+    executingActions = executingActions; 
 
-  function getStatusLabel(val: boolean) {
-    return val ? "ACTIVE" : "MISSING";
+    try {
+      if (isTauri) {
+        // Here we'd call specific session toggle commands if they differ 
+        // from standard tweaks, but we'll use apply_feature as requested 
+        // Or specific session_toggle if implemented.
+        await invoke("apply_feature", { id: actionId });
+        await loadStats(); // Refresh to show new state
+      } else {
+        await new Promise(r => setTimeout(r, 1000));
+        if (isToggle && stats?.connection) {
+          // Mock toggle logic
+          const map: any = {
+            "LimitBlank": "limit_blank",
+            "WinRM": "winrm",
+            "KeyIso": "keyiso",
+            "AdminAccount": "admin_enabled"
+          };
+          const key = map[actionId];
+          if (key) stats.connection[key] = !stats.connection[key];
+        }
+      }
+    } catch (e) {
+      console.error(`Action ${actionId} failed:`, e);
+    } finally {
+      executingActions.delete(actionId);
+      executingActions = executingActions;
+    }
   }
+
+  onMount(loadStats);
 </script>
 
-<div class="panel-container">
-  <div class="toolbar">
-    <div class="title-cluster">
-      <Activity size={18} class="glow-icon" />
-      <h2>Mission Control Dashboard</h2>
-    </div>
-    <div class="spacer"></div>
-    <BloomControl on:click={loadStats} disabled={loading}>
-      <RefreshCw size={14} class={loading ? "spin" : ""} />
-    </BloomControl>
-  </div>
-
-  <div class="content">
-    {#if error}
-      <div class="error-banner">
-        <AlertCircle size={20} />
-        <span>Hardware Sync Failure: {error}</span>
-      </div>
-    {/if}
-
-        <div class="dashboard-grid">
-          <div class="status-card bloom-card">
-            <div class="card-top">
-              <span class="card-label">Tactical Connectivity</span>
-              <div class="card-indicator">
-                <Globe size={11} />
-              </div>
-            </div>
-            
-            <div class="card-body">
-              <div class="audit-list">
-                <div class="audit-item" class:fail={!stats?.connection?.limit_blank}>
-                  <div class="status-dot"></div>
-                  <div class="info">
-                    <label>LSA Passwords</label>
-                    <span class="val">{getStatusLabel(stats?.connection?.limit_blank)}</span>
-                  </div>
-                </div>
-                <div class="audit-item" class:fail={!stats?.connection?.winrm}>
-                  <div class="status-dot"></div>
-                  <div class="info">
-                    <label>WinRM Stack</label>
-                    <span class="val">{getStatusLabel(stats?.connection?.winrm)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card-footer">
-              <div class="ornament-dot"></div>
-            </div>
-          </div>
-
-          <div class="status-card bloom-card accent">
-            <div class="card-top">
-              <span class="card-label">Deployment Readiness</span>
-              <div class="card-indicator active">
-                <Zap size={11} fill="currentColor" />
-              </div>
-            </div>
-            
-            <div class="card-body">
-              <div class="audit-list">
-                <div class="audit-item" class:fail={!stats?.stages?.pwsh7}>
-                  <div class="status-dot"></div>
-                  <div class="info">
-                    <label>PS7 Core</label>
-                    <span class="val">{getStatusLabel(stats?.stages?.pwsh7)}</span>
-                  </div>
-                </div>
-                <div class="audit-item" class:fail={!stats?.stages?.msvc}>
-                  <div class="status-dot"></div>
-                  <div class="info">
-                    <label>MSVC Master</label>
-                    <span class="val">{getStatusLabel(stats?.stages?.msvc)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card-footer">
-              <div class="ornament-dot active"></div>
-              <span class="score-val">{stats ? (Object.values(stats.stages).filter(v => v).length / 3 * 100).toFixed(0) : 0}%</span>
-            </div>
-          </div>
-
-      <!-- System Summary (Small Stats) -->
-      <div class="stats-sidebar">
-        <div class="summary-box">
-          <div class="stat">
-            <span class="label">OS BUILD</span>
-            <span class="value">22631.PRO</span>
-          </div>
-          <div class="stat">
-            <span class="label">UPTIME</span>
-            <span class="value">04:12:15</span>
-          </div>
-          <div class="stat">
-            <span class="label">AUDIT MODE</span>
-            <span class="badge active">ENABLED</span>
-          </div>
+<div class="panel">
+  <div class="dashboard-grid">
+    <!-- COLUMN 1: SYSTEM & SESSION SNAPSHOT -->
+    <div class="tweak-column">
+      <div class="category-card">
+        <div class="card-header">
+          <span class="header-icon">
+            <Monitor size={16} strokeWidth={3.5} />
+          </span>
+          <h3>SYSTEM & SESSION SNAPSHOT</h3>
         </div>
-
-        <div class="action-card bloom-card">
-          <div class="card-top">
-            <span class="card-label">Active Session</span>
-            <div class="card-indicator">
-              <Terminal size={11} />
+        
+        <div class="card-body">
+          <div class="stats-hub">
+            <div class="stat-row">
+              <div class="stat-label">OS BUILD</div>
+              <div class="stat-value">{stats?.os_build || "22631.PRO"}</div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-label">UPTIME</div>
+              <div class="stat-value">{stats?.uptime || "00:00:00"}</div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-label">AUDIT MODE</div>
+              <div class="stat-badge" class:active={stats?.audit_mode}>
+                {stats?.audit_mode ? 'ENABLED' : 'DISABLED'}
+              </div>
             </div>
           </div>
-          <div class="card-body">
-            <p>Integrated shell listener is monitoring system changes in real-time.</p>
+
+          <div class="divider"></div>
+
+          <!-- SESSION AUDIT ITEMS (4 Items) -->
+          <div class="tweak-row status-row" style="--status-color: {stats?.connection?.limit_blank ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
+            <span class="tweak-name">LSA Admin Passwords</span>
+            <div class="spacer"></div>
+            <button 
+              class="bloom-select" 
+              class:deactivate={stats?.connection?.limit_blank}
+              class:activate={!stats?.connection?.limit_blank}
+              class:executing={executingActions.has('LimitBlank')}
+              on:click={() => runAction('LimitBlank', true)}
+            >
+              {#if executingActions.has('LimitBlank')}
+                 <RefreshCw size={10} class="spin" />
+              {:else}
+                 {stats?.connection?.limit_blank ? 'DEACTIVATE' : 'ACTIVATE'}
+              {/if}
+            </button>
           </div>
-          <div class="card-footer">
-            <div class="ornament-dot"></div>
+
+          <div class="tweak-row status-row" style="--status-color: {stats?.connection?.winrm ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
+            <span class="tweak-name">WinRM Management Stack</span>
+            <div class="spacer"></div>
+            <button 
+              class="bloom-select" 
+              class:deactivate={stats?.connection?.winrm}
+              class:activate={!stats?.connection?.winrm}
+              class:executing={executingActions.has('WinRM')}
+              on:click={() => runAction('WinRM', true)}
+            >
+              {#if executingActions.has('WinRM')}
+                 <RefreshCw size={10} class="spin" />
+              {:else}
+                 {stats?.connection?.winrm ? 'DEACTIVATE' : 'ACTIVATE'}
+              {/if}
+            </button>
+          </div>
+
+          <div class="tweak-row status-row" style="--status-color: {stats?.connection?.keyiso ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
+            <span class="tweak-name">Isolated Key Service (KeyIso)</span>
+            <div class="spacer"></div>
+            <button 
+              class="bloom-select" 
+              class:deactivate={stats?.connection?.keyiso}
+              class:activate={!stats?.connection?.keyiso}
+              class:executing={executingActions.has('KeyIso')}
+              on:click={() => runAction('KeyIso', true)}
+            >
+              {#if executingActions.has('KeyIso')}
+                 <RefreshCw size={10} class="spin" />
+              {:else}
+                 {stats?.connection?.keyiso ? 'DEACTIVATE' : 'ACTIVATE'}
+              {/if}
+            </button>
+          </div>
+
+          <div class="tweak-row status-row" style="--status-color: {stats?.connection?.admin_enabled ? 'var(--risk-safe)' : 'var(--risk-unsafe)'}">
+            <span class="tweak-name">Local Admin Account State</span>
+            <div class="spacer"></div>
+            <button 
+              class="bloom-select" 
+              class:deactivate={stats?.connection?.admin_enabled}
+              class:activate={!stats?.connection?.admin_enabled}
+              class:executing={executingActions.has('AdminAccount')}
+              on:click={() => runAction('AdminAccount', true)}
+            >
+              {#if executingActions.has('AdminAccount')}
+                 <RefreshCw size={10} class="spin" />
+              {:else}
+                 {stats?.connection?.admin_enabled ? 'DEACTIVATE' : 'ACTIVATE'}
+              {/if}
+            </button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- COLUMN 2: OPERATIONAL QUICK-ACTIONS -->
+    <div class="tweak-column">
+      <div class="category-card">
+        <div class="card-header">
+          <span class="header-icon">
+            <Zap size={16} strokeWidth={3.5} />
+          </span>
+          <h3>OPERATIONAL QUICK-ACTIONS</h3>
+        </div>
+        
+        <div class="card-body">
+          <div class="action-item tweak-row">
+            <span class="tweak-name">Clear All Pinned Start Apps</span>
+            <div class="spacer"></div>
+            <button 
+              class="zap-btn" 
+              class:executing={executingActions.has('ClearStart')}
+              on:click={() => runAction('ClearStart')}
+            >
+              {#if executingActions.has('ClearStart')}
+                <RefreshCw size={12} class="spin" />
+              {:else}
+                <Play size={10} fill="currentColor" />
+              {/if}
+            </button>
+          </div>
+
+          <div class="action-item tweak-row">
+            <span class="tweak-name">Create System Restore Point</span>
+            <div class="spacer"></div>
+            <button 
+              class="zap-btn" 
+              class:executing={executingActions.has('CreateRestorePoint')}
+              on:click={() => runAction('CreateRestorePoint')}
+            >
+              {#if executingActions.has('CreateRestorePoint')}
+                <RefreshCw size={12} class="spin" />
+              {:else}
+                <History size={11} strokeWidth={2.5} />
+              {/if}
+            </button>
+          </div>
+
+          <div class="action-item tweak-row">
+            <span class="tweak-name">Scrub Communication Apps</span>
+            <div class="spacer"></div>
+            <button 
+              class="zap-btn" 
+              class:executing={executingActions.has('RemoveCommApps')}
+              on:click={() => runAction('RemoveCommApps')}
+            >
+              {#if executingActions.has('RemoveCommApps')}
+                <RefreshCw size={12} class="spin" />
+              {:else}
+                <Mail size={11} strokeWidth={2.5} />
+              {/if}
+            </button>
+          </div>
+
+          <div class="action-item tweak-row">
+            <span class="tweak-name">Remove HP OEM Bloat</span>
+            <div class="spacer"></div>
+            <button 
+              class="zap-btn" 
+              class:executing={executingActions.has('RemoveHPApps')}
+              on:click={() => runAction('RemoveHPApps')}
+            >
+              {#if executingActions.has('RemoveHPApps')}
+                <RefreshCw size={12} class="spin" />
+              {:else}
+                <Trash2 size={11} strokeWidth={2.5} />
+              {/if}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMN 3: EMPTY/FUTURE -->
+    <div class="tweak-column"></div>
   </div>
 </div>
 
 <style>
-  .panel-container {
+  .panel {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--grad-main);
-  }
+    padding: 12px 12px 12px 24px;
+    gap: 8px;
+    overflow: hidden;
+    background: transparent;
 
-  .toolbar {
-    height: 48px;
-    background: rgba(18, 24, 26, 0.8);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    flex-shrink: 0;
-  }
-
-  .title-cluster {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .glow-icon {
-    color: var(--accent-color);
-    filter: drop-shadow(0 0 8px var(--accent-color));
-  }
-
-  h2 {
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.7);
-    margin: 0;
-  }
-
-  .spacer { flex: 1; }
-
-  .content {
-    flex: 1;
-    padding: 32px;
-    overflow-y: auto;
-  }
-
-  .error-banner {
-    background: rgba(255, 23, 68, 0.1);
-    border: 1px solid rgba(255, 23, 68, 0.2);
-    color: #ff1744;
-    padding: 12px 16px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 13px;
-    margin-bottom: 32px;
+    /* UNIFIED RISK PALETTE */
+    --risk-safe: #00e676;
+    --risk-unsafe: #ff3d60;
+    --risk-unknown: rgba(0, 0, 0, 0.35);
   }
 
   .dashboard-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 300px;
-    gap: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 16px;
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-gutter: stable;
+    align-items: flex-start;
   }
 
-  .bloom-card {
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 12px 14px;
+  .tweak-column {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    min-height: 120px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
+    gap: 16px;
+  }
+
+  /* REPRODUCED TWEAK CARD STYLING */
+  .category-card {
+    width: 100%;
+    background: #1a1f22; /* Calibrated slate charcoal */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.7),
+      inset 0 1px 1px rgba(255, 255, 255, 0.02); 
     overflow: hidden;
+    flex-shrink: 0;
   }
 
-  .bloom-card:hover {
-    background: rgba(0, 0, 0, 0.35);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .bloom-card.accent {
-    background: rgba(var(--accent-rgb), 0.03);
-    border-color: rgba(var(--accent-rgb), 0.15);
-  }
-
-  .card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-  }
-
-  .card-label {
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 0.08em;
-  }
-
-  .card-indicator {
-    width: 20px;
-    height: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
+  .card-header {
+    height: 36px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.2);
-    background: rgba(0, 0, 0, 0.1);
+    padding: 0 14px;
+    background: rgba(255, 255, 255, 0.02);
   }
 
-  .card-indicator.active {
+  .card-header h3 {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #fff;
+    opacity: 0.9;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  }
+
+  .header-icon {
+    margin-right: 12px;
     color: var(--accent-color);
-    border-color: rgba(var(--accent-rgb), 0.3);
-    background: rgba(var(--accent-rgb), 0.1);
   }
 
   .card-body {
-    flex: 1;
-  }
-
-  .audit-list {
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
-  .audit-item {
+  .tweak-row {
     position: relative;
     display: flex;
     align-items: center;
-    height: 34px;
-    margin: 4px 0;
+    height: 31px;
     padding: 0 12px;
-    cursor: pointer;
-    border-radius: 2px;
-    
-    /* THE INDUSTRIAL SLAB (v7) - BRING BACK THE LIGHT */
-    background: 
-      linear-gradient(to right, var(--slab-edge) 0%, var(--slab-base) 15%, var(--slab-base) 85%, var(--slab-edge) 100%);
-
-    /* MACHINED EDGES: Sharp Milled Silver-Grey (#6A6E72) */
-    border-top: 1px solid var(--slab-rim);
-    border-bottom: 1px solid #000000;
-    border-left: 1px solid #000000;
-    border-right: 1px solid #000000;
-    
-    box-shadow: 
-      0 2px 8px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-      
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-  }
-
-  /* REFINED CELLULAR GRAIN: 10% Opacity Overlay */
-  .audit-item::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='voronoiFilter'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.45' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23voronoiFilter)'/%3E%3C/svg%3E");
-    opacity: 0.10; 
-    pointer-events: none;
-    mix-blend-mode: overlay;
-    z-index: 1;
-  }
-
-  .audit-item:hover {
-    filter: brightness(1.1);
-  }
-
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    background: var(--risk-safe);
-    box-shadow: 
-      0 0 10px var(--risk-safe),
-      0 0 2px rgba(255, 255, 255, 0.5);
-    z-index: 2;
-    filter: saturate(1.8) brightness(1.2) drop-shadow(0 0 3px var(--risk-safe));
-  }
-
-  .audit-item.fail .status-dot {
-    background: var(--risk-unsafe);
-    box-shadow: 
-      0 0 10px var(--risk-unsafe),
-      0 0 2px rgba(255, 255, 255, 0.5);
-    filter: saturate(1.8) brightness(1.2) drop-shadow(0 0 3px var(--risk-unsafe));
-  }
-
-  .info {
-    flex: 1;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 2;
-    padding-left: 8px;
-  }
-
-  label {
     font-size: 11px;
+    background: #242a2d; 
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: default;
+  }
+
+  .tweak-name {
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
   }
 
-  .val {
-    font-size: 9px;
-    font-weight: 900;
-    opacity: 0.3;
+  .spacer { flex: 1; }
+
+  /* Stats Styling */
+  .stats-hub {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px;
+    margin-bottom: 4px;
   }
 
-  .card-footer {
+  .stat-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 12px;
-    margin-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.03);
   }
 
-  .ornament-dot {
-    width: 3px;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-  }
-
-  .ornament-dot.active {
-    background: var(--accent-color);
-    box-shadow: 0 0 6px var(--accent-color);
-  }
-
-  .score-val {
-    font-size: 14px;
-    font-weight: 800;
-    color: var(--accent-color);
-  }
-
-  /* Stats Sidebar */
-  .stats-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .summary-box {
-    background: rgba(var(--accent-rgb), 0.04);
-    border: 1px solid rgba(var(--accent-rgb), 0.1);
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .stat {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .stat .label {
+  .stat-label {
     font-size: 9px;
     font-weight: 900;
     color: rgba(255, 255, 255, 0.3);
     letter-spacing: 0.15em;
   }
 
-  .stat .value {
-    font-size: 18px;
-    font-weight: 800;
+  .stat-value {
+    font-size: 12px;
+    font-weight: 700;
     color: #fff;
   }
 
-  .badge {
-    display: inline-block;
-    font-size: 10px;
+  .stat-badge {
+    font-size: 9px;
     font-weight: 900;
-    padding: 4px 8px;
+    padding: 3px 6px;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.4);
-    width: fit-content;
   }
 
-  .badge.active {
+  .stat-badge.active {
     background: var(--accent-color);
     color: #000;
+    box-shadow: 0 0 10px var(--accent-color);
   }
 
-  .action-card {
+  .divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 8px 0;
+  }
+
+  /* Industrial Status Tube logic - Parity with Tweaks */
+  .status-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 5px;
+    bottom: 5px;
+    width: 4px;
+    background: var(--status-color, var(--risk-unknown));
+    opacity: 1;
+    filter: blur(0.3px);
+    box-shadow: 
+      0 0 12px var(--status-color, var(--risk-unknown)),
+      inset 0 1px 2px rgba(255, 255, 255, 0.05); 
+    z-index: 2;
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* Bloom Select Interaction Pills - Synchronized with Apps/Tweaks */
+  .bloom-select {
+    padding: 2px 10px;
+    height: 22px;
+    border-radius: 4px;
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 70px;
+    outline: none;
     background: rgba(255, 255, 255, 0.02);
-    border: 1px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
   }
 
-  .action-card p {
-    font-size: 11px;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.4);
-    margin: 12px 0 0 0;
+  .bloom-select.activate {
+    border-color: rgba(0, 188, 212, 0.2);
+    background: rgba(0, 188, 212, 0.05);
+    color: #00bcd4;
+  }
+  .bloom-select.activate:hover:not(.executing) {
+    background: #00bcd4;
+    color: #000;
+    box-shadow: 0 0 12px #00bcd4;
+  }
+
+  .bloom-select.deactivate {
+    border-color: rgba(255, 61, 96, 0.2);
+    background: rgba(255, 61, 96, 0.05);
+    color: #ff3d60;
+  }
+  .bloom-select.deactivate:hover:not(.executing) {
+    background: #ff3d60;
+    color: #fff;
+    box-shadow: 0 0 12px #ff3d60;
+  }
+
+  .bloom-select.executing {
+    cursor: wait;
+    opacity: 0.5;
+  }
+
+  /* Action Buttons (The Zap) for Column 2 */
+  .zap-btn {
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(0, 188, 212, 0.2);
+    background: rgba(0, 188, 212, 0.05);
+    color: #00bcd4;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
   }
 
   .spin {
@@ -500,5 +515,9 @@
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+
+  :global(.spin) {
+    animation: spin 1s linear infinite;
   }
 </style>

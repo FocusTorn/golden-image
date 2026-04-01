@@ -7,6 +7,9 @@
     Check, 
     Minus,
     ChevronDown,
+    Download,
+    Plus,
+    Save,
     LayoutGrid,
     Zap,
     Activity,
@@ -22,6 +25,7 @@
   import BloomControl from "./BloomControl.svelte";
   import TacticalToolbar from "./TacticalToolbar.svelte";
   import TacticalContainer from "./TacticalContainer.svelte";
+  import TweakSelect from "./TweakSelect.svelte";
 
   export let appliedCount = 0;
   export let totalCount = 0;
@@ -44,7 +48,7 @@
       if (isTauri) {
         featuresConfig = await invoke("get_features_config");
         auditResults = await invoke("get_audit_results");
-        profiles = await invoke("list_app_profiles");
+        profiles = await invoke("list_tweak_profiles");
       } else {
         // High-fidelity Mock Data
         featuresConfig = {
@@ -67,8 +71,10 @@
         ];
       }
       
-      if (featuresConfig?.Categories?.length > 0 && !activeCategory) {
-        activeCategory = featuresConfig.Categories[0].Name;
+      if (featuresConfig?.Categories?.length > 0) {
+        if (!activeCategory || !featuresConfig.Categories.find((c: any) => c.Name === activeCategory)) {
+          activeCategory = featuresConfig.Categories[0].Name;
+        }
       }
     } catch (e) {
       error = typeof e === "string" ? e : "Sync Failure";
@@ -94,23 +100,22 @@
   }
 
   async function executeChanges() {
-    if (stagedChanges.size === 0) return;
+    if (stagedChanges.size === 0 && Object.keys(groupStagedChanges).length === 0) return;
     
     loading = true;
     try {
+      // Single features
       for (const id of Array.from(stagedChanges)) {
-        const feature = (featuresConfig?.Features || []).find(f => f.FeatureId === id);
-        if (!feature) continue;
-        
-        const currentStatus = getStatus(id);
-        if (currentStatus === "Applied") {
-          await invoke("undo_feature", { feature_id: id });
-        } else {
-          await invoke("apply_feature", { feature_id: id });
-        }
+        await invoke("apply_feature", { feature_id: id });
       }
+      
+      // Group features (dropdowns)
+      for (const featureId of Object.values(groupStagedChanges)) {
+        await invoke("apply_feature", { feature_id: featureId });
+      }
+
       stagedChanges.clear();
-      stagedChanges = stagedChanges;
+      groupStagedChanges = {};
       await loadData(); // Refresh system audit
     } catch (e) {
       console.error("Action failed:", e);
@@ -119,8 +124,148 @@
     }
   }
 
+  // Group handling
+  let groupStagedChanges: Record<string, string> = {}; // GroupId -> FeatureId (single selected)
+
+  function toggleGroupStage(groupId: string, featureId: string) {
+    if (!featureId || featureId === "none") {
+      delete groupStagedChanges[groupId];
+    } else {
+      groupStagedChanges[groupId] = featureId;
+    }
+    groupStagedChanges = groupStagedChanges;
+  }
+
+  function getGroupAppliedLabel(group: any) {
+    for (const val of group.Values) {
+      if (val.FeatureIds.every((id: string) => getStatus(id) === "Applied")) {
+        return val.Label;
+      }
+    }
+    return "Applied"; // Fallback label or "No Change"
+  }
+
+  function getStatusColor(id: string) {
+    const status = getStatus(id);
+    const isStaged = stagedChanges.has(id);
+    
+    if (isStaged) {
+      return "var(--risk-staged)"; // Yellow for staged
+    }
+    
+    return status === "Applied" ? "var(--risk-safe)" : "var(--risk-unknown)";
+  }
+
+  function getGroupAppliedValue(group: any) {
+    const applied = group.Values.find((val: any) => val.FeatureIds.every((id: string) => getStatus(id) === "Applied"));
+    return applied ? applied.FeatureIds[0] : "none";
+  }
+
+  function getGroupStatusColor(group: any) {
+    const appliedValue = getGroupAppliedValue(group);
+    const stagedValue = groupStagedChanges[group.GroupId];
+    
+    // If we have a staged change that differs from the system setting
+    if (stagedValue && stagedValue !== appliedValue) {
+      return "var(--risk-staged)"; // Yellow for staged
+    }
+    
+    // if not applied, unknown grey
+    return appliedValue !== "none" ? "var(--risk-safe)" : "var(--risk-unknown)";
+  }
+
+  async function handleLoadProfile() {
+    if (!selectedProfile) return;
+    loading = true;
+    try {
+      const settings = await invoke("load_tweak_profile", { name: selectedProfile });
+      stagedChanges.clear();
+      groupStagedChanges = {};
+      
+      for (const s of settings as any[]) {
+        if (s.Value === true) {
+          stagedChanges.add(s.Name);
+        } else if (typeof s.Value === "string" && s.Value !== "No Change") {
+          // Check if it's a group selection
+          const group = (featuresConfig?.UiGroups || []).find((g: any) => g.GroupId === s.Name);
+          if (group) {
+            const val = group.Values.find((v: any) => v.Label === s.Value);
+            if (val && val.FeatureIds.length > 0) {
+              groupStagedChanges[group.GroupId] = val.FeatureIds[0];
+            }
+          }
+        }
+      }
+      stagedChanges = stagedChanges;
+      groupStagedChanges = groupStagedChanges;
+    } catch (e) {
+      console.error("Failed to load profile:", e);
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleSaveProfile() {
+    if (!selectedProfile) return handleSaveAsProfile();
+    await saveCurrentProfile(selectedProfile);
+  }
+
+  async function handleSaveAsProfile() {
+    const name = prompt("Enter profile name:");
+    if (name) {
+      await saveCurrentProfile(name);
+      profiles = await invoke("list_tweak_profiles");
+      selectedProfile = name.endsWith(".json") ? name : name + ".json";
+    }
+  }
+
+  async function saveCurrentProfile(name: string) {
+    const settings = [];
+    for (const id of Array.from(stagedChanges)) {
+      settings.push({ Name: id, Value: true });
+    }
+    for (const [groupId, featureId] of Object.entries(groupStagedChanges)) {
+      const group = featuresConfig.UiGroups.find((g: any) => g.GroupId === groupId);
+      const val = group?.Values.find((v: any) => v.FeatureIds.includes(featureId));
+      if (val) {
+        settings.push({ Name: groupId, Value: val.Label });
+      }
+    }
+    
+    try {
+      await invoke("save_tweak_profile", { name, settings });
+    } catch (e) {
+      alert("Save failed: " + e);
+    }
+  }
+
+  async function handleDeleteProfile(name: any) {
+    if (confirm(`Delete profile ${name}?`)) {
+      await invoke("delete_tweak_profile", { name: name.detail || name });
+      profiles = await invoke("list_tweak_profiles");
+      if (selectedProfile === name) selectedProfile = "";
+    }
+  }
+
   let hoveredDescription: string | null = null;
   let hoveredFeatureId: string | null = null;
+
+  // Actions migrated to Dashboard Home
+  const DASHBOARD_ACTIONS = new Set([
+    "ClearStart",
+    "ClearStartAllUsers",
+    "CreateRestorePoint",
+    "RemoveApps",
+    "Apps",
+    "RemoveAppsCustom",
+    "RemoveCommApps",
+    "RemoveW11Outlook",
+    "RemoveGamingApps",
+    "RemoveHPApps",
+    "ReplaceStart",
+    "ReplaceStartAllUsers",
+    "ForceRemoveEdge"
+  ]);
 
   // Mapping for categorical merging and renaming
   const CATEGORY_MAP: Record<string, string> = {
@@ -133,24 +278,43 @@
   $: rawCategories = featuresConfig?.Categories || [];
   $: displayCategories = (() => {
     const seen = new Set<string>();
-    return rawCategories.map(c => {
-      const mapped = CATEGORY_MAP[c.Name] || c.Name.toUpperCase();
+    const cats = rawCategories.map(c => {
+      const name = c.Name || "Other";
+      const mapped = CATEGORY_MAP[name] || name.toUpperCase();
       return { ...c, displayName: mapped };
     }).filter(c => {
       if (seen.has(c.displayName)) return false;
       seen.add(c.displayName);
       return true;
     });
+
+    // Ensure "OTHER" is present if there are features without a matching category
+    const hasUncategorized = (featuresConfig?.Features || []).some(f => !f.Category);
+    if (hasUncategorized && !seen.has("OTHER")) {
+      cats.push({ Name: "Other", displayName: "OTHER" });
+    }
+    return cats;
   })();
 
-  function getFilteredFeatures(displayName: string) {
+  function getCombinedItems(displayName: string) {
     const allFeatures = featuresConfig?.Features || [];
-    return allFeatures.filter(f => {
-      const mappedName = CATEGORY_MAP[f.Category] || f.Category.toUpperCase();
-      const matchesCat = mappedName === displayName;
-      const matchesSearch = f.Label.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCat && matchesSearch;
-    });
+    const allGroups = featuresConfig?.UiGroups || [];
+
+    const features = allFeatures.filter(f => {
+      if (DASHBOARD_ACTIONS.has(f.FeatureId)) return false;
+      const categoryRaw = f.Category || "Other";
+      const mappedName = CATEGORY_MAP[categoryRaw] || categoryRaw.toUpperCase();
+      return mappedName === displayName && (f.Label || "").toLowerCase().includes(searchQuery.toLowerCase());
+    }).map(f => ({ ...f, itemType: 'feature' }));
+
+    const groups = allGroups.filter(g => {
+      if (DASHBOARD_ACTIONS.has(g.GroupId)) return false;
+      const categoryRaw = g.Category || "Other";
+      const mappedName = CATEGORY_MAP[categoryRaw] || categoryRaw.toUpperCase();
+      return mappedName === displayName && (g.Label || "").toLowerCase().includes(searchQuery.toLowerCase());
+    }).map(g => ({ ...g, itemType: 'group' }));
+
+    return [...features, ...groups].sort((a: any, b: any) => (a.Priority || 99) - (b.Priority || 99));
   }
 
   // Balanced distribution for 3 columns
@@ -160,10 +324,9 @@
     const cols: any[][] = [[], [], []];
     const heights = [0, 0, 0];
     
-    // Weight: 30 units base + 10 per feature
     cats.forEach(cat => {
-      const features = getFilteredFeatures(cat.displayName);
-      const weight = 30 + (features.length * 10);
+      const items = getCombinedItems(cat.displayName);
+      const weight = 30 + (items.length * 10);
       
       const minIdx = heights.indexOf(Math.min(...heights));
       cols[minIdx].push(cat);
@@ -173,19 +336,6 @@
     return cols;
   }
 
-  function getStatusColor(id: string) {
-    const res = auditResults.find(r => r.feature_id === id);
-    if (!res) return "#ffd600"; // Unknown Yellow
-    
-    switch (res.status) {
-      case "Applied": 
-        return "var(--risk-safe)"; // #00e676
-      case "Not Applied": 
-        return "var(--risk-unsafe)"; // #ff3d60
-      default: 
-        return "var(--risk-warn)";  // #ffd600 (Unknown / Error / Unsupported)
-    }
-  }
 
   function handleMouseEnter(feature: any) {
     hoveredDescription = feature.ToolTip;
@@ -216,9 +366,13 @@
     applyLabel="Update Changes"
     on:refresh={loadData}
     on:apply={executeChanges}
+    on:loadProfile={handleLoadProfile}
+    on:saveProfile={handleSaveProfile}
+    on:saveAsProfile={handleSaveAsProfile}
+    on:deleteProfile={handleDeleteProfile}
   />
 
-  <TacticalContainer padding="0 6px">
+  <TacticalContainer padding="0">
     {#if loading}
       <div class="state-view">
         <RefreshCw size={32} class="spin dim" />
@@ -237,7 +391,7 @@
             {#each col as cat}
               <div class="category-card">
                 <div class="card-header">
-                  <span class="cat-icon-lucide">
+                  <span class="header-icon">
                     {#if cat.displayName === "COPILOT"}
                       <Brain size={16} strokeWidth={3.5} />
                     {:else if cat.displayName === "WINDOWS"}
@@ -267,49 +421,66 @@
                 </div>
                 
                 <div class="card-body">
-                  {#each getFilteredFeatures(cat.displayName) as feature}
-                    <div 
-                      class="tweak-row" 
-                      role="button"
-                      tabindex="0"
-                      class:selected={stagedChanges.has(feature.FeatureId)}
-                      class:v-applied={getStatus(feature.FeatureId) === 'Applied'}
-                      style="--status-color: {getStatusColor(feature.FeatureId)}"
-                      on:mouseenter={() => handleMouseEnter(feature)}
-                      on:mouseleave={handleMouseLeave}
-                      on:click={() => toggleStage(feature.FeatureId)}
-                      on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleStage(feature.FeatureId); }}
-                    >
-                      <div class="checkbox-container">
-                        {#if applyingFeature === feature.FeatureId}
-                          <RefreshCw size={10} class="spin" />
-                        {:else}
-                          <div 
-                            class="bloom-checkbox" 
-                            class:checked={stagedChanges.has(feature.FeatureId)}
-                            class:reverting={stagedChanges.has(feature.FeatureId) && getStatus(feature.FeatureId) === 'Applied'}
-                          >
-                            {#if stagedChanges.has(feature.FeatureId)}
-                              {#if getStatus(feature.FeatureId) === 'Applied'}
-                                <Minus size={10} strokeWidth={4} />
-                              {:else}
-                                <Check size={10} strokeWidth={4} />
+                  {#each getCombinedItems(cat.displayName) as item}
+                    {#if item.itemType === 'feature'}
+                      <div 
+                        class="tweak-row" 
+                        role="button"
+                        tabindex="0"
+                        class:selected={stagedChanges.has(item.FeatureId)}
+                        class:v-applied={getStatus(item.FeatureId) === 'Applied'}
+                        style="--status-color: {getStatusColor(item.FeatureId)}"
+                        on:mouseenter={() => handleMouseEnter(item)}
+                        on:mouseleave={handleMouseLeave}
+                        on:click={() => toggleStage(item.FeatureId)}
+                        on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleStage(item.FeatureId); }}
+                      >
+                        <div class="checkbox-container">
+                          {#if applyingFeature === item.FeatureId}
+                            <RefreshCw size={10} class="spin" />
+                          {:else}
+                            <div 
+                              class="bloom-checkbox" 
+                              class:checked={stagedChanges.has(item.FeatureId)}
+                              class:reverting={stagedChanges.has(item.FeatureId) && getStatus(item.FeatureId) === 'Applied'}
+                            >
+                              {#if stagedChanges.has(item.FeatureId)}
+                                {#if getStatus(item.FeatureId) === 'Applied'}
+                                  <Minus size={10} strokeWidth={4} />
+                                {:else}
+                                  <Check size={10} strokeWidth={4} />
+                                {/if}
                               {/if}
-                            {/if}
+                            </div>
+                          {/if}
+                        </div>
+
+                        <span class="tweak-name">{item.Action ? item.Action + ' ' : ''}{item.Label}</span>
+                        
+                        {#if hoveredFeatureId === item.FeatureId && hoveredDescription}
+                          <div class="tweak-tooltip">
+                            {hoveredDescription}
                           </div>
                         {/if}
+
+                        <div class="spacer"></div>
                       </div>
-
-                      <span class="tweak-name">{feature.Label}</span>
-                      
-                      {#if hoveredFeatureId === feature.FeatureId && hoveredDescription}
-                        <div class="tweak-tooltip">
-                          {hoveredDescription}
-                        </div>
-                      {/if}
-
-                      <div class="spacer"></div>
-                    </div>
+                    {:else if item.itemType === 'group'}
+                      <div 
+                        class="tweak-row group-row" 
+                        style="--status-color: {getGroupStatusColor(item)}"
+                      >
+                        <span class="tweak-name">{item.Action ? item.Action + ' ' : ''}{item.Label}</span>
+                        <div class="spacer"></div>
+                        <TweakSelect 
+                          options={item.Values}
+                          value={groupStagedChanges[item.GroupId] || getGroupAppliedValue(item)}
+                          appliedValue={getGroupAppliedValue(item)}
+                          label={getGroupAppliedLabel(item)}
+                          on:change={(e) => toggleGroupStage(item.GroupId, e.detail.value)}
+                        />
+                      </div>
+                    {/if}
                   {/each}
                 </div>
               </div>
@@ -330,6 +501,12 @@
     gap: 8px;
     overflow: hidden;
     background: transparent; /* Synchronized with Apps.svelte */
+
+    /* UNIFIED RISK PALETTE */
+    --risk-safe: #00e676;
+    --risk-staged: #ffd600; /* YELLOW */
+    --risk-unsafe: #ff3d60;
+    --risk-unknown: rgba(0, 0, 0, 0.35); /* APPS PANEL OFF-STATE */
   }
 
   .tweak-grid {
@@ -337,7 +514,6 @@
     grid-template-columns: repeat(3, 1fr);
     grid-gap: 16px;
     padding: 16px;
-    padding-top: 32px;
     overflow-y: auto;
     flex: 1;
     scrollbar-gutter: stable;
@@ -347,7 +523,7 @@
   .tweak-column {
     display: flex;
     flex-direction: column;
-    gap: 24px; /* Vertical gap between stacked cards */
+    gap: 16px; /* Vertical gap between stacked cards - Synchronized to 16px */
   }
 
   /* Industrial Scrollbar - Synchronized with Apps.svelte */
@@ -374,7 +550,7 @@
     box-shadow: 
       0 12px 40px rgba(0, 0, 0, 0.7),
       inset 0 1px 1px rgba(255, 255, 255, 0.02); 
-    overflow: hidden;
+    overflow: visible; /* ALLOW POPUPS */
     flex-shrink: 0;
   }
 
@@ -389,22 +565,22 @@
   }
 
   .card-header h3 {
-    font-size: 10px; /* Parity with Apps.svelte table-header */
-    font-weight: 800; /* Parity with Apps.svelte table-header */
-    color: #fff; /* Brighter, high-contrast header text */
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff; /* Brighter header */
+    opacity: 0.9;
     letter-spacing: 0.18em;
-    margin: 0;
     text-transform: uppercase;
-    opacity: 0.8;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 255, 255, 0.15);
   }
 
-  .cat-icon-lucide {
+  .header-icon {
+    margin-right: 12px;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.5));
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: #fff; /* Synchronized with title text luminosity */
-    margin-right: 12px;
-    opacity: 0.8;
+    color: var(--accent-color);
   }
 
   .card-body {
@@ -412,6 +588,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px; /* Precise gap from reference */
+    overflow: visible; /* ALLOW POPUPS */
   }
 
   .tweak-row {
@@ -432,9 +609,29 @@
     border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 5px;
     flex-shrink: 0;
-    overflow: hidden;
+    overflow: visible; /* ALLOW POPUPS */
     
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .tweak-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+    z-index: 100 !important;
+  }
+
+  .group-row {
+    cursor: default;
+    justify-content: space-between;
+    gap: 8px;
+    height: 31px; /* Match standard row height for consistency */
+    transition: all 0.2s;
+    overflow: visible !important; /* ALLOW POPUPS TO SPILL OUT */
+    z-index: 52; /* Ensure it stays above checkbox-based rows */
+  }
+
+  .bloom-select:hover {
+    border-color: rgba(var(--accent-rgb), 0.5);
+    background: #242a2d;
   }
 
   /* Radiant Status Hub (Vertical Strip) */
@@ -449,7 +646,9 @@
     opacity: 1;
     /* High-fidelity LED glow logic */
     filter: blur(0.3px);
-    box-shadow: 0 0 12px var(--status-color); 
+    box-shadow: 
+      0 0 12px var(--status-color),
+      inset 0 1px 2px rgba(255, 255, 255, 0.05); /* Machined look */
     z-index: 2;
     border-radius: 0 2px 2px 0;
   }
@@ -527,8 +726,6 @@
   }
 
   .spacer { flex: 1; }
-  .spin { animation: spin 1s linear infinite; }
-  .dim { opacity: 0.5; }
   
   @keyframes spin {
     from { transform: rotate(0deg); }
@@ -589,5 +786,25 @@
     background: var(--risk-unsafe);
     color: #fff;
     box-shadow: 0 0 12px rgba(255, 61, 96, 0.4);
+  }
+
+  .tweak-tooltip {
+    position: absolute;
+    bottom: 110%;
+    left: 20px;
+    background: rgba(18, 18, 18, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.4;
+    width: 260px;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    transition: all 0.15s ease-out;
   }
 </style>

@@ -454,6 +454,97 @@ async fn delete_app_profile(app: tauri::AppHandle, name: String) -> Result<(), S
 }
 
 #[tauri::command]
+async fn list_tweak_profiles(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    let config_dir = resolve_path(&app, "config")
+        .ok_or("Failed to resolve config directory")?;
+    
+    let profile_dir = config_dir.join("TweakProfiles");
+    if !profile_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut profiles = Vec::new();
+    for entry in std::fs::read_dir(profile_dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if path.is_file() && path.extension().map_or(false, |ext| ext == "json") {
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                profiles.push(name.to_string());
+            }
+        }
+    }
+    Ok(profiles)
+}
+
+#[derive(Serialize, serde::Deserialize)]
+pub struct TweakSetting {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "Value")]
+    pub value: serde_json::Value,
+}
+
+#[derive(Serialize, serde::Deserialize)]
+pub struct TweakProfile {
+    #[serde(rename = "Version")]
+    pub version: String,
+    #[serde(rename = "Settings")]
+    pub settings: Vec<TweakSetting>,
+}
+
+#[tauri::command]
+async fn load_tweak_profile(app: tauri::AppHandle, name: String) -> Result<Vec<TweakSetting>, String> {
+    let config_dir = resolve_path(&app, "config")
+        .ok_or("Failed to resolve config directory")?;
+    let profile_path = config_dir.join("TweakProfiles").join(if name.ends_with(".json") { name.clone() } else { format!("{}.json", name) });
+    
+    if !profile_path.exists() {
+        return Err(format!("Profile {} not found", name));
+    }
+    
+    let content = std::fs::read_to_string(profile_path).map_err(|e| e.to_string())?;
+    let profile: TweakProfile = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    
+    Ok(profile.settings)
+}
+
+#[tauri::command]
+async fn save_tweak_profile(app: tauri::AppHandle, name: String, settings: Vec<TweakSetting>) -> Result<(), String> {
+    let config_dir = resolve_path(&app, "config")
+        .ok_or("Failed to resolve config directory")?;
+    
+    let profile_dir = config_dir.join("TweakProfiles");
+    if !profile_dir.exists() {
+        std::fs::create_dir_all(&profile_dir).map_err(|e| e.to_string())?;
+    }
+
+    let profile_path = profile_dir.join(if name.ends_with(".json") { name } else { format!("{}.json", name) });
+    
+    let profile = TweakProfile {
+        version: "1.0".to_string(),
+        settings,
+    };
+    
+    let content = serde_json::to_string_pretty(&profile).map_err(|e| e.to_string())?;
+    std::fs::write(profile_path, content).map_err(|e| e.to_string())?;
+    
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_tweak_profile(app: tauri::AppHandle, name: String) -> Result<(), String> {
+    let config_dir = resolve_path(&app, "config")
+        .ok_or("Failed to resolve config directory")?;
+    let profile_path = config_dir.join("TweakProfiles").join(if name.ends_with(".json") { name } else { format!("{}.json", name) });
+    
+    if profile_path.exists() {
+        std::fs::remove_file(profile_path).map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
 async fn get_apps(app: tauri::AppHandle) -> Result<Vec<apps::AppEntry>, String> {
     let mut resource_path = resolve_path(&app, "config/Apps.json");
     
@@ -539,6 +630,10 @@ fn main() {
             load_app_profile,
             save_app_profile,
             delete_app_profile,
+            list_tweak_profiles,
+            load_tweak_profile,
+            save_tweak_profile,
+            delete_tweak_profile,
             get_theme_info,
             get_dashboard_stats,
             run_provisioning_stage,

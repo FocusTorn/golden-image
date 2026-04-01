@@ -355,7 +355,7 @@
     },
     {
       "FeatureId": "DisableExplorerAutomaticFolderDiscovery",
-      "Label": "Disable Explorer Automatic Folder Discovery",
+      "Label": "explorer automatic folder discovery",
       "ToolTip": "Prevents Explorer from automatically changing the view type based on folder content (e.g., Music, Pictures). Sets all folders to 'General Items'.",
       "Category": "Titus Essentials",
       "Action": "Disable",
@@ -366,7 +366,7 @@
     },
     {
       "FeatureId": "DisableWPBT",
-      "Label": "Disable Windows Platform Binary Table (WPBT)",
+      "Label": "Windows Platform Binary Table (WPBT)",
       "ToolTip": "Prevents the execution of WPBT, which allows vendors to force-install software/drivers at boot.",
       "Category": "Titus Essentials",
       "Action": "Disable",
@@ -377,7 +377,7 @@
     },
     {
       "FeatureId": "DisablePowershell7Telemetry",
-      "Label": "Disable PowerShell 7 Telemetry",
+      "Label": "PowerShell 7 telemetry",
       "ToolTip": "Disables telemetry collection for PowerShell 7 via environment variable.",
       "Category": "Titus Essentials",
       "Action": "Disable",
@@ -388,7 +388,7 @@
     },
     {
       "FeatureId": "BlockRazerSoftware",
-      "Label": "Block Razer Software Installs",
+      "Label": "Razer software installations",
       "ToolTip": "Prevents the automatic installation of Razer Synapse and other Razer software.",
       "Category": "Titus Advanced",
       "Action": "Block",
@@ -399,7 +399,7 @@
     },
     {
       "FeatureId": "DisableBackgroundApps",
-      "Label": "Disable Background Apps",
+      "Label": "background apps",
       "ToolTip": "Prevents apps from running in the background to save resources.",
       "Category": "Titus Advanced",
       "Action": "Disable",
@@ -410,7 +410,7 @@
     },
     {
       "FeatureId": "DisableFullscreenOptimizations",
-      "Label": "Disable Fullscreen Optimizations",
+      "Label": "fullscreen optimizations",
       "ToolTip": "Disables Fullscreen Optimizations globally, which can help with stuttering in some games.",
       "Category": "Titus Advanced",
       "Action": "Disable",
@@ -421,7 +421,7 @@
     },
     {
       "FeatureId": "DisableNotifications",
-      "Label": "Disable Notification Tray/Calendar",
+      "Label": "notification tray/calendar",
       "ToolTip": "Disables the Notification Center and Toast notifications.",
       "Category": "Titus Advanced",
       "Action": "Disable",
@@ -872,10 +872,10 @@
     },
     {
       "FeatureId": "EnableDarkMode",
-      "Label": "theme for system and apps",
+      "Label": "system and apps",
       "ToolTip": "This will set the app and system theme to dark mode.",
       "Category": "Appearance",
-      "Action": "Enable dark",
+      "Action": "Enable Dark Mode for",
       "RegistryKey": "Enable_Dark_Mode.reg",
       "ApplyText": "Enabling dark mode for system and apps...",
       "UndoAction": "Disable light",
@@ -1043,9 +1043,9 @@
     },
     {
       "FeatureId": "HideSearchTb",
-      "Label": "Hide search icon from the taskbar",
+      "Label": "search icon from the taskbar",
       "Category": "Taskbar",
-      "Action": "Hide Search",
+      "Action": "Hide",
       "RegistryKey": "Hide_Search_Taskbar.reg",
       "ApplyText": "Hiding the search icon from the taskbar...",
       "UndoAction": "Show Search Box",
@@ -1055,9 +1055,9 @@
     },
     {
       "FeatureId": "ShowSearchIconTb",
-      "Label": "Show search icon on the taskbar",
+      "Label": "search icon on the taskbar",
       "Category": "Taskbar",
-      "Action": "Show Search Icon",
+      "Action": "Show",
       "RegistryKey": "Show_Search_Icon.reg",
       "ApplyText": "Changing taskbar search to icon only...",
       "UndoAction": "Show Search Box",
@@ -1067,9 +1067,9 @@
     },
     {
       "FeatureId": "ShowSearchLabelTb",
-      "Label": "Show search icon with label on the taskbar",
+      "Label": "search icon with label on the taskbar",
       "Category": "Taskbar",
-      "Action": "Show Search Label",
+      "Action": "Show",
       "RegistryKey": "Show_Search_Icon_And_Label.reg",
       "ApplyText": "Changing taskbar search to icon with label...",
       "UndoAction": "Show Search Box",
@@ -1079,9 +1079,9 @@
     },
     {
       "FeatureId": "ShowSearchBoxTb",
-      "Label": "Show search box on the taskbar",
+      "Label": "search box on the taskbar",
       "Category": "Taskbar",
-      "Action": "Show Search Box",
+      "Action": "Show",
       "RegistryKey": "Show_Search_Box.reg",
       "ApplyText": "Changing taskbar search to search box...",
       "UndoAction": null,
@@ -1321,9 +1321,9 @@
     },
     {
       "FeatureId": "ExplorerToHome",
-      "Label": "Change the default location that File Explorer opens to 'Home'",
+      "Label": "default location that File Explorer opens to 'Home'",
       "Category": "File Explorer",
-      "Action": "Explorer to Home",
+      "Action": "Change",
       "RegistryKey": "Launch_File_Explorer_To_Home.reg",
       "ApplyText": "Changing the default location that File Explorer opens to, to 'Home'...",
       "UndoAction": null,
@@ -1333,9 +1333,9 @@
     },
     {
       "FeatureId": "ExplorerToThisPC",
-      "Label": "Change the default location that File Explorer opens to 'This PC'",
+      "Label": "default location that File Explorer opens to 'This PC'",
       "Category": "File Explorer",
-      "Action": "Explorer to This PC",
+      "Action": "Change",
       "RegistryKey": "Launch_File_Explorer_To_This_PC.reg",
       "ApplyText": "Changing the default location that File Explorer opens to, to 'This PC'...",
       "UndoAction": "Explorer to Home",
@@ -1603,7 +1603,7 @@
     },
     {
       "FeatureId": "DisableBraveBloat",
-      "Label": "bloat in Brave browser (AI, Crypto, etc.)",
+      "Label": "Brave browser features (AI, Crypto, News, Rewards)",
       "ToolTip": "This will disable Brave's built-in AI features, Crypto wallet, News, Rewards, Talk and VPN. This feature uses policies, which will lock down certain settings.",
       "Category": "Other",
       "Action": "Disable",
@@ -1641,6 +1641,33 @@
       "RequiresReboot": true,
       "MinVersion": 22000,
       "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableFirstSignInAnim",
+      "Label": "first sign-in animation (OOBE)",
+      "ToolTip": "Disables the 'Hi', 'Preparing Windows' animation on first login.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_First_Sign_In_Animation.reg",
+      "ApplyText": "Disabling first sign-in animation..."
+    },
+    {
+      "FeatureId": "DisableOOBEMonitoring",
+      "Label": "OOBE 'Finish setting up your device' screen",
+      "ToolTip": "Prevents Windows from showing the blue 'Let's finish setting up' nag screen after updates.",
+      "Category": "Privacy & Suggested Content",
+      "Action": "Disable",
+      "RegistryKey": "Disable_OOBE_Monitoring.reg",
+      "ApplyText": "Disabling OOBE 'Finish setting up' nag screen..."
+    },
+    {
+      "FeatureId": "DisableLockScreenBlur",
+      "Label": "blur effect on the login screen",
+      "ToolTip": "This will disable the acrylic blur effect on the login screen, ensuring a clear background image.",
+      "Category": "Appearance",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Lock_Screen_Blur.reg",
+      "ApplyText": "Disabling lock screen blur..."
     }
   ]
 }
