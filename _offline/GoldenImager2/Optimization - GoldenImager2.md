@@ -122,7 +122,7 @@ IMPLEMENTATION PRIORITY: Focus on HIGH IMPACT optimizations (Caching and Async I
 
 ### Phase 3: Resilience & Advanced Features
 **Goal**: Future-proofing and hardening.
-- [ ] **PowerShell Sandboxing**: Standardize execution environments for external scripts.
-- [ ] **Dependency Graph Implementation**: Handle inter-feature dependencies within the JSON schema.
-- [ ] **Offline Hive Support**: Enable loading external registry hives for cold-image tweaking.
+- [x] **PowerShell Sandboxing**: Standardize execution environments for external scripts.
+- [x] **Dependency Graph Implementation**: Handle inter-feature dependencies within the JSON schema.
+- [x] **Offline Hive Support**: Enable loading external registry hives for cold-image tweaking.
 - [ ] **Profile Cloud Sync**: Sync configurations across different environments.

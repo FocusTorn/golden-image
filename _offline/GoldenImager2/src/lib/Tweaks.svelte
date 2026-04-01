@@ -111,15 +111,12 @@
     
     loading = true;
     try {
-      // Single features
-      for (const id of Array.from(stagedChanges)) {
-        await invoke("apply_feature", { feature_id: id });
-      }
+      const allStagedIds = [
+        ...Array.from(stagedChanges),
+        ...Object.values(groupStagedChanges).filter(id => id && id !== "none")
+      ];
       
-      // Group features (dropdowns)
-      for (const featureId of Object.values(groupStagedChanges)) {
-        await invoke("apply_feature", { feature_id: featureId });
-      }
+      await invoke("apply_features_batch", { featureIds: allStagedIds, offlineHive: null });
 
       stagedChanges.clear();
       groupStagedChanges = {};

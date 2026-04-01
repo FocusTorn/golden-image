@@ -81,6 +81,7 @@ fn main() {
             commands::audit::get_audit_results,
             commands::audit::get_features_config,
             commands::audit::apply_feature,
+            commands::audit::apply_features_batch,
             commands::audit::undo_feature,
             commands::apps::get_apps,
             commands::apps::list_app_profiles,

@@ -42,7 +42,7 @@ pub async fn get_features_config(state: State<'_, AppState>) -> Result<config::F
 }
 
 #[tauri::command]
-pub async fn apply_feature(state: State<'_, AppState>, feature_id: String) -> Result<(), AppError> {
+pub async fn apply_feature(state: State<'_, AppState>, feature_id: String, offline_hive: Option<String>) -> Result<(), AppError> {
     let feature = state.config.features.iter().find(|f| f.feature_id == feature_id)
         .ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", feature_id)))?;
 
@@ -52,9 +52,28 @@ pub async fn apply_feature(state: State<'_, AppState>, feature_id: String) -> Re
             return Err(AppError::new("Registry Path", &format!("Registry file not found: {:?}", full_path)));
         }
 
-        let final_path = full_path.to_str().ok_or_else(|| AppError::new("Registry Path", &format!("Invalid path: {:?}", full_path)))?;
+        let mut final_path = full_path.to_str().ok_or_else(|| AppError::new("Registry Path", &format!("Invalid path: {:?}", full_path)))?.to_string();
+
+        // Implement Offline Hive Logic: String Replace Root Keys before import
+        if let Some(hive_target) = &offline_hive {
+            let content = tokio::fs::read_to_string(&full_path)
+                .await
+                .map_err(|e| AppError::new("Offline Hive", &e.to_string()))?;
+                
+            // Convert HKEY_LOCAL_MACHINE to HKEY_LOCAL_MACHINE\OFFLINE_SOFTWARE
+            let modified = content.replace("HKEY_LOCAL_MACHINE\\SOFTWARE", &format!("HKEY_LOCAL_MACHINE\\{}\\SOFTWARE", hive_target))
+                                  .replace("HKEY_LOCAL_MACHINE\\SYSTEM", &format!("HKEY_LOCAL_MACHINE\\{}\\SYSTEM", hive_target));
+                                  
+            let temp_path = std::env::temp_dir().join(format!("golden_imager_offline_{}.reg", feature_id));
+            tokio::fs::write(&temp_path, modified)
+                .await
+                .map_err(|e| AppError::new("Offline Hive", &e.to_string()))?;
+                
+            final_path = temp_path.to_str().unwrap().to_string();
+        }
+
         let output = tokio::process::Command::new("reg")
-            .args(["import", final_path])
+            .args(["import", &final_path])
             .output()
             .await
             .map_err(|e| AppError::new("Registry Import", &e.to_string()))?;
@@ -66,7 +85,14 @@ pub async fn apply_feature(state: State<'_, AppState>, feature_id: String) -> Re
 
     if let Some(script) = &feature.invoke_script {
         let output = tokio::process::Command::new("powershell")
-            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
+            .args([
+                "-NoProfile", 
+                "-NonInteractive", 
+                "-NoLogo", 
+                "-WindowStyle", "Hidden",
+                "-ExecutionPolicy", "Bypass", 
+                "-Command", script
+            ])
             .output()
             .await
             .map_err(|e| AppError::new("PowerShell Execute", &e.to_string()))?;
@@ -76,6 +102,46 @@ pub async fn apply_feature(state: State<'_, AppState>, feature_id: String) -> Re
         }
     }
 
+    Ok(())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn apply_features_batch(state: State<'_, AppState>, featureIds: Vec<String>, _offlineHive: Option<String>) -> Result<(), AppError> {
+    let mut resolved = Vec::new();
+
+    fn resolve_dag(
+        id: &str,
+        features: &[config::Feature],
+        resolved: &mut Vec<String>,
+        seen: &mut std::collections::HashSet<String>
+    ) -> Result<(), String> {
+        if resolved.contains(&id.to_string()) { return Ok(()); }
+        if !seen.insert(id.to_string()) { return Err(format!("Circular sequence detected: {}", id)); }
+
+        let feature = features.iter().find(|f| f.feature_id == id)
+            .ok_or_else(|| format!("Missing Dependency: {}", id))?;
+
+        if let Some(reqs) = &feature.requires {
+            for req in reqs {
+                resolve_dag(req, features, resolved, seen)?;
+            }
+        }
+        resolved.push(id.to_string());
+        Ok(())
+    }
+
+    for id in &featureIds {
+        let mut seen = std::collections::HashSet::new();
+        resolve_dag(id, &state.config.features, &mut resolved, &mut seen)
+            .map_err(|e| AppError::new("Dependency Graph", &e))?;
+    }
+
+    // Process all topologically sorted 
+    for resolved_id in resolved {
+        apply_feature(state.clone(), resolved_id, _offlineHive.clone()).await?;
+    }
+    
     Ok(())
 }
 
@@ -104,7 +170,14 @@ pub async fn undo_feature(state: State<'_, AppState>, feature_id: String) -> Res
 
     if let Some(script) = &feature.undo_script {
         let output = tokio::process::Command::new("powershell")
-            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
+            .args([
+                "-NoProfile", 
+                "-NonInteractive", 
+                "-NoLogo", 
+                "-WindowStyle", "Hidden",
+                "-ExecutionPolicy", "Bypass", 
+                "-Command", script
+            ])
             .output()
             .await
             .map_err(|e| AppError::new("Undo PowerShell Execute", &e.to_string()))?;

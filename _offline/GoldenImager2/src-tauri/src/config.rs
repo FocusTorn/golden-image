@@ -43,6 +43,7 @@ pub struct Feature {
     pub label: String,
     pub tool_tip: Option<String>,
     pub category: Option<String>,
+    pub requires: Option<Vec<String>>,
     pub action: Option<String>,
     pub registry_key: Option<String>,
     pub apply_text: Option<String>,

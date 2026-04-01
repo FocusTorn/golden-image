@@ -67,7 +67,7 @@
         // Here we'd call specific session toggle commands if they differ 
         // from standard tweaks, but we'll use apply_feature as requested 
         // Or specific session_toggle if implemented.
-        await invoke("apply_feature", { id: actionId });
+        await invoke("apply_feature", { feature_id: actionId, offline_hive: null });
         await loadStats(); // Refresh to show new state
       } else {
         await new Promise(r => setTimeout(r, 1000));
