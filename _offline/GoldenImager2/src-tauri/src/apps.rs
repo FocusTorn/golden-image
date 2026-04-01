@@ -47,7 +47,8 @@ fn default_category() -> String {
 
 pub fn load_apps_config<P: AsRef<Path>>(path: P) -> Result<AppConfig, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(path)?;
-    let config: AppConfig = serde_json::from_str(&content)?;
+    let stripped = json_comments::StripComments::new(content.as_bytes());
+    let config: AppConfig = serde_json::from_reader(stripped)?;
     Ok(config)
 }
 

@@ -1074,6 +1074,7 @@ dependencies = [
 name = "goldenimager2"
 version = "0.1.0"
 dependencies = [
+ "json_comments",
  "serde",
  "serde_json",
  "tauri",
@@ -1531,6 +1532,12 @@ dependencies = [
  "serde_json",
  "thiserror",
 ]
+
+[[package]]
+name = "json_comments"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dbbfed4e59ba9750e15ba154fdfd9329cee16ff3df539c2666b70f58cc32105"
 
 [[package]]
 name = "jsonptr"

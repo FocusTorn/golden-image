@@ -433,7 +433,8 @@ async fn load_app_profile(app: tauri::AppHandle, name: String) -> Result<Vec<Str
         .ok_or_else(|| format!("Profile {} not found", name))?;
     
     let content = std::fs::read_to_string(profile_path).map_err(|e| e.to_string())?;
-    let profile: serde_json::Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    let stripped = json_comments::StripComments::new(content.as_bytes());
+    let profile: serde_json::Value = serde_json::from_reader(stripped).map_err(|e| e.to_string())?;
     
     let apps = profile["Apps"].as_array()
         .ok_or("Invalid profile format: missing 'Apps' array")?
@@ -527,7 +528,8 @@ async fn load_tweak_profile(app: tauri::AppHandle, name: String) -> Result<Vec<T
     }
     
     let content = std::fs::read_to_string(profile_path).map_err(|e| e.to_string())?;
-    let profile: TweakProfile = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    let stripped = json_comments::StripComments::new(content.as_bytes());
+    let profile: TweakProfile = serde_json::from_reader(stripped).map_err(|e| e.to_string())?;
     
     Ok(profile.settings)
 }

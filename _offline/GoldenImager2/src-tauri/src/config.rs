@@ -78,6 +78,7 @@ pub struct Feature {
 
 pub fn load_config<P: AsRef<Path>>(path: P) -> Result<FeaturesConfig, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(path)?;
-    let config: FeaturesConfig = serde_json::from_str(&content)?;
+    let stripped = json_comments::StripComments::new(content.as_bytes());
+    let config: FeaturesConfig = serde_json::from_reader(stripped)?;
     Ok(config)
 }

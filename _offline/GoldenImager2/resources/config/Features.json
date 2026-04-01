@@ -264,7 +264,10 @@
       ]
     }
   ],
-  "Features": [
+    "Features": [
+    // ##############################################################################################
+    // #####################################  Catgegory: Null  ######################################
+    // ##############################################################################################
     {
       "FeatureId": "RemoveApps",
       "Label": "Remove the apps specified in the 'Apps' parameter",
@@ -362,6 +365,45 @@
       "MaxVersion": null
     },
     {
+      "FeatureId": "ReplaceStart",
+      "Action": "Replace Start Menu",
+      "Label": "Replace the start menu layout for this user only with the provided template file",
+      "Category": null,
+      "RegistryKey": null,
+      "ApplyText": null,
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": 22621,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "ReplaceStartAllUsers",
+      "Action": "Replace Start Menu (All Users)",
+      "Label": "Replace the start menu layout for all existing and new users with the provided template file",
+      "Category": null,
+      "RegistryKey": null,
+      "ApplyText": null,
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": 22621,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "ForceRemoveEdge",
+      "Label": "Forcefully uninstall Microsoft Edge. NOT RECOMMENDED!",
+      "Category": null,
+      "Action": "Force Remove Edge",
+      "RegistryKey": null,
+      "ApplyText": null,
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    // ##############################################################################################
+    // ##############################  "Category": "Titus Essentials"  ##############################
+    // ##############################################################################################
+    {
       "FeatureId": "DisableExplorerAutomaticFolderDiscovery",
       "Label": "explorer automatic folder discovery",
       "ToolTip": "Prevents Explorer from automatically changing the view type based on folder content (e.g., Music, Pictures). Sets all folders to 'General Items'.",
@@ -394,6 +436,9 @@
       "UndoAction": null,
       "RegistryUndoKey": null
     },
+    // ##############################################################################################
+    // ###############################  "Category": "Titus Advanced"  ###############################
+    // ##############################################################################################
     {
       "FeatureId": "BlockRazerSoftware",
       "Label": "Razer software installations",
@@ -451,60 +496,55 @@
       "RequiresReboot": true
     },
     {
-      "FeatureId": "EnableDetailedBSOD",
-      "Label": "Detailed BSOD",
-      "ToolTip": "Shows more detailed information on the Blue Screen of Death.",
-      "Category": "System",
-      "Action": "Enable",
-      "RegistryKey": "Enable_Detailed_BSOD.reg",
-      "ApplyText": "Enabling detailed BSOD messages...",
+      "FeatureId": "AdobeNetworkBlock",
+      "Label": "Adobe telemetry/activation (HOSTS)",
+      "Category": "Titus Advanced",
+      "Action": "Block",
+      "RegistryKey": "Adobe_Network_Block.reg",
+      "ApplyText": "Blocking Adobe network connections...",
       "UndoAction": null,
-      "RegistryUndoKey": null
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
     },
     {
-      "FeatureId": "DisableMultiplaneOverlay",
-      "Label": "Disable Multiplane Overlay (MPO)",
-      "ToolTip": "Disables MPO, which can fix flickering and stuttering issues on some GPU configurations.",
-      "Category": "System",
+      "FeatureId": "DisableIPv6",
+      "Label": "IPv6 networking",
+      "Category": "Titus Advanced",
       "Action": "Disable",
-      "RegistryKey": "Disable_Multiplane_Overlay.reg",
-      "ApplyText": "Disabling Multiplane Overlay (MPO)...",
-      "UndoAction": null,
-      "RegistryUndoKey": null
+      "RegistryKey": "Disable_IPv6.reg",
+      "ApplyText": "Disabling IPv6...",
+      "RequiresReboot": true,
+      "MinVersion": null,
+      "MaxVersion": null
     },
     {
-      "FeatureId": "EnableNumLockOnStartup",
-      "Label": "Num Lock on Startup",
-      "ToolTip": "Forces Num Lock to be ON at the login screen and for the user.",
-      "Category": "System",
-      "Action": "Enable",
-      "RegistryKey": "Enable_NumLock.reg",
-      "ApplyText": "Enabling Num Lock on startup...",
+      "FeatureId": "DisableTeredo",
+      "Label": "Teredo tunneling",
+      "Category": "Titus Advanced",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Teredo.reg",
+      "ApplyText": "Disabling Teredo...",
       "UndoAction": null,
-      "RegistryUndoKey": null
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
     },
     {
-      "FeatureId": "EnableS3Sleep",
-      "Label": "S3 Sleep (Disable Modern Standby)",
-      "ToolTip": "Forces the system to use traditional S3 Sleep instead of Modern Standby (S0 Low Power Idle). WARNING: May not work on all hardware.",
-      "Category": "System",
-      "Action": "Enable",
-      "RegistryKey": "Enable_S3_Sleep.reg",
-      "ApplyText": "Enabling S3 Sleep (Disabling Modern Standby)...",
-      "UndoAction": null,
-      "RegistryUndoKey": null
+      "FeatureId": "SetClockUTC",
+      "Label": "system clock to UTC (dual-boot fix)",
+      "Category": "Titus Advanced",
+      "Action": "Apply",
+      "RegistryKey": "Set_Clock_UTC.reg",
+      "ApplyText": "Enabling UTC system clock...",
+      "InvokeScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation' -Name 'RealTimeIsUniversal' -Type DWord -Value 1",
+      "UndoScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation' -Name 'RealTimeIsUniversal' -Type DWord -Value 0",
+      "MinVersion": null,
+      "MaxVersion": null
     },
-    {
-      "FeatureId": "EnableVerboseLogonMessages",
-      "Label": "Verbose Messages During Logon",
-      "ToolTip": "Shows detailed status messages during startup, shutdown, logon, and logoff.",
-      "Category": "System",
-      "Action": "Enable",
-      "RegistryKey": "Enable_Verbose_Logon_Messages.reg",
-      "ApplyText": "Enabling verbose logon messages...",
-      "UndoAction": null,
-      "RegistryUndoKey": null
-    },
+    // ##############################################################################################
+    // ########################  "Category": "Privacy & Suggested Content"  #########################
+    // ##############################################################################################
     {
       "FeatureId": "DisableTelemetry",
       "Label": "telemetry, tracking & targeted ads",
@@ -597,83 +637,244 @@
       "MaxVersion": null
     },
     {
-      "FeatureId": "DisableCopilot",
-      "Label": "Microsoft Copilot",
-      "ToolTip": "This will disable and uninstall Microsoft Copilot, Windows' built-in AI assistant.",
-      "Category": "AI",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Copilot.reg",
-      "ApplyText": "Disabling Microsoft Copilot...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Copilot.reg",
-      "MinVersion": 22621,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableRecall",
-      "Label": "Windows Recall",
-      "ToolTip": "This will disable Windows Recall, an AI-powered feature that provides quick access to recently used files, apps and activities. This feature uses policies, which will lock down certain settings.",
-      "Category": "AI",
-      "Action": "Disable",
-      "RegistryKey": "Disable_AI_Recall.reg",
-      "ApplyText": "Disabling Windows Recall...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_AI_Recall.reg",
-      "MinVersion": 22621,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableClickToDo",
-      "Label": "Click To Do, AI text & image analysis",
-      "ToolTip": "This will disable Click To Do, which provides AI-powered text and image analysis features in Windows. This feature uses policies, which will lock down certain settings.",
-      "Category": "AI",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Click_to_Do.reg",
-      "ApplyText": "Disabling Click to Do...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Click_to_Do.reg",
-      "MinVersion": 22621,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableAISvcAutoStart",
-      "Label": "AI service from starting automatically",
-      "ToolTip": "This will set the WSAIFabricSvc service to manual startup, preventing the service from starting automatically with Windows.",
-      "Category": "AI",
-      "Action": "Prevent",
-      "RegistryKey": "Disable_AI_Service_Auto_Start.reg",
-      "ApplyText": "> Preventing AI service from starting automatically...",
-      "UndoAction": "Allow",
-      "RegistryUndoKey": "Enable_AI_Service_Auto_Start.reg",
-      "MinVersion": 22621,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableDVR",
-      "Label": "Xbox game/screen recording",
-      "ToolTip": "This will disable the Xbox game/screen recording features included with the Game Bar app. This feature uses policies, which will lock down certain settings.",
-      "Category": "Gaming",
-      "Action": "Disable",
-      "RegistryKey": "Disable_DVR.reg",
-      "ApplyText": "Disabling Xbox game/screen recording...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_DVR.reg",
+      "FeatureId": "DisableSettings365Ads",
+      "Label": "Microsoft 365 Copilot ads in Settings Home",
+      "ToolTip": "This will turn off the Microsoft 365 Copilot ads that appear in the Settings Home page.",
+      "Category": "Privacy & Suggested Content",
+      "Action": "Hide",
+      "RegistryKey": "Disable_Settings_365_Ads.reg",
+      "ApplyText": "Disabling Microsoft 365 Copilot ads in Settings Home...",
+      "UndoAction": "Show",
+      "RegistryUndoKey": "Enable_Settings_365_Ads.reg",
       "MinVersion": null,
       "MaxVersion": null
     },
     {
-      "FeatureId": "DisableGameBarIntegration",
-      "Label": "Game Bar integration",
-      "ToolTip": "This will disable the Game Bar integration with games and controllers. This stops annoying ms-gamebar popups when launching games or connecting a controller.",
-      "Category": "Gaming",
+      "FeatureId": "DisableCrossDeviceResume",
+      "Label": "cross-device resume",
+      "Category": "Privacy & Suggested Content",
       "Action": "Disable",
-      "RegistryKey": "Disable_Game_Bar_Integration.reg",
-      "ApplyText": "Disabling Game Bar integration...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Game_Bar_Integration.reg",
+      "RegistryKey": "Disable_Cross_Device_Resume.reg",
+      "ApplyText": "Disabling cross-device resume...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
       "MinVersion": null,
       "MaxVersion": null
     },
+    // ##############################################################################################
+    // ###################################  "Category": "System"  ###################################
+    // ##############################################################################################
+    {
+      "FeatureId": "EnableDetailedBSOD",
+      "Label": "Detailed BSOD",
+      "ToolTip": "Shows more detailed information on the Blue Screen of Death.",
+      "Category": "System",
+      "Action": "Enable",
+      "RegistryKey": "Enable_Detailed_BSOD.reg",
+      "ApplyText": "Enabling detailed BSOD messages...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DisableMultiplaneOverlay",
+      "Label": "Disable Multiplane Overlay (MPO)",
+      "ToolTip": "Disables MPO, which can fix flickering and stuttering issues on some GPU configurations.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Multiplane_Overlay.reg",
+      "ApplyText": "Disabling Multiplane Overlay (MPO)...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "EnableNumLockOnStartup",
+      "Label": "Num Lock on Startup",
+      "ToolTip": "Forces Num Lock to be ON at the login screen and for the user.",
+      "Category": "System",
+      "Action": "Enable",
+      "RegistryKey": "Enable_NumLock.reg",
+      "ApplyText": "Enabling Num Lock on startup...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "EnableS3Sleep",
+      "Label": "S3 Sleep (Disable Modern Standby)",
+      "ToolTip": "Forces the system to use traditional S3 Sleep instead of Modern Standby (S0 Low Power Idle). WARNING: May not work on all hardware.",
+      "Category": "System",
+      "Action": "Enable",
+      "RegistryKey": "Enable_S3_Sleep.reg",
+      "ApplyText": "Enabling S3 Sleep (Disabling Modern Standby)...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "EnableVerboseLogonMessages",
+      "Label": "Verbose Messages During Logon",
+      "ToolTip": "Shows detailed status messages during startup, shutdown, logon, and logoff.",
+      "Category": "System",
+      "Action": "Enable",
+      "RegistryKey": "Enable_Verbose_Logon_Messages.reg",
+      "ApplyText": "Enabling verbose logon messages...",
+      "UndoAction": null,
+      "RegistryUndoKey": null
+    },
+    {
+      "FeatureId": "DisableDragTray",
+      "Label": "'Drag Tray' for sharing & moving files",
+      "ToolTip": "The Drag Tray is a new feature for sharing & moving files in Windows 11, it appears at the top of the screen when dragging files.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Share_Drag_Tray.reg",
+      "ApplyText": "Disabling Drag Tray...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Share_Drag_Tray.reg",
+      "MinVersion": 26200,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "RevertContextMenu",
+      "Label": "context menu style",
+      "ToolTip": "This will restore the classic Windows 10 style context menu, which is normally hidden behind the 'Show more options' entry in the new Windows 11 context menu.",
+      "Category": "System",
+      "Action": "Use classic Windows 10",
+      "RegistryKey": "Disable_Show_More_Options_Context_Menu.reg",
+      "ApplyText": "Restoring the classic Windows 10 style context menu...",
+      "UndoAction": "Use modern Windows 11",
+      "RegistryUndoKey": "Enable_W11_Style_Context_Menu.reg",
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableMouseAcceleration",
+      "Label": "Enhance Pointer Precision (mouse acceleration)",
+      "ToolTip": "This will disable mouse acceleration which is enabled by default in Windows. This makes mouse movement more consistent and predictable.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Enhance_Pointer_Precision.reg",
+      "ApplyText": "Turning off Enhanced Pointer Precision...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Enhance_Pointer_Precision.reg",
+      "RequiresReboot": true,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableStickyKeys",
+      "Label": "Sticky Keys keyboard shortcut (5x shift)",
+      "ToolTip": "This will prevent the Sticky Keys dialog from appearing when you press the Shift key 5 times in a row.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Sticky_Keys_Shortcut.reg",
+      "ApplyText": "Disabling the Sticky Keys keyboard shortcut...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Sticky_Keys_Shortcut.reg",
+      "RequiresReboot": true,
+      "MinVersion": 26100,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableStorageSense",
+      "Label": "Storage Sense automatic disk cleanup",
+      "ToolTip": "This will disable Storage Sense, which automatically frees up disk space by deleting temporary files, emptying the recycle bin and cleaning up files in the Downloads folder.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Storage_Sense.reg",
+      "ApplyText": "Disabling Storage Sense automatic disk cleanup...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Storage_Sense.reg",
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableFastStartup",
+      "Label": "Fast Start-up",
+      "ToolTip": "Fast Start-up helps your PC start faster after shutdown by saving a system image to disk. Disabling Fast Start-up can help with certain issues, but may result in slightly longer boot times.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Fast_Startup.reg",
+      "ApplyText": "Disabling Fast Start-up...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Fast_Startup.reg",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableBitlockerAutoEncryption",
+      "Label": "BitLocker automatic device encryption",
+      "ToolTip": "For devices that support it, Windows 11 automatically enables BitLocker device encryption. Disabling this will turn off automatic encryption of the device, but you can still manually enable BitLocker encryption if desired.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Bitlocker_Auto_Encryption.reg",
+      "ApplyText": "Disabling BitLocker automatic device encryption...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Bitlocker_Auto_Encryption.reg",
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableModernStandbyNetworking",
+      "Label": "Modern Standby network connectivity",
+      "ToolTip": "By default, devices that support Modern Standby maintain network connectivity while in sleep mode. Disabling network connectivity during Modern Standby can help save battery life.",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Modern_Standby_Networking.reg",
+      "ApplyText": "Disabling network connectivity during Modern Standby...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Modern_Standby_Networking.reg",
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableFirstSignInAnim",
+      "Label": "first sign-in animation",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_First_Sign_In_Animation.reg",
+      "ApplyText": "Disabling first sign-in animation...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableOOBEMonitoring",
+      "Label": "OOBE monitoring",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_OOBE_Monitoring.reg",
+      "ApplyText": "Disabling OOBE monitoring...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "EnableF8BootMenu",
+      "Label": "legacy F8 boot menu",
+      "Category": "System",
+      "Action": "Enable",
+      "ApplyText": "Enabling F8 legacy boot menu...",
+      "InvokeScript": "bcdedit /set {default} bootmenupolicy legacy",
+      "UndoScript": "bcdedit /set {default} bootmenupolicy standard",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableStorageSense",
+      "Label": "Storage Sense automatic cleanup",
+      "Category": "System",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Storage_Sense.reg",
+      "ApplyText": "Disabling Storage Sense...",
+      "UndoAction": "Enable Storage Sense",
+      "RegistryUndoKey": "Enable_Storage_Sense.reg",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    // ##############################################################################################
+    // ############################  "Category": "Start Menu & Search"  #############################
+    // ##############################################################################################
     {
       "FeatureId": "ClearStart",
       "Action": "Clear Start Menu",
@@ -691,30 +892,6 @@
       "Action": "Clear Start Menu (All Users)",
       "Label": "Remove all pinned apps from the start menu for all existing and new users",
       "Category": "Start Menu & Search",
-      "RegistryKey": null,
-      "ApplyText": null,
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": 22621,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "ReplaceStart",
-      "Action": "Replace Start Menu",
-      "Label": "Replace the start menu layout for this user only with the provided template file",
-      "Category": null,
-      "RegistryKey": null,
-      "ApplyText": null,
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": 22621,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "ReplaceStartAllUsers",
-      "Action": "Replace Start Menu (All Users)",
-      "Label": "Replace the start menu layout for all existing and new users with the provided template file",
-      "Category": null,
       "RegistryKey": null,
       "ApplyText": null,
       "UndoAction": null,
@@ -813,30 +990,59 @@
       "MinVersion": null,
       "MaxVersion": null
     },
+    // ##############################################################################################
+    // #####################################  "Category": "AI"  #####################################
+    // ##############################################################################################
     {
-      "FeatureId": "DisableSettings365Ads",
-      "Label": "Microsoft 365 Copilot ads in Settings Home",
-      "ToolTip": "This will turn off the Microsoft 365 Copilot ads that appear in the Settings Home page.",
-      "Category": "Privacy & Suggested Content",
-      "Action": "Hide",
-      "RegistryKey": "Disable_Settings_365_Ads.reg",
-      "ApplyText": "Disabling Microsoft 365 Copilot ads in Settings Home...",
-      "UndoAction": "Show",
-      "RegistryUndoKey": "Enable_Settings_365_Ads.reg",
-      "MinVersion": null,
+      "FeatureId": "DisableCopilot",
+      "Label": "Microsoft Copilot",
+      "ToolTip": "This will disable and uninstall Microsoft Copilot, Windows' built-in AI assistant.",
+      "Category": "AI",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Copilot.reg",
+      "ApplyText": "Disabling Microsoft Copilot...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Copilot.reg",
+      "MinVersion": 22621,
       "MaxVersion": null
     },
     {
-      "FeatureId": "DisableSettingsHome",
-      "Label": "Settings 'Home' page",
-      "ToolTip": "Removes the 'Home' page from the Settings app.",
-      "Category": "Other",
-      "Action": "Hide",
-      "RegistryKey": "Disable_Settings_Home.reg",
-      "ApplyText": "Disabling the Settings Home page...",
-      "UndoAction": "Show",
-      "RegistryUndoKey": "Enable_Settings_Home.reg",
-      "MinVersion": null,
+      "FeatureId": "DisableRecall",
+      "Label": "Windows Recall",
+      "ToolTip": "This will disable Windows Recall, an AI-powered feature that provides quick access to recently used files, apps and activities. This feature uses policies, which will lock down certain settings.",
+      "Category": "AI",
+      "Action": "Disable",
+      "RegistryKey": "Disable_AI_Recall.reg",
+      "ApplyText": "Disabling Windows Recall...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_AI_Recall.reg",
+      "MinVersion": 22621,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableClickToDo",
+      "Label": "Click To Do, AI text & image analysis",
+      "ToolTip": "This will disable Click To Do, which provides AI-powered text and image analysis features in Windows. This feature uses policies, which will lock down certain settings.",
+      "Category": "AI",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Click_to_Do.reg",
+      "ApplyText": "Disabling Click to Do...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Click_to_Do.reg",
+      "MinVersion": 22621,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableAISvcAutoStart",
+      "Label": "AI service from starting automatically",
+      "ToolTip": "This will set the WSAIFabricSvc service to manual startup, preventing the service from starting automatically with Windows.",
+      "Category": "AI",
+      "Action": "Prevent",
+      "RegistryKey": "Disable_AI_Service_Auto_Start.reg",
+      "ApplyText": "> Preventing AI service from starting automatically...",
+      "UndoAction": "Allow",
+      "RegistryUndoKey": "Enable_AI_Service_Auto_Start.reg",
+      "MinVersion": 22621,
       "MaxVersion": null
     },
     {
@@ -878,163 +1084,51 @@
       "MinVersion": 22621,
       "MaxVersion": null
     },
+    // ##############################################################################################
+    // ###############################  "Category": "Windows Update"  ###############################
+    // ##############################################################################################
     {
-      "FeatureId": "EnableDarkMode",
-      "Label": "system and apps",
-      "ToolTip": "This will set the app and system theme to dark mode.",
-      "Category": "Appearance",
-      "Action": "Enable Dark Mode for",
-      "RegistryKey": "Enable_Dark_Mode.reg",
-      "ApplyText": "Enabling dark mode for system and apps...",
-      "UndoAction": "Disable light",
-      "RegistryUndoKey": "Enable_Light_Mode.reg",
+      "FeatureId": "DisableUpdateASAP",
+      "Label": "updates as soon as they're available",
+      "ToolTip": "This will prevent your PC from being among the first to receive new non-security updates. Your PC will still receive these updates eventually.",
+      "Category": "Windows Update",
+      "Action": "Prevent getting",
+      "RegistryKey": "Disable_Update_ASAP.reg",
+      "ApplyText": "Preventing Windows from getting updates as soon as they are available...",
+      "UndoAction": "Get",
+      "RegistryUndoKey": "Enable_Update_ASAP.reg",
       "MinVersion": null,
       "MaxVersion": null
     },
     {
-      "FeatureId": "DisableDragTray",
-      "Label": "'Drag Tray' for sharing & moving files",
-      "ToolTip": "The Drag Tray is a new feature for sharing & moving files in Windows 11, it appears at the top of the screen when dragging files.",
-      "Category": "System",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Share_Drag_Tray.reg",
-      "ApplyText": "Disabling Drag Tray...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Share_Drag_Tray.reg",
-      "MinVersion": 26200,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "RevertContextMenu",
-      "Label": "context menu style",
-      "ToolTip": "This will restore the classic Windows 10 style context menu, which is normally hidden behind the 'Show more options' entry in the new Windows 11 context menu.",
-      "Category": "System",
-      "Action": "Use classic Windows 10",
-      "RegistryKey": "Disable_Show_More_Options_Context_Menu.reg",
-      "ApplyText": "Restoring the classic Windows 10 style context menu...",
-      "UndoAction": "Use modern Windows 11",
-      "RegistryUndoKey": "Enable_W11_Style_Context_Menu.reg",
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableMouseAcceleration",
-      "Label": "Enhance Pointer Precision (mouse acceleration)",
-      "ToolTip": "This will disable mouse acceleration which is enabled by default in Windows. This makes mouse movement more consistent and predictable.",
-      "Category": "System",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Enhance_Pointer_Precision.reg",
-      "ApplyText": "Turning off Enhanced Pointer Precision...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Enhance_Pointer_Precision.reg",
-      "RequiresReboot": true,
+      "FeatureId": "PreventUpdateAutoReboot",
+      "Label": "automatic restarts after updates while signed in",
+      "ToolTip": "This will prevent your PC from automatically restarting after updates while any user is signed in.",
+      "Category": "Windows Update",
+      "Action": "Prevent",
+      "RegistryKey": "Prevent_Auto_Reboot.reg",
+      "ApplyText": "Preventing automatic restarts after updates while signed in...",
+      "UndoAction": "Allow",
+      "RegistryUndoKey": "Allow_Auto_Reboot.reg",
       "MinVersion": null,
       "MaxVersion": null
     },
     {
-      "FeatureId": "DisableStickyKeys",
-      "Label": "Sticky Keys keyboard shortcut (5x shift)",
-      "ToolTip": "This will prevent the Sticky Keys dialog from appearing when you press the Shift key 5 times in a row.",
-      "Category": "System",
+      "FeatureId": "DisableDeliveryOptimization",
+      "Label": "sharing downloaded updates with other PCs",
+      "ToolTip": "This will prevent your PC from sharing downloaded updates with other PCs on the local network or on the internet. This also prevents your PC from downloading updates from other PCs.",
+      "Category": "Windows Update",
       "Action": "Disable",
-      "RegistryKey": "Disable_Sticky_Keys_Shortcut.reg",
-      "ApplyText": "Disabling the Sticky Keys keyboard shortcut...",
+      "RegistryKey": "Disable_Delivery_Optimization.reg",
+      "ApplyText": "Disabling sharing of downloaded updates with other PCs...",
       "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Sticky_Keys_Shortcut.reg",
-      "RequiresReboot": true,
-      "MinVersion": 26100,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableWindowSnapping",
-      "Label": "window snapping",
-      "ToolTip": "This will turn off the ability to snap windows to the sides or corners of the screen.",
-      "Category": "Multi-tasking",
-      "Priority": 1,
-      "Action": "Disable",
-      "RegistryKey": "Disable_Window_Snapping.reg",
-      "ApplyText": "Disabling window snapping...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Window_Snapping.reg",
+      "RegistryUndoKey": "Enable_Delivery_Optimization.reg",
       "MinVersion": null,
       "MaxVersion": null
     },
-    {
-      "FeatureId": "DisableSnapAssist",
-      "Label": "app suggestions when snapping windows",
-      "ToolTip": "This will turn off app suggestions when you snap windows to the sides or corners of the screen.",
-      "Category": "Multi-tasking",
-      "Priority": 2,
-      "Action": "Disable",
-      "RegistryKey": "Disable_Snap_Assist.reg",
-      "ApplyText": "Disabling the Snap Assist suggestions...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Snap_Assist.reg",
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableSnapLayouts",
-      "Label": "snap layout flyout at top of screen and on maximize button",
-      "ToolTip": "This will turn off the snap layout flyout that appears when you hover over the maximize button or drag windows to the top of the screen.",
-      "Category": "Multi-tasking",
-      "Priority": 3,
-      "Action": "Hide",
-      "RegistryKey": "Disable_Snap_Layouts.reg",
-      "ApplyText": "Hiding snap layouts when dragging windows to top of the screen and on maximize button...",
-      "UndoAction": "Show",
-      "RegistryUndoKey": "Enable_Snap_Layouts.reg",
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "HideTabsInAltTab",
-      "Label": "app tabs in Alt+Tab and snapping (Disabled)",
-      "Category": "Multi-tasking",
-      "Action": "Hide",
-      "RegistryKey": "Hide_Tabs_In_Alt_Tab.reg",
-      "ApplyText": "Disable showing tabs from apps when snapping or pressing Alt+Tab...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "Show3TabsInAltTab",
-      "Label": "app tabs (3 Recent) in Alt+Tab and snapping",
-      "Category": "Multi-tasking",
-      "Action": "Show 3",
-      "RegistryKey": "Show_3_Tabs_In_Alt_Tab.reg",
-      "ApplyText": "Enable showing 3 tabs from apps when snapping or pressing Alt+Tab...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "Show5TabsInAltTab",
-      "Label": "app tabs (5 Recent) in Alt+Tab and snapping",
-      "Category": "Multi-tasking",
-      "Action": "Show 5",
-      "RegistryKey": "Show_5_Tabs_In_Alt_Tab.reg",
-      "ApplyText": "Enable showing 5 tabs from apps when snapping or pressing Alt+Tab...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "Show20TabsInAltTab",
-      "Label": "app tabs (20 Recent) in Alt+Tab and snapping",
-      "Category": "Multi-tasking",
-      "Action": "Show 20",
-      "RegistryKey": "Show_20_Tabs_In_Alt_Tab.reg",
-      "ApplyText": "Enable showing 20 tabs from apps when snapping or pressing Alt+Tab...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
+    // ##############################################################################################
+    // ##################################  "Category": "Taskbar"  ###################################
+    // ##############################################################################################
     {
       "FeatureId": "TaskbarAlignLeft",
       "Label": "taskbar alignment",
@@ -1138,58 +1232,6 @@
       "RegistryUndoKey": "Enable_Chat_Taskbar.reg",
       "MinVersion": null,
       "MaxVersion": 22621
-    },
-    {
-      "FeatureId": "DisableStorageSense",
-      "Label": "Storage Sense automatic disk cleanup",
-      "ToolTip": "This will disable Storage Sense, which automatically frees up disk space by deleting temporary files, emptying the recycle bin and cleaning up files in the Downloads folder.",
-      "Category": "System",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Storage_Sense.reg",
-      "ApplyText": "Disabling Storage Sense automatic disk cleanup...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Storage_Sense.reg",
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableFastStartup",
-      "Label": "Fast Start-up",
-      "ToolTip": "Fast Start-up helps your PC start faster after shutdown by saving a system image to disk. Disabling Fast Start-up can help with certain issues, but may result in slightly longer boot times.",
-      "Category": "System",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Fast_Startup.reg",
-      "ApplyText": "Disabling Fast Start-up...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Fast_Startup.reg",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableBitlockerAutoEncryption",
-      "Label": "BitLocker automatic device encryption",
-      "ToolTip": "For devices that support it, Windows 11 automatically enables BitLocker device encryption. Disabling this will turn off automatic encryption of the device, but you can still manually enable BitLocker encryption if desired.",
-      "Category": "System",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Bitlocker_Auto_Encryption.reg",
-      "ApplyText": "Disabling BitLocker automatic device encryption...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Bitlocker_Auto_Encryption.reg",
-      "MinVersion": 22000,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableModernStandbyNetworking",
-      "Label": "Modern Standby network connectivity",
-      "ToolTip": "By default, devices that support Modern Standby maintain network connectivity while in sleep mode. Disabling network connectivity during Modern Standby can help save battery life.",
-      "Category": "System",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Modern_Standby_Networking.reg",
-      "ApplyText": "Disabling network connectivity during Modern Standby...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Modern_Standby_Networking.reg",
-      "MinVersion": 22000,
-      "MaxVersion": null
     },
     {
       "FeatureId": "EnableEndTask",
@@ -1327,6 +1369,64 @@
       "MinVersion": 22000,
       "MaxVersion": null
     },
+    // ##############################################################################################
+    // #################################  "Category": "Appearance"  #################################
+    // ##############################################################################################
+    {
+      "FeatureId": "EnableDarkMode",
+      "Label": "system and apps",
+      "ToolTip": "This will set the app and system theme to dark mode.",
+      "Category": "Appearance",
+      "Action": "Enable Dark Mode for",
+      "RegistryKey": "Enable_Dark_Mode.reg",
+      "ApplyText": "Enabling dark mode for system and apps...",
+      "UndoAction": "Disable light",
+      "RegistryUndoKey": "Enable_Light_Mode.reg",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableTransparency",
+      "Label": "transparency effects",
+      "ToolTip": "This will disable transparency effects on Windows and interfaces. Which can help improve performance on older hardware.",
+      "Category": "Appearance",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Transparency.reg",
+      "ApplyText": "Disabling transparency effects...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Transparency.reg",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableAnimations",
+      "Label": "animations and visual effects",
+      "ToolTip": "This will disable animations and some visual effects in Windows, which can make the interface feel snappier, especially on older hardware.",
+      "Category": "Appearance",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Animations.reg",
+      "ApplyText": "Disabling animations and visual effects...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Animations.reg",
+      "RequiresReboot": true,
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableLockScreenBlur",
+      "Label": "lock screen blur",
+      "Category": "Appearance",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Lock_Screen_Blur.reg",
+      "ApplyText": "Disabling lock screen blur...",
+      "UndoAction": "Enable Lock Screen Blur",
+      "RegistryUndoKey": "Enable_Lock_Screen_Blur.reg",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    // ##############################################################################################
+    // ###############################  "Category": "File Explorer"  ################################
+    // ##############################################################################################
     {
       "FeatureId": "ExplorerToHome",
       "Label": "File Explorer: Home",
@@ -1454,84 +1554,6 @@
       "MaxVersion": null
     },
     {
-      "FeatureId": "DisableTransparency",
-      "Label": "transparency effects",
-      "ToolTip": "This will disable transparency effects on Windows and interfaces. Which can help improve performance on older hardware.",
-      "Category": "Appearance",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Transparency.reg",
-      "ApplyText": "Disabling transparency effects...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Transparency.reg",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableAnimations",
-      "Label": "animations and visual effects",
-      "ToolTip": "This will disable animations and some visual effects in Windows, which can make the interface feel snappier, especially on older hardware.",
-      "Category": "Appearance",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Animations.reg",
-      "ApplyText": "Disabling animations and visual effects...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Animations.reg",
-      "RequiresReboot": true,
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableUpdateASAP",
-      "Label": "updates as soon as they're available",
-      "ToolTip": "This will prevent your PC from being among the first to receive new non-security updates. Your PC will still receive these updates eventually.",
-      "Category": "Windows Update",
-      "Action": "Prevent getting",
-      "RegistryKey": "Disable_Update_ASAP.reg",
-      "ApplyText": "Preventing Windows from getting updates as soon as they are available...",
-      "UndoAction": "Get",
-      "RegistryUndoKey": "Enable_Update_ASAP.reg",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "PreventUpdateAutoReboot",
-      "Label": "automatic restarts after updates while signed in",
-      "ToolTip": "This will prevent your PC from automatically restarting after updates while any user is signed in.",
-      "Category": "Windows Update",
-      "Action": "Prevent",
-      "RegistryKey": "Prevent_Auto_Reboot.reg",
-      "ApplyText": "Preventing automatic restarts after updates while signed in...",
-      "UndoAction": "Allow",
-      "RegistryUndoKey": "Allow_Auto_Reboot.reg",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableDeliveryOptimization",
-      "Label": "sharing downloaded updates with other PCs",
-      "ToolTip": "This will prevent your PC from sharing downloaded updates with other PCs on the local network or on the internet. This also prevents your PC from downloading updates from other PCs.",
-      "Category": "Windows Update",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Delivery_Optimization.reg",
-      "ApplyText": "Disabling sharing of downloaded updates with other PCs...",
-      "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Delivery_Optimization.reg",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "ForceRemoveEdge",
-      "Label": "Forcefully uninstall Microsoft Edge. NOT RECOMMENDED!",
-      "Category": null,
-      "Action": "Force Remove Edge",
-      "RegistryKey": null,
-      "ApplyText": null,
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
       "FeatureId": "HideIncludeInLibrary",
       "Label": "'Include in library' option in the context menu",
       "ToolTip": "Hides the 'Include in library' option from the File Explorer context menu.",
@@ -1609,19 +1631,131 @@
       "MinVersion": null,
       "MaxVersion": 21999
     },
+    // ##############################################################################################
+    // ###################################  "Category": "Gaming"  ###################################
+    // ##############################################################################################
     {
-      "FeatureId": "DisableBraveBloat",
-      "Label": "Brave browser features (AI, Crypto, News, Rewards)",
-      "ToolTip": "This will disable Brave's built-in AI features, Crypto wallet, News, Rewards, Talk and VPN. This feature uses policies, which will lock down certain settings.",
-      "Category": "Other",
+      "FeatureId": "DisableDVR",
+      "Label": "Xbox game/screen recording",
+      "ToolTip": "This will disable the Xbox game/screen recording features included with the Game Bar app. This feature uses policies, which will lock down certain settings.",
+      "Category": "Gaming",
       "Action": "Disable",
-      "RegistryKey": "Disable_Brave_Bloat.reg",
-      "ApplyText": "Disabling Brave AI, Crypto, News, Rewards, Talk and VPN in Brave browser...",
+      "RegistryKey": "Disable_DVR.reg",
+      "ApplyText": "Disabling Xbox game/screen recording...",
       "UndoAction": "Enable",
-      "RegistryUndoKey": "Enable_Brave_Bloat.reg",
+      "RegistryUndoKey": "Enable_DVR.reg",
       "MinVersion": null,
       "MaxVersion": null
     },
+    {
+      "FeatureId": "DisableGameBarIntegration",
+      "Label": "Game Bar integration",
+      "ToolTip": "This will disable the Game Bar integration with games and controllers. This stops annoying ms-gamebar popups when launching games or connecting a controller.",
+      "Category": "Gaming",
+      "Action": "Disable",
+      "RegistryKey": "Disable_Game_Bar_Integration.reg",
+      "ApplyText": "Disabling Game Bar integration...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Game_Bar_Integration.reg",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    // ##############################################################################################
+    // ###############################  "Category": "Multi-tasking"  ################################
+    // ##############################################################################################
+    {
+      "FeatureId": "DisableWindowSnapping",
+      "Label": "window snapping",
+      "ToolTip": "This will turn off the ability to snap windows to the sides or corners of the screen.",
+      "Category": "Multi-tasking",
+      "Priority": 1,
+      "Action": "Disable",
+      "RegistryKey": "Disable_Window_Snapping.reg",
+      "ApplyText": "Disabling window snapping...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Window_Snapping.reg",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableSnapAssist",
+      "Label": "app suggestions when snapping windows",
+      "ToolTip": "This will turn off app suggestions when you snap windows to the sides or corners of the screen.",
+      "Category": "Multi-tasking",
+      "Priority": 2,
+      "Action": "Disable",
+      "RegistryKey": "Disable_Snap_Assist.reg",
+      "ApplyText": "Disabling the Snap Assist suggestions...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Snap_Assist.reg",
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableSnapLayouts",
+      "Label": "snap layout flyout at top of screen and on maximize button",
+      "ToolTip": "This will turn off the snap layout flyout that appears when you hover over the maximize button or drag windows to the top of the screen.",
+      "Category": "Multi-tasking",
+      "Priority": 3,
+      "Action": "Hide",
+      "RegistryKey": "Disable_Snap_Layouts.reg",
+      "ApplyText": "Hiding snap layouts when dragging windows to top of the screen and on maximize button...",
+      "UndoAction": "Show",
+      "RegistryUndoKey": "Enable_Snap_Layouts.reg",
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "HideTabsInAltTab",
+      "Label": "app tabs in Alt+Tab and snapping (Disabled)",
+      "Category": "Multi-tasking",
+      "Action": "Hide",
+      "RegistryKey": "Hide_Tabs_In_Alt_Tab.reg",
+      "ApplyText": "Disable showing tabs from apps when snapping or pressing Alt+Tab...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "Show3TabsInAltTab",
+      "Label": "app tabs (3 Recent) in Alt+Tab and snapping",
+      "Category": "Multi-tasking",
+      "Action": "Show 3",
+      "RegistryKey": "Show_3_Tabs_In_Alt_Tab.reg",
+      "ApplyText": "Enable showing 3 tabs from apps when snapping or pressing Alt+Tab...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "Show5TabsInAltTab",
+      "Label": "app tabs (5 Recent) in Alt+Tab and snapping",
+      "Category": "Multi-tasking",
+      "Action": "Show 5",
+      "RegistryKey": "Show_5_Tabs_In_Alt_Tab.reg",
+      "ApplyText": "Enable showing 5 tabs from apps when snapping or pressing Alt+Tab...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "Show20TabsInAltTab",
+      "Label": "app tabs (20 Recent) in Alt+Tab and snapping",
+      "Category": "Multi-tasking",
+      "Action": "Show 20",
+      "RegistryKey": "Show_20_Tabs_In_Alt_Tab.reg",
+      "ApplyText": "Enable showing 20 tabs from apps when snapping or pressing Alt+Tab...",
+      "UndoAction": null,
+      "RegistryUndoKey": null,
+      "MinVersion": 22000,
+      "MaxVersion": null
+    },
+    // ##############################################################################################
+    // #########################  "Category": "Optional Windows Features"  ##########################
+    // ##############################################################################################
     {
       "FeatureId": "EnableWindowsSandbox",
       "Label": "Windows Sandbox",
@@ -1650,54 +1784,38 @@
       "MinVersion": 22000,
       "MaxVersion": null
     },
+    // ##############################################################################################
+    // ###################################  "Category": "Other"  ####################################
+    // ##############################################################################################
     {
-      "FeatureId": "DisableFirstSignInAnim",
-      "Label": "first sign-in animation",
-      "Category": "System",
-      "Action": "Disable",
-      "RegistryKey": "Disable_First_Sign_In_Animation.reg",
-      "ApplyText": "Disabling first sign-in animation...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
+      "FeatureId": "DisableSettingsHome",
+      "Label": "Settings 'Home' page",
+      "ToolTip": "Removes the 'Home' page from the Settings app.",
+      "Category": "Other",
+      "Action": "Hide",
+      "RegistryKey": "Disable_Settings_Home.reg",
+      "ApplyText": "Disabling the Settings Home page...",
+      "UndoAction": "Show",
+      "RegistryUndoKey": "Enable_Settings_Home.reg",
       "MinVersion": null,
       "MaxVersion": null
     },
     {
-      "FeatureId": "DisableOOBEMonitoring",
-      "Label": "OOBE monitoring",
-      "Category": "System",
+      "FeatureId": "DisableBraveBloat",
+      "Label": "Brave browser bloat",
+      "ToolTip": "This will disable Brave's built-in AI features, Crypto wallet, News, Rewards, Talk and VPN. This feature uses policies, which will lock down certain settings.",
+      "Category": "Other",
       "Action": "Disable",
-      "RegistryKey": "Disable_OOBE_Monitoring.reg",
-      "ApplyText": "Disabling OOBE monitoring...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
+      "RegistryKey": "Disable_Brave_Bloat.reg",
+      "ApplyText": "Disabling Brave AI, Crypto, News, Rewards, Talk and VPN in Brave browser...",
+      "UndoAction": "Enable",
+      "RegistryUndoKey": "Enable_Brave_Bloat.reg",
       "MinVersion": null,
       "MaxVersion": null
     },
-    {
-      "FeatureId": "DisableLockScreenBlur",
-      "Label": "lock screen blur",
-      "Category": "Appearance",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Lock_Screen_Blur.reg",
-      "ApplyText": "Disabling lock screen blur...",
-      "UndoAction": "Enable Lock Screen Blur",
-      "RegistryUndoKey": "Enable_Lock_Screen_Blur.reg",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableCrossDeviceResume",
-      "Label": "cross-device resume",
-      "Category": "Privacy & Suggested Content",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Cross_Device_Resume.reg",
-      "ApplyText": "Disabling cross-device resume...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": null,
-      "MaxVersion": null
-    },
+    // ##############################################################################################
+    // ################################  "Category": "Performance"  #################################
+    // ##############################################################################################
     {
       "FeatureId": "DisableHibernation",
       "Label": "hibernation (hiberfil.sys)",
@@ -1709,41 +1827,6 @@
       "RegistryUndoKey": "Enable_Hibernation.reg",
       "InvokeScript": "powercfg.exe /hibernate off",
       "UndoScript": "powercfg.exe /hibernate on",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "AdobeNetworkBlock",
-      "Label": "Adobe telemetry/activation (HOSTS)",
-      "Category": "Titus Advanced",
-      "Action": "Block",
-      "RegistryKey": "Adobe_Network_Block.reg",
-      "ApplyText": "Blocking Adobe network connections...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableIPv6",
-      "Label": "IPv6 networking",
-      "Category": "Titus Advanced",
-      "Action": "Disable",
-      "RegistryKey": "Disable_IPv6.reg",
-      "ApplyText": "Disabling IPv6...",
-      "RequiresReboot": true,
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableTeredo",
-      "Label": "Teredo tunneling",
-      "Category": "Titus Advanced",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Teredo.reg",
-      "ApplyText": "Disabling Teredo...",
-      "UndoAction": null,
-      "RegistryUndoKey": null,
       "MinVersion": null,
       "MaxVersion": null
     },
@@ -1772,6 +1855,29 @@
       "MaxVersion": null
     },
     {
+      "FeatureId": "SetServicesToManual",
+      "Label": "manual startup for non-essential services",
+      "Category": "Performance",
+      "Action": "Optimize",
+      "ApplyText": "Optimizing service startup types...",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    {
+      "FeatureId": "DisableVBS",
+      "Label": "Virtualization Based Security (VBS)",
+      "Category": "Performance",
+      "Action": "Disable",
+      "ApplyText": "Disabling VBS/Core Isolation...",
+      "InvokeScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -Type DWord -Value 0",
+      "UndoScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -Type DWord -Value 1",
+      "MinVersion": null,
+      "MaxVersion": null
+    },
+    // ##############################################################################################
+    // ################################  "Category": "Maintenance"  #################################
+    // ##############################################################################################
+    {
       "FeatureId": "DeleteTemporaryFiles",
       "Label": "temporary files cleanup",
       "Category": "Maintenance",
@@ -1792,15 +1898,6 @@
       "MaxVersion": null
     },
     {
-      "FeatureId": "SetServicesToManual",
-      "Label": "manual startup for non-essential services",
-      "Category": "Performance",
-      "Action": "Optimize",
-      "ApplyText": "Optimizing service startup types...",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
       "FeatureId": "SystemCorruptionScan",
       "Label": "system corruption scan (DISM/SFC)",
       "Category": "Maintenance",
@@ -1817,52 +1914,6 @@
       "Action": "Reinstall",
       "ApplyText": "Repairing WinGet...",
       "InvokeScript": "$winget = Get-AppxPackage -Name Microsoft.DesktopAppInstaller; if ($winget) { Add-AppxPackage -Register \"$($winget.InstallLocation)\\AppxManifest.xml\" -DisableDevelopmentMode -ForceApplicationShutdown } else { winget install Microsoft.DesktopAppInstaller --source msstore --accept-package-agreements --accept-source-agreements --silent }",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "SetClockUTC",
-      "Label": "system clock to UTC (dual-boot fix)",
-      "Category": "Titus Advanced",
-      "Action": "Apply",
-      "RegistryKey": "Set_Clock_UTC.reg",
-      "ApplyText": "Enabling UTC system clock...",
-      "InvokeScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation' -Name 'RealTimeIsUniversal' -Type DWord -Value 1",
-      "UndoScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation' -Name 'RealTimeIsUniversal' -Type DWord -Value 0",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableVBS",
-      "Label": "Virtualization Based Security (VBS)",
-      "Category": "Performance",
-      "Action": "Disable",
-      "ApplyText": "Disabling VBS/Core Isolation...",
-      "InvokeScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -Type DWord -Value 0",
-      "UndoScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -Type DWord -Value 1",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "EnableF8BootMenu",
-      "Label": "legacy F8 boot menu",
-      "Category": "System",
-      "Action": "Enable",
-      "ApplyText": "Enabling F8 legacy boot menu...",
-      "InvokeScript": "bcdedit /set {default} bootmenupolicy legacy",
-      "UndoScript": "bcdedit /set {default} bootmenupolicy standard",
-      "MinVersion": null,
-      "MaxVersion": null
-    },
-    {
-      "FeatureId": "DisableStorageSense",
-      "Label": "Storage Sense automatic cleanup",
-      "Category": "System",
-      "Action": "Disable",
-      "RegistryKey": "Disable_Storage_Sense.reg",
-      "ApplyText": "Disabling Storage Sense...",
-      "UndoAction": "Enable Storage Sense",
-      "RegistryUndoKey": "Enable_Storage_Sense.reg",
       "MinVersion": null,
       "MaxVersion": null
     }
