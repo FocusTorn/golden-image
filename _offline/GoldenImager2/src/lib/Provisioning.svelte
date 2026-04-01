@@ -587,7 +587,7 @@
   .main-layout {
     flex: 1;
     display: grid;
-    grid-template-columns: 400px 1fr;
+    grid-template-columns: 360px 1fr; /* Slimmed from 400px to match high-density */
     gap: 1px;
     background: rgba(255, 255, 255, 0.05);
     overflow: hidden;
@@ -597,8 +597,8 @@
     background: rgba(18, 24, 26, 0.6);
     display: flex;
     flex-direction: column;
-    padding: 24px;
-    gap: 24px;
+    padding: 12px 12px 12px 12px;
+    gap: 16px;
     overflow-y: auto;
   }
 
@@ -828,7 +828,7 @@
 
   .log-content {
     flex: 1;
-    padding: 24px;
+    padding: 16px;
     overflow-y: auto;
     font-family: inherit;
     font-size: 12px;

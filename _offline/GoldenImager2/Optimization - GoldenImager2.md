@@ -135,6 +135,14 @@ IMPLEMENTATION PRIORITY: Focus on HIGH IMPACT optimizations (Caching and Async I
 ### Phase 5: VHD Ecosystem Integration
 **Goal**: Native image management without transferring execution contexts.
 - [x] **VHD Management Integration**: Copy and encapsulate the host's `vhd-management` utilities directly into GoldenImager2 to automate image mounting and prep.
+- [ ] **VHD Profile Cleanup**: Evaluate and remove unused structs and legacy profile logic in `src/commands/vhd.rs` to streamline the transition engine.
 - [ ] **PowerShell Direct Execution**: Reroute script executions through `Invoke-Command -VMName` or local chroot during offline hive scenarios to process script tweaks autonomously.
 - [ ] **Remote Provisioning Support**: Add capability to send and execute provisioning stages on network-connected target machines over WinRM.
 - [ ] **Tweak Debugger Console**: Build a graphical terminal layer to expose real-time registry and script operations visually.
+
+### Phase 6: Aesthetics & Accessibility Polishing
+**Goal**: Production-ready visual excellence and standards compliance.
+- [x] **High-Density "Stealth Jet" Overhaul**: Tighten layout density (24px rows), normalize card heights (26px), and reduce global guttering to 12px for a precision-instrument feel.
+- [ ] **Accessibility (A11y) Audit**: Convert non-interactive `div` click-handlers in `Apps.svelte` to standard `button` elements and resolve remaining ARIA/autofocus warnings.
+- [ ] **Production CSS Purge**: Systematically identify and remove unused CSS selectors (e.g., legacy `.col-copy`, `.row-copy-btn`) to minimize build overhead.
+- [ ] **Theme Customization Engine**: Finalize the Accent Color and Glass Transparency controls in `Settings.svelte` to ensure full reactive parity across the "Bloom" UI components.

@@ -543,7 +543,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 12px 12px 12px 24px;
+    padding: 12px 12px 12px 12px;
     gap: 8px;
     overflow: hidden;
     background: transparent;
@@ -585,7 +585,7 @@
   }
 
   .card-header {
-    height: 36px;
+    height: 26px;
     display: flex;
     align-items: center;
     padding: 0 14px;
@@ -608,7 +608,7 @@
   }
 
   .card-body {
-    padding: 12px;
+    padding: 6px 10px;
     display: flex;
     flex-direction: column;
     gap: 6px;

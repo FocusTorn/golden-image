@@ -845,7 +845,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 12px 12px 0 24px;
+    padding: 12px 12px 0 12px;
     gap: 4px; /* Tighter gap */
     overflow: hidden;
     background: transparent;
@@ -1255,16 +1255,12 @@
     50% { filter: drop-shadow(0 0 18px rgba(0, 188, 212, 0.6)); opacity: 1; }
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
 
   input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     background: rgba(0, 0, 0, 0.35) !important; /* Bloom Base - Sunken */
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
@@ -1287,8 +1283,8 @@
 
   input[type="checkbox"]:checked::after {
     content: "";
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     background: #fff; /* White check for maximum brightness */
     filter: drop-shadow(
       0 0 2px rgba(var(--accent-rgb), 0.5)

@@ -6,42 +6,42 @@
 <aside class="sidebar" data-tauri-drag-region>
   <button class:active={activeTab === 'dashboard'} on:click={() => activeTab = 'dashboard'} title="Dashboard">
     <span class="icon-wrapper">
-      <Home size={24} color={activeTab === 'dashboard' ? 'var(--accent-color)' : 'currentColor'} />
+      <Home size={18} color={activeTab === 'dashboard' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <button class:active={activeTab === 'apps'} on:click={() => activeTab = 'apps'} title="Apps">
     <span class="icon-wrapper">
-      <LayoutList size={24} color={activeTab === 'apps' ? 'var(--accent-color)' : 'currentColor'} />
+      <LayoutList size={18} color={activeTab === 'apps' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <button class:active={activeTab === 'provisioning'} on:click={() => activeTab = 'provisioning'} title="Provisioning">
     <span class="icon-wrapper">
-      <Zap size={24} color={activeTab === 'provisioning' ? 'var(--accent-color)' : 'currentColor'} />
+      <Zap size={18} color={activeTab === 'provisioning' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <button class:active={activeTab === 'tweaks'} on:click={() => activeTab = 'tweaks'} title="Tweaks">
     <span class="icon-wrapper">
-      <Cog size={24} color={activeTab === 'tweaks' ? 'var(--accent-color)' : 'currentColor'} />
+      <Cog size={18} color={activeTab === 'tweaks' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <div class="spacer"></div>
   <button class:active={activeTab === 'settings'} on:click={() => activeTab = 'settings'} title="Settings">
     <span class="icon-wrapper">
-      <Settings size={24} color={activeTab === 'settings' ? 'var(--accent-color)' : 'currentColor'} />
+      <Settings size={18} color={activeTab === 'settings' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
 </aside>
 
 <style>
   .sidebar {
-    width: 64px;
+    width: 48px;
     height: 100%;
     background: var(--grad-panel);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px 0;
-    gap: 16px;
+    padding: 12px 0;
+    gap: 12px;
     z-index: 10;
   }
 
@@ -49,7 +49,7 @@
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.35);
-    padding: 12px 0;
+    padding: 10px 0;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;

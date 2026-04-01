@@ -34,7 +34,6 @@
   export let searchTerm = "";
   export let selectionCount = 0;
   export let loading = false;
-  export let isApplied = false;
 
   // Calculation Widths (Replicated from Apps.svelte)
   export let policyCalcWidth = "140px";
@@ -90,7 +89,7 @@
             {policyOptions.find((o) => o.id === selectedPolicy)?.label || policyLabel}
           </span>
           <div class="chevron-wrapper" class:open={isPolicyOpen}>
-            <ChevronDown size={14} />
+            <ChevronDown size={12} />
           </div>
         </BloomControl>
 
@@ -124,7 +123,7 @@
               {selectedProfile.replace(".json", "") || profileLabel}
             </span>
             <div class="chevron-wrapper" class:open={isProfileOpen}>
-              <ChevronDown size={14} />
+              <ChevronDown size={12} />
             </div>
           </BloomControl>
 
@@ -151,7 +150,7 @@
                     on:click={(e) => { e.stopPropagation(); dispatch('deleteProfile', p); }}
                     title="Delete Profile"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={10} />
                   </button>
                 </div>
               {/each}
@@ -165,7 +164,7 @@
           style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
           title="Load Profile Selection"
         >
-          <Download size={13} />
+          <Download size={11} />
         </BloomControl>
 
         <BloomControl
@@ -174,7 +173,7 @@
           style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
           title="Save As New Profile"
         >
-          <Plus size={13} />
+          <Plus size={11} />
         </BloomControl>
 
         <BloomControl
@@ -183,7 +182,7 @@
           style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
           title="Save Current Profile"
         >
-          <Save size={13} />
+          <Save size={11} />
         </BloomControl>
       </div>
     {/if}
@@ -197,7 +196,7 @@
               class="locked-sunken"
               style="border-radius: {showRefresh ? '4px 0 0 4px' : '4px'} !important;"
             >
-              <Search size={13} class="search-icon" />
+              <Search size={11} class="search-icon" />
               <input
                 type="text"
                 bind:value={searchTerm}
@@ -215,7 +214,7 @@
             style="border-radius: {showSearch ? '0 4px 4px 0' : '4px'} !important; margin-left: {showSearch ? '-1px' : '0'} !important; flex-shrink: 0 !important;"
             class="refresh-btn"
           >
-            <RefreshCw size={13} strokeWidth={2.5} class={loading ? "spin" : ""} />
+            <RefreshCw size={11} strokeWidth={2.5} class={loading ? "spin" : ""} />
           </BloomControl>
         {/if}
       </div>
@@ -410,15 +409,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
-  }
-
-  .spin {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
   }
 
   :global(.locked-sunken) {

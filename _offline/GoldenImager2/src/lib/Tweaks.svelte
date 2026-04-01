@@ -448,27 +448,27 @@
                 <div class="card-header">
                   <span class="header-icon">
                     {#if cat.displayName === "COPILOT"}
-                      <Brain size={16} strokeWidth={3.5} />
+                      <Brain size={14} strokeWidth={3.5} />
                     {:else if cat.displayName === "WINDOWS"}
-                      <Grid2x2 size={16} strokeWidth={3.5} />
+                      <Grid2x2 size={14} strokeWidth={3.5} />
                     {:else if cat.displayName.includes("ESSENTIALS")}
-                      <Zap size={16} strokeWidth={3.5} />
+                      <Zap size={14} strokeWidth={3.5} />
                     {:else if cat.displayName.includes("APPEARANCE")}
-                      <Palette size={16} strokeWidth={3.5} />
+                      <Palette size={14} strokeWidth={3.5} />
                     {:else if cat.displayName.includes("TASKBAR")}
-                      <RectangleEllipsis size={16} strokeWidth={3.5} />
+                      <RectangleEllipsis size={14} strokeWidth={3.5} />
                     {:else if cat.displayName.includes("EXPLORER")}
-                      <FileStack size={16} strokeWidth={3.5} />
+                      <FileStack size={14} strokeWidth={3.5} />
                     {:else if cat.displayName.includes("ADVANCED")}
-                      <Activity size={16} strokeWidth={3.5} />
+                      <Activity size={14} strokeWidth={3.5} />
                     {:else if cat.displayName.includes("PRIVACY")}
-                      <ShieldCheck size={16} strokeWidth={3.5} />
+                      <ShieldCheck size={14} strokeWidth={3.5} />
                     {:else if cat.displayName.includes("GAMING")}
-                      <Target size={16} strokeWidth={3.5} />
+                      <Target size={14} strokeWidth={3.5} />
                     {:else if cat.displayName.includes("SYSTEM")}
-                      <Cpu size={16} strokeWidth={3.5} />
+                      <Cpu size={14} strokeWidth={3.5} />
                     {:else}
-                      <Cog size={16} strokeWidth={3.5} />
+                      <Cog size={14} strokeWidth={3.5} />
                     {/if}
                   </span>
                   <h3>{cat.displayName}</h3>
@@ -492,7 +492,7 @@
                       >
                         <div class="checkbox-container">
                           {#if applyingFeature === item.FeatureId}
-                            <RefreshCw size={10} class="spin" />
+                            <RefreshCw size={8} class="spin" />
                           {:else}
                             <div 
                               class="bloom-checkbox" 
@@ -501,9 +501,9 @@
                             >
                               {#if stagedChanges.has(item.FeatureId)}
                                 {#if getStatus(item.FeatureId) === 'Applied'}
-                                  <Minus size={10} strokeWidth={4} />
+                                  <Minus size={8} strokeWidth={4} />
                                 {:else}
-                                  <Check size={10} strokeWidth={4} />
+                                  <Check size={8} strokeWidth={4} />
                                 {/if}
                               {/if}
                             </div>
@@ -552,7 +552,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 12px 12px 12px 24px;
+    padding: 12px 12px 12px 12px;
     gap: 8px;
     overflow: hidden;
     background: transparent; /* Synchronized with Apps.svelte */
@@ -610,7 +610,7 @@
   }
 
   .card-header {
-    height: 36px;
+    height: 26px;
     display: flex;
     align-items: center;
     padding: 0 14px;
@@ -639,10 +639,10 @@
   }
 
   .card-body {
-    padding: 8px 10px;
+    padding: 4px 6px;
     display: flex;
     flex-direction: column;
-    gap: 5px; /* Precise gap from reference */
+    gap: 4px; /* Precise gap from reference */
     overflow: visible; /* ALLOW POPUPS */
   }
 
@@ -650,9 +650,9 @@
     position: relative;
     display: flex;
     align-items: center;
-    height: 31px; /* Tighter industrial density */
-    padding: 0 12px;
-    padding-left: 16px;
+    height: 24px; /* Tighter industrial density */
+    padding: 0 8px;
+    padding-left: 10px;
     font-size: 11px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -678,15 +678,10 @@
     cursor: default;
     justify-content: space-between;
     gap: 8px;
-    height: 31px; /* Match standard row height for consistency */
+    height: 24px; /* Match standard row height for consistency */
     transition: all 0.2s;
     overflow: visible !important; /* ALLOW POPUPS TO SPILL OUT */
     z-index: 52; /* Ensure it stays above checkbox-based rows */
-  }
-
-  .bloom-select:hover {
-    border-color: rgba(var(--accent-rgb), 0.5);
-    background: #242a2d;
   }
 
   /* Radiant Status Hub (Vertical Strip) */
@@ -694,8 +689,8 @@
     content: '';
     position: absolute;
     left: 0;
-    top: 5px;
-    bottom: 5px;
+    top: 4px;
+    bottom: 4px;
     width: 4px;
     background: var(--status-color);
     opacity: 1;
@@ -750,7 +745,7 @@
     width: 20px;
     display: flex;
     justify-content: center;
-    margin-right: 12px;
+    margin-right: 6px;
   }
 
   .bloom-checkbox {
@@ -782,10 +777,6 @@
 
   .spacer { flex: 1; }
   
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
 
   .state-view {
     flex: 1;
