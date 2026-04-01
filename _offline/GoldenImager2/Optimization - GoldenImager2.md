@@ -1,28 +1,70 @@
 # Optimization - GoldenImager2
 
 ## POTENTIAL PROBLEM AREAS
+
+
+5. **API & Interface Concerns**:
+   - Geometry probing in `App.svelte` runs on every tab switch, causing unnecessary IPC calls.
+   - Error handling is limited to basic string conversions (`map_err(|e| e.to_string())`), losing structured error context.
+
+
+
+
+
+
 1. **Build Performance**: 
    - `main.rs` contains extensive debug code and hardcoded paths that should be cleaned up.
    - Vite's target `chrome105` is fine, but as a Tauri app, we can leverage more efficient build steps.
-2. **Code Quality Issues**:
-   - Inconsistent use of `snake_case` vs `PascalCase` in serialized structs.
-   - `resolve_path` logic is sprawling and repeated across multiple files.
-   - Significant duplication in registry-handling logic across `main.rs` and `audit.rs`.
+
+
+
 3. **Maintainability Concerns**:
    - `main.rs` is over 600 lines long, violating the project rule of 300 lines for logic sharding.
    - Hardcoded absolute paths (e.g., for `taskbar.ico`) hinder portability.
    - Redundant configuration loading: `Features.json` is re-parsed in almost every command turn.
+
+
+
 4. **Runtime Performance**:
    - Synchronous, blocking I/O calls (`fs::read_to_string`) and process execution (`std::process::Command::new`) are used inside `async` commands. This blocks the Tokio threadpool and could stall the UI.
    - Large JSON (~80KB) is repeatedly read and stripped of comments at runtime instead of being cached in memory (Tauri State).
-5. **API & Interface Concerns**:
-   - Geometry probing in `App.svelte` runs on every tab switch, causing unnecessary IPC calls.
-   - Error handling is limited to basic string conversions (`map_err(|e| e.to_string())`), losing structured error context.
+
+
+
+
+
+
+
+
+
+
+
+
+Phase 2
+
+
+2. **Code Quality Issues**:
+   - Inconsistent use of `snake_case` vs `PascalCase` in serialized structs.
+   - `resolve_path` logic is sprawling and repeated across multiple files.
+   - Significant duplication in registry-handling logic across `main.rs` and `audit.rs`.
+
 6. **Architecture Concerns**:
    - Tight coupling between the frontend and the physical structure of the `resources` directory.
    - Registry auditing is performed linearly on every feature, even those not relevant to the current view.
+
+
+
+Thoughts on how to implement
+
+
 7. **Security & Dependencies**:
    - Execution of PowerShell scripts with `Bypass` policy directly from the config file is powerful but lacks a safety sandbox.
+
+
+
+
+
+
 
 ---
 
@@ -58,3 +100,29 @@
    - **Dependency Graph**: Handle feature dependencies (e.g., Feature B requires Feature A) within the JSON schema to prevent inconsistent system states.
 
 IMPLEMENTATION PRIORITY: Focus on HIGH IMPACT optimizations (Caching and Async I/O) first to ensure UI responsiveness, followed by refactoring for maintainability, and finally refinement of the API surface.
+
+---
+
+## STRATEGIC IMPLEMENTATION ROADMAP
+
+### Phase 1: Core Engine & Responsiveness
+**Goal**: Immediate performance gains and backend cleanup.
+- [ ] **Memory Caching for Config**: Implement Tauri State (`tauri::State`) to store parsed `Features.json` in memory.
+- [ ] **Async I/O Migration**: Replace blocking `std::fs` and `std::process::Command` with `tokio` equivalents or `spawn_blocking`.
+- [ ] **Main.rs Logic Sharding**: Begin moving provisioning, apps, and tweak logic into specialized modules (`tweaks.rs`, `apps.rs`).
+- [ ] **Production Cleanup**: Remove geometry probe logs and commented debug statements.
+- [ ] **Absolute Path Removal**: Resolve hardcoded values like `taskbar.ico` using dynamic path resolution (Current icon does not work correctly and shows the OneDrive icon instead).
+
+### Phase 2: Standardization & Scale
+**Goal**: Architectural consistency and improved developer experience.
+- [ ] **PascalCase Synchronization**: Unified naming convention across Rust and Svelte serialization.
+- [ ] **Universal Path Resolver**: Consolidate `resolve_path` logic into a reusable utility.
+- [ ] **Lazy Audit Engine**: Optimize registry scanning to only audit features relevant to the current view.
+- [ ] **Refined Error Handling**: Move from string-based error mapping to structured error types.
+
+### Phase 3: Resilience & Advanced Features
+**Goal**: Future-proofing and hardening.
+- [ ] **PowerShell Sandboxing**: Standardize execution environments for external scripts.
+- [ ] **Dependency Graph Implementation**: Handle inter-feature dependencies within the JSON schema.
+- [ ] **Offline Hive Support**: Enable loading external registry hives for cold-image tweaking.
+- [ ] **Profile Cloud Sync**: Sync configurations across different environments.
