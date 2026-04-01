@@ -2,25 +2,36 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { 
-    Monitor, 
-    Zap, 
+    Monitor,
+    Zap,
     Play,
     StopCircle,
     RefreshCw,
-    Trash2, 
-    History, 
+    Trash2,
+    History,
     Mail,
     AlertCircle,
     UserCheck,
     ShieldAlert,
     Wifi,
-    Key
+    Key,
+    HardDrive,
+    ShieldCheck,
+    Loader2,
+    Database,
+    ChevronDown
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
+  import TweakSelect from "./TweakSelect.svelte";
+  import { vhdStore } from "./store";
+  import { notificationStore } from "./notifications";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
   let stats: any = null;
+  let masterConfig: any = null;
+  let vmProfiles: string[] = [];
+  let isProfileOpen = false;
   let loading = true;
   let error: string | null = null;
   let executingActions = new Set<string>();
@@ -30,7 +41,9 @@
     error = null;
     try {
       if (isTauri) {
-        stats = await invoke("get_dashboard_stats");
+        stats = await invoke("get_dashboard_stats", {
+          target_vm: $vhdStore.remoteActive ? $vhdStore.vmName : null
+        });
       } else {
         // Mock stats for dev
         stats = {
@@ -57,6 +70,48 @@
     }
   }
 
+  async function loadMasterConfig() {
+    try {
+      if (isTauri) {
+        masterConfig = await invoke("get_master_config");
+        vmProfiles = Object.keys(masterConfig.VMProfiles);
+        
+        // Sync initial state if a profile is already selected globally
+        const currentProfile = $vhdStore.selectedProfile;
+        if (currentProfile && !vmProfiles.includes(currentProfile)) {
+          // Profile exists but perhaps config reloaded
+        }
+      } else {
+        vmProfiles = ["Pro-Gaming", "Workstation-Ultra", "Server-Core"];
+      }
+    } catch (e) {
+      console.error("Master config failed load on dashboard:", e);
+    }
+  }
+
+  function handleProfileChange(selected: string) {
+    const profile = masterConfig?.VMProfiles[selected];
+    if (profile) {
+      vhdStore.update(s => ({
+        ...s,
+        vhdPath: profile.VMDetails?.OsVhdPath || masterConfig.VMFileSystem.HostVhdPath,
+        vmName: profile.VMDetails?.VMName || "",
+        selectedProfile: selected
+      }));
+    }
+  }
+
+  function toggleProfile(e: any) {
+    // e is the Svelte CustomEvent, detail is the MouseEvent
+    if (e && e.detail && e.detail.stopPropagation) e.detail.stopPropagation();
+    isProfileOpen = !isProfileOpen;
+  }
+
+  function selectProfile(p: string) {
+    handleProfileChange(p);
+    isProfileOpen = false;
+  }
+
   async function runAction(actionId: string, isToggle = false) {
     if (executingActions.has(actionId)) return;
     executingActions.add(actionId);
@@ -64,11 +119,13 @@
 
     try {
       if (isTauri) {
-        // Here we'd call specific session toggle commands if they differ 
-        // from standard tweaks, but we'll use apply_feature as requested 
-        // Or specific session_toggle if implemented.
-        await invoke("apply_feature", { feature_id: actionId, offline_hive: null });
-        await loadStats(); // Refresh to show new state
+        await invoke("apply_feature", { 
+          feature_id: actionId, 
+          offline_hive: null,
+          remote_active: $vhdStore.remoteActive,
+          target_vm: $vhdStore.vmName || null
+        });
+        await loadStats();
       } else {
         await new Promise(r => setTimeout(r, 1000));
         if (isToggle && stats?.Connection) {
@@ -91,8 +148,82 @@
     }
   }
 
-  onMount(loadStats);
+  // VHD CONTEXT (Global Synchronization)
+  let vhdState: import("./store").VhdState;
+  vhdStore.subscribe(state => { vhdState = state; });
+
+  async function handleVhdTransition(target: string) {
+    if (!vhdState.vhdPath || vhdState.processing) return;
+    if (target === "VM" && !vhdState.vmName) return;
+
+    vhdStore.update(s => ({ ...s, processing: true }));
+    try {
+      if (isTauri) {
+        const info: any = await invoke("transition_vhd", { 
+          target, 
+          vhdPath: vhdState.vhdPath, 
+          vmName: vhdState.vmName || null 
+        });
+        
+        if (target === "Host") {
+          vhdStore.update(s => ({ ...s, vhdMounted: info.Attached, vhdDiskNumber: info.DiskNumber, vhdAttached: false }));
+        } else {
+          vhdStore.update(s => ({ ...s, vhdAttached: info.Attached, vhdMounted: false, vhdDiskNumber: null }));
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 1000));
+        vhdStore.update(s => ({ 
+          ...s, 
+          vhdMounted: target === "Host", 
+          vhdAttached: target === "VM",
+          vhdDiskNumber: target === "Host" ? 3 : null
+        }));
+      }
+      notificationStore.add(`VHD active on ${target}.`, "success");
+    } catch (e: any) {
+      notificationStore.add(`VHD Error: ${e}`, "error");
+    } finally {
+      vhdStore.update(s => ({ ...s, processing: false }));
+    }
+  }
+
+  async function handleVhdRelease() {
+    if (!vhdState.vhdPath || vhdState.processing) return;
+    vhdStore.update(s => ({ ...s, processing: true }));
+    try {
+      if (isTauri) {
+        await invoke("unmount_vhd", { vhdPath: vhdState.vhdPath });
+        if (vhdState.vmName) await invoke("detach_vhd_from_vm", { vhdPath: vhdState.vhdPath, vmName: vhdState.vmName });
+        vhdStore.update(s => ({ ...s, vhdMounted: false, vhdAttached: false, vhdDiskNumber: null }));
+      } else {
+        await new Promise(r => setTimeout(r, 500));
+        vhdStore.update(s => ({ ...s, vhdMounted: false, vhdAttached: false, vhdDiskNumber: null }));
+      }
+      notificationStore.add("VHD released.", "info");
+    } catch (e) {
+      notificationStore.add("Release failed.", "error");
+    } finally {
+      vhdStore.update(s => ({ ...s, processing: false }));
+    }
+  }
+
+  onMount(async () => {
+    await loadStats();
+    await loadMasterConfig();
+  });
+
+  // Automatically refresh stats when the environment target changes
+  $: if ($vhdStore.remoteActive !== undefined || $vhdStore.vhdAttached !== undefined) {
+     loadStats();
+  }
+
+  // Safety Reset: If VM context is lost, force Remoting OFF
+  $: if (!$vhdStore.vmName && $vhdStore.remoteActive) {
+    vhdStore.update(s => ({ ...s, remoteActive: false }));
+  }
 </script>
+
+<svelte:window on:click={() => isProfileOpen = false} />
 
 <div class="panel">
   <div class="dashboard-grid">
@@ -109,17 +240,40 @@
         <div class="card-body">
           <div class="stats-hub">
             <div class="stat-row">
-              <div class="stat-label">OS BUILD</div>
-              <div class="stat-value">{stats?.os_build || "22631.PRO"}</div>
+              <div class="stat-label">HOST OS BUILD</div>
+              <div class="stat-value">{stats?.OsBuild || "22631.PRO"}</div>
             </div>
             <div class="stat-row">
-              <div class="stat-label">UPTIME</div>
-              <div class="stat-value">{stats?.uptime || "00:00:00"}</div>
+              <div class="stat-label">HOST UPTIME</div>
+              <div class="stat-value">{stats?.Uptime || "00:00:00"}</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="stats-hub">
+            <div class="stat-row">
+              <div class="stat-label">ACTIVE VHD</div>
+              <div class="stat-value truncate" title={vhdState.vhdPath || 'No VHD Loaded'}>
+                {vhdState.vhdPath ? vhdState.vhdPath.split(/[\\/]/).pop() : 'NONE'}
+              </div>
             </div>
             <div class="stat-row">
-              <div class="stat-label">AUDIT MODE</div>
-              <div class="stat-badge" class:active={stats?.audit_mode}>
-                {stats?.audit_mode ? 'ENABLED' : 'DISABLED'}
+              <div class="stat-label">IMAGE AUDIT MODE</div>
+              <div class="stat-badge" class:active={stats?.AuditMode}>
+                {stats?.AuditMode ? 'YES' : 'NO'}
+              </div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-label">BUILD TARGET</div>
+              <div class="stat-badge vhd-status" class:host-active={vhdState.vhdMounted} class:vm-active={vhdState.vhdAttached}>
+                {#if vhdState.vhdMounted}
+                  LOCAL (HOST)
+                {:else if vhdState.vhdAttached}
+                  REMOTE ({vhdState.vmName || 'VM'})
+                {:else}
+                  DECOUPLED
+                {/if}
               </div>
             </div>
           </div>
@@ -280,8 +434,107 @@
       </div>
     </div>
 
-    <!-- COLUMN 3: EMPTY/FUTURE -->
-    <div class="tweak-column"></div>
+    <!-- COLUMN 3: VHD & VM ECOSYSTEM -->
+    <div class="tweak-column">
+      <div class="category-card">
+        <div class="card-header">
+          <span class="header-icon">
+            <Database size={16} strokeWidth={3.5} />
+          </span>
+          <h3>VHD & VM HUB</h3>
+        </div>
+        
+        <div class="card-body">
+          <div class="profile-selector-group">
+            <div class="stat-label">IMAGE BUILD PROFILE</div>
+            <div class="custom-select-container">
+              <BloomControl
+                width="100%"
+                active={isProfileOpen}
+                on:click={toggleProfile}
+                style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px;"
+              >
+                <span class="select-label truncate">
+                  {vhdState.selectedProfile || 'SELECT PROFILE...'}
+                </span>
+                <div class="chevron-wrapper" class:open={isProfileOpen}>
+                  <ChevronDown size={14} />
+                </div>
+              </BloomControl>
+
+              {#if isProfileOpen}
+                <div class="dropdown-list">
+                  {#each vmProfiles as p}
+                    <button
+                      class="dropdown-item"
+                      class:active={vhdState.selectedProfile === p}
+                      on:click|stopPropagation={() => selectProfile(p)}
+                    >
+                      {p}
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- REMOTE PROVISIONING MODE -->
+          <div class="stat-row remote-toggle-row">
+            <div class="stat-label">REMOTE TARGET</div>
+            <button 
+              class="bloom-select remote-btn" 
+              class:active={vhdState.remoteActive}
+              disabled={!vhdState.vmName}
+              title={!vhdState.vmName ? "Select an Image Profile to unlock Remote mode" : ""}
+              on:click={() => vhdStore.update(s => ({ ...s, remoteActive: !s.remoteActive }))}
+            >
+              {vhdState.remoteActive ? 'ACTIVE (VM)' : 'OFF (LOCAL)'}
+            </button>
+          </div>
+
+          <div class="vhd-control-grid">
+            <button 
+              class="vhd-action-btn host" 
+              class:active={vhdState.vhdMounted} 
+              disabled={vhdState.processing || !vhdState.vhdPath}
+              on:click={() => handleVhdTransition('Host')}
+            >
+              {#if vhdState.processing}
+                <Loader2 size={12} class="spin" />
+              {:else}
+                <HardDrive size={14} />
+                <span>MOUNT HOST</span>
+              {/if}
+            </button>
+
+            <button 
+              class="vhd-action-btn vm" 
+              class:active={vhdState.vhdAttached} 
+              disabled={vhdState.processing || !vhdState.vhdPath || !vhdState.vmName}
+              on:click={() => handleVhdTransition('VM')}
+            >
+              {#if vhdState.processing}
+                <Loader2 size={12} class="spin" />
+              {:else}
+                <ShieldCheck size={14} />
+                <span>ATTACH VM</span>
+              {/if}
+            </button>
+
+            <button 
+              class="vhd-action-btn release full-width" 
+              disabled={vhdState.processing || (!vhdState.vhdMounted && !vhdState.vhdAttached)}
+              on:click={handleVhdRelease}
+            >
+              <AlertCircle size={14} />
+              <span>RELEASE ALL HANDLES</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -406,9 +659,10 @@
   }
 
   .stat-value {
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: -0.01em;
   }
 
   .stat-badge {
@@ -423,7 +677,14 @@
   .stat-badge.active {
     background: var(--accent-color);
     color: #000;
-    box-shadow: 0 0 10px var(--accent-color);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.3);
+    font-weight: 800;
+  }
+
+  .vhd-status {
+     font-weight: 700;
+     border-radius: 4px;
+     padding: 2px 8px;
   }
 
   .divider {
@@ -513,16 +774,186 @@
     transition: all 0.2s;
   }
 
-  .spin {
-    animation: spin 1s linear infinite;
+  .profile-selector-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+  /* DROPDOWN PARITY WITH TACTICAL TOOLBAR */
+  .custom-select-container {
+    position: relative;
+    display: flex;
+    align-items: center;
   }
 
-  :global(.spin) {
-    animation: spin 1s linear infinite;
+  .select-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent-color);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .chevron-wrapper {
+    margin-left: auto;
+    opacity: 0.6;
+    color: var(--accent-color);
+    transition: transform 0.2s;
+    display: flex;
+    align-items: center;
+  }
+
+  .chevron-wrapper.open {
+    transform: rotate(180deg);
+  }
+
+  .dropdown-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 100%;
+    background: #1a1f22;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+    z-index: 5000;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    overflow: hidden;
+  }
+
+  .dropdown-item {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .dropdown-item.active {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent-color);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+  }
+
+  .dropdown-item:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  .stat-value.truncate {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vhd-status {
+    min-width: 100px;
+    text-align: center;
+  }
+
+  .vhd-status.host-active {
+    background: rgba(79, 185, 149, 0.2);
+    color: #4fb995;
+    border: 1px solid rgba(79, 185, 149, 0.3);
+  }
+
+  .vhd-status.vm-active {
+    background: rgba(0, 188, 212, 0.2);
+    color: #00bcd4;
+    border: 1px solid rgba(0, 188, 212, 0.3);
+  }
+
+  .remote-toggle-row {
+     margin: 6px 0 10px 0;
+     background: rgba(0, 188, 212, 0.05);
+     padding: 8px;
+     border-radius: 4px;
+     border: 1px dashed rgba(0, 188, 212, 0.2);
+  }
+
+  .remote-btn {
+     width: 100px;
+     transition: all 0.3s;
+  }
+
+  .remote-btn.active {
+     background: #00bcd4;
+     color: #000;
+     box-shadow: 0 0 15px rgba(0, 188, 212, 0.6);
+     border-color: #00bcd4;
+  }
+
+  .vhd-control-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 8px;
+    margin-top: 4px;
+  }
+
+  .vhd-action-btn {
+    height: 32px;
+    background: #242a2d;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .vhd-action-btn.full-width {
+    grid-column: span 2;
+  }
+
+  .vhd-action-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .vhd-action-btn.active.host {
+    background: rgba(79, 185, 149, 0.1);
+    color: #4fb995;
+    border-color: rgba(79, 185, 149, 0.3);
+  }
+
+  .vhd-action-btn.active.vm {
+    background: rgba(0, 188, 212, 0.1);
+    color: #00bcd4;
+    border-color: rgba(0, 188, 212, 0.3);
+  }
+
+  .vhd-action-btn.release:hover:not(:disabled) {
+    background: rgba(255, 61, 96, 0.1);
+    color: #ff3d60;
+    border-color: rgba(255, 61, 96, 0.3);
+  }
+
+  .vhd-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .vhd-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 </style>

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
+  import { vhdStore } from "./store";
   import { 
     Zap, 
     Activity, 
@@ -12,10 +13,13 @@
     Play,
     ShieldCheck,
     Box,
-    ChevronRight,
-    Info
+    Info,
+    Monitor,
+    Target,
+    HardDrive
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
+  import TacticalToolbar from "./TacticalToolbar.svelte";
   import { notificationStore } from "./notifications";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
@@ -25,6 +29,30 @@
   let logs: string[] = ["--- Tactical Provisioning Engine v2.0 ---", "Awaiting deployment signal..."];
   let logEnd: HTMLElement;
 
+  // VHD & VM STATE (Now synced with Global Store)
+  let vhdPath = "";
+  let vm_name = "";
+  let vhdMounted = false;
+  let vhdAttached = false;
+  let vhdDiskNumber: number | null = null;
+  let vhdProcessing = false;
+  let selectedVmProfile = "";
+
+  // Subscribe to global vhdStore
+  vhdStore.subscribe(state => {
+    vhdPath = state.vhdPath;
+    vm_name = state.vmName;
+    vhdMounted = state.vhdMounted;
+    vhdAttached = state.vhdAttached;
+    vhdDiskNumber = state.vhdDiskNumber;
+    vhdProcessing = state.processing;
+    selectedVmProfile = state.selectedProfile;
+  });
+
+  function updateStore(updates: Partial<any>) {
+    vhdStore.update(s => ({ ...s, ...updates }));
+  }
+
   let stages = [
     { id: 1, title: "Stage 01: Scoop", desc: "Initializing package manager and tactical CLI tools.", status: "idle" },
     { id: 2, title: "Stage 02: MSVC Runtimes", desc: "Injecting core visual studio runtimes and libraries.", status: "idle" },
@@ -33,6 +61,9 @@
     { id: 5, title: "Stage 05: Finalize", desc: "Performing final cleanup and system normalization.", status: "idle" },
     { id: 6, title: "Stage 06: Customize", desc: "Applying final industrial aesthetic and shell customizations.", status: "idle" }
   ];
+
+  let masterConfig: any = null;
+  let vmProfiles: string[] = [];
 
   let unlisten: any;
 
@@ -44,8 +75,42 @@
           if (logEnd) logEnd.scrollIntoView({ behavior: "smooth" });
         }, 10);
       });
+      loadMasterConfig();
     }
   });
+
+  async function loadMasterConfig() {
+    try {
+      masterConfig = await invoke("get_master_config");
+      vmProfiles = Object.keys(masterConfig.VMProfiles);
+      logs = [...logs, `>>> MASTER CONFIG LOADED: ${vmProfiles.length} profiles identified.`];
+    } catch (e: any) {
+      const msg = typeof e === "string" ? e : e.Message || JSON.stringify(e);
+      logs = [...logs, `>>> ERROR LOADING MASTER CONFIG: ${msg}`];
+    }
+  }
+
+  function handleProfileChange() {
+    const profile = masterConfig?.VMProfiles[selectedVmProfile];
+    if (profile) {
+      const newVmName = profile.VMDetails?.VMName || "";
+      const newVhdPath = profile.VMDetails?.OsVhdPath || masterConfig.VMFileSystem.HostVhdPath;
+      
+      updateStore({ 
+        vmName: newVmName, 
+        vhdPath: newVhdPath,
+        selectedProfile: selectedVmProfile 
+      });
+
+      logs = [...logs, `\n>>> VM PROFILE SELECTED: ${selectedVmProfile}`];
+      logs = [...logs, `    -> Target VM: ${newVmName}`];
+      logs = [...logs, `    -> Target VHD: ${newVhdPath}`];
+    }
+  }
+
+  // Handle manual input updates
+  $: if (vm_name !== undefined) updateStore({ vmName: vm_name });
+  $: if (vhdPath !== undefined) updateStore({ vhdPath: vhdPath });
 
   onDestroy(() => {
     if (unlisten) unlisten();
@@ -67,7 +132,11 @@
 
           logs = [...logs, `\n>>> EXECUTING ${currentStage.title.toUpperCase()}...`];
           
-          await invoke("run_provisioning_stage", { stage: currentStage.id });
+          await invoke("run_provisioning_stage", { 
+            stage: currentStage.id,
+            remote_active: $vhdStore.remoteActive,
+            vm_name: $vhdStore.vmName || null
+          });
           
           currentStage.status = "complete";
           stages = [...stages];
@@ -75,7 +144,6 @@
         logs = [...logs, "\nMISSION ACCOMPLISHED: All provisioning stages finalized successfully."];
         notificationStore.add("Deployment finalized successfully.", "success");
       } else {
-        // Mock execution for dev
         for (let i = 0; i < stages.length; i++) {
           activeStage = stages[i].id;
           stages[i].status = "running";
@@ -110,7 +178,11 @@
     
     try {
       if (isTauri) {
-        await invoke("run_provisioning_stage", { stage: stage.id });
+        await invoke("run_provisioning_stage", { 
+          stage: stage.id,
+          remote_active: $vhdStore.remoteActive,
+          vm_name: $vhdStore.vmName || null
+        });
       } else {
         await new Promise(r => setTimeout(r, 1500));
         logs = [...logs, `[MOCK] Single stage ${stage.id} completed.`];
@@ -125,13 +197,96 @@
       running = false;
     }
   }
+
+  async function handleTransition(target: string) {
+    if (!vhdPath || vhdProcessing) return;
+    if (target === "VM" && !vm_name) return;
+
+    updateStore({ processing: true });
+    logs = [...logs, `\n>>> INITIATING VHD TRANSITION -> ${target.toUpperCase()}`];
+    logs = [...logs, `    [*] Enforcing Mutual Exclusivity...`];
+    
+    try {
+      if (isTauri) {
+        const info: any = await invoke("transition_vhd", { 
+          target, 
+          vhdPath, 
+          vmName: vm_name || null 
+        });
+        
+        if (target === "Host") {
+          updateStore({
+            vhdMounted: info.Attached,
+            vhdDiskNumber: info.DiskNumber,
+            vhdAttached: false
+          });
+        } else {
+          updateStore({
+            vhdAttached: info.Attached,
+            vhdMounted: false,
+            vhdDiskNumber: null
+          });
+        }
+        
+        logs = [...logs, `>>> SUCCESS: VHD transitioned to ${target}.`];
+        if (info.DiskNumber) logs = [...logs, `    -> Identified as Host Disk ${info.DiskNumber}`];
+      } else {
+        await new Promise(r => setTimeout(r, 1200));
+        updateStore({
+          vhdMounted: target === "Host",
+          vhdAttached: target === "VM",
+          vhdDiskNumber: target === "Host" ? 3 : null
+        });
+        logs = [...logs, `>>> [MOCK] VHD transitioned to ${target} successfully.`];
+      }
+      notificationStore.add(`VHD active on ${target}.`, "success");
+    } catch (e: any) {
+      const msg = typeof e === "string" ? e : e.Message || JSON.stringify(e);
+      logs = [...logs, `>>> TRANSITION ERROR: ${msg}`];
+      notificationStore.add(`Transition failed: ${msg}`, "error");
+    } finally {
+      updateStore({ processing: false });
+    }
+  }
+
+  async function handleRelease() {
+    if (!vhdPath || vhdProcessing) return;
+    updateStore({ processing: true });
+    logs = [...logs, `\n>>> RELEASING ALL VHD HANDLES: ${vhdPath}`];
+    try {
+      if (isTauri) {
+        await invoke("unmount_vhd", { vhdPath });
+        if (vm_name) await invoke("detach_vhd_from_vm", { vhdPath, vmName: vm_name });
+        
+        updateStore({
+          vhdMounted: false,
+          vhdAttached: false,
+          vhdDiskNumber: null
+        });
+        logs = [...logs, `>>> SUCCESS: VHD is now neutral.`];
+      } else {
+        await new Promise(r => setTimeout(r, 800));
+        updateStore({
+          vhdMounted: false,
+          vhdAttached: false
+        });
+        logs = [...logs, ">>> [MOCK] VHD released from all hosts."];
+      }
+      notificationStore.add("VHD released.", "info");
+    } catch (e: any) {
+      const msg = typeof e === "string" ? e : e.Message || JSON.stringify(e);
+      logs = [...logs, `>>> ERROR: ${msg}`];
+    } finally {
+      updateStore({ processing: false });
+    }
+  }
 </script>
 
 <div class="panel-container">
   <div class="toolbar">
     <div class="title-cluster">
       <Zap size={18} class="glow-icon" />
-      <h2>System Provisioning Hub</h2>
+      <h2>Tactical Provisioning Engine</h2>
     </div>
     <div class="spacer"></div>
     <BloomControl on:click={startDeployment} disabled={running}>
@@ -145,72 +300,126 @@
     </BloomControl>
   </div>
 
+
+  <!-- TACTICAL HEADER -->
+  <div class="provisioning-header">
+     <div class="title-group">
+       <div class="icon-hub">
+          <Zap size={18} fill="var(--accent-color)" />
+       </div>
+       <div class="text-stack">
+          <h1>Tactical Provisioning Engine</h1>
+          <p>Stage: {activeStage ? `0${activeStage}` : 'PENDING'} | Target: {$vhdStore.vhdAttached && $vhdStore.remoteActive ? `REMOTE (${$vhdStore.vmName})` : `LOCAL (${$vhdStore.vhdPath.split(/[\\/]/).pop() || 'NONE'})`}</p>
+       </div>
+     </div>
+     
+     <div class="spacer"></div>
+
+     <div class="status-indicator" class:active={$vhdStore.remoteActive}>
+        <div class="dot"></div>
+        <span>{$vhdStore.remoteActive ? 'REMOTING ACTIVE' : 'LOCAL HUB'}</span>
+     </div>
+  </div>
+
   <div class="main-layout">
-    <div class="stage-flow">
-      <div class="flow-header">
-        <Activity size={14} />
-        <span>Deployment Sequence</span>
-      </div>
-      
-      <div class="list-container">
-        <div class="table-header">
-          <div class="col-status">Status</div>
-          <div class="col-title">Provisioning Stage</div>
-          <div class="spacer"></div>
-          <div class="col-actions">Control</div>
+    <!-- LEFT COLUMN: STAGES & CONFIG (Condensed) -->
+    <div class="stage-column">
+       <div class="deployment-card">
+          <div class="card-header highlight">
+             <Target size={14} />
+             <h3>ACTIVE MISSION LOADOUT</h3>
+          </div>
+          <div class="card-body">
+             <div class="mission-status">
+                <div class="mode-badge" class:remote={$vhdStore.remoteActive}>
+                   {$vhdStore.remoteActive ? 'REMOTE VM' : 'OFFLINE VHD'}
+                </div>
+                <div class="path-display">{$vhdStore.vhdPath ? $vhdStore.vhdPath.split(/[\\/]/).pop() : 'NO MISSION LOADED'}</div>
+             </div>
+             
+             <button 
+               class="deploy-btn" 
+               class:executing={running} 
+               disabled={running || !$vhdStore.vhdPath} 
+               on:click={startDeployment}
+             >
+               {#if running}
+                 <Loader2 size={16} class="spin" />
+                 <span>DEPLOYING...</span>
+               {:else}
+                 <Play size={14} fill="currentColor" />
+                 <span>INITIATE DEPLOYMENT</span>
+               {/if}
+             </button>
+          </div>
+       </div>
+
+       <div class="stage-list">
+        <div class="flow-header">
+          <Activity size={14} />
+          <span>Deployment Sequence</span>
         </div>
         
-        <div class="table-body">
-          {#each stages as stage}
-            <div 
-              class="stage-row" 
-              class:active={activeStage === stage.id}
-              class:complete={stage.status === 'complete'}
-              class:error={stage.status === 'error'}
-              title="{stage.desc}"
-            >
-              <div class="col-status">
-                <div class="row-indicator" style="--indicator-color: {
-                  stage.status === 'complete' ? '#4caf50' : 
-                  stage.status === 'running' ? '#ffeb3b' : 
-                  stage.status === 'error' ? '#ff1744' : '#ff1744'
-                }"></div>
-              </div>
+        <div class="list-container">
+          <div class="table-header">
+            <div class="col-status">Status</div>
+            <div class="col-title">Provisioning Stage</div>
+            <div class="spacer"></div>
+            <div class="col-actions">Control</div>
+          </div>
+          
+          <div class="table-body">
+            {#each stages as stage}
+              <div 
+                class="stage-row" 
+                class:active={activeStage === stage.id}
+                class:complete={stage.status === 'complete'}
+                class:error={stage.status === 'error'}
+                title="{stage.desc}"
+              >
+                <div class="col-status">
+                  <div class="row-indicator" style="--indicator-color: {
+                    stage.status === 'complete' ? '#4caf50' : 
+                    stage.status === 'running' ? '#ffeb3b' : 
+                    stage.status === 'error' ? '#ff1744' : '#ff1744'
+                  }"></div>
+                </div>
 
-              <div class="col-title">
-                <span class="text-main">{stage.title}</span>
-              </div>
+                <div class="col-title">
+                  <span class="text-main">{stage.title}</span>
+                </div>
 
-              <div class="spacer"></div>
+                <div class="spacer"></div>
 
-              <div class="col-actions">
-                {#if stage.status === 'running'}
-                  <Loader2 size={12} class="spin" />
-                {:else}
-                  <div class="row-actions">
-                    <button 
-                      class="row-action-btn" 
-                      on:click|stopPropagation={() => runSingleStage(stage)}
-                      disabled={running}
-                    >
-                      <Play size={10} fill="currentColor" />
-                    </button>
-                    <div class="info-trigger" title="{stage.desc}">
-                      <Info size={12} />
+                <div class="col-actions">
+                  {#if stage.status === 'running'}
+                    <Loader2 size={12} class="spin" />
+                  {:else}
+                    <div class="row-actions">
+                      <button 
+                        class="row-action-btn" 
+                        on:click|stopPropagation={() => runSingleStage(stage)}
+                        disabled={running}
+                      >
+                        <Play size={10} fill="currentColor" />
+                      </button>
+                      <div class="info-trigger" title="{stage.desc}">
+                        <Info size={12} />
+                      </div>
                     </div>
-                  </div>
-                {/if}
+                  {/if}
+                </div>
               </div>
-            </div>
-          {/each}
+            {/each}
+          </div>
         </div>
-      </div>
 
-      <div class="system-health">
-        <div class="health-item">
-          <ShieldCheck size={14} style="color: var(--risk-safe);" />
-          <span>Security Policy Lock</span>
-          <div class="status-pill active">STABLE</div>
+        <div class="system-health">
+          <div class="health-item">
+            <ShieldCheck size={14} style="color: var(--risk-safe);" />
+            <span>Security Policy Lock</span>
+            <div class="status-pill active">STABLE</div>
+          </div>
         </div>
       </div>
     </div>
@@ -238,6 +447,110 @@
     background: var(--grad-main);
   }
 
+  /* NEW COMPACT STYLES */
+  .provisioning-header {
+    height: 60px;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 15px;
+  }
+
+  .title-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .text-stack h1 {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  .text-stack p {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .deployment-card {
+    background: #1a1f22;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 15px;
+  }
+
+  .card-header.highlight {
+    background: rgba(79, 185, 149, 0.05);
+    border-bottom: 1px solid rgba(79, 185, 149, 0.1);
+  }
+
+  .card-header.highlight h3 {
+    color: #4fb995;
+  }
+
+  .mission-status {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.1);
+    margin: 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  .mode-badge {
+    font-size: 8px;
+    font-weight: 900;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .mode-badge.remote {
+    background: rgba(0, 188, 212, 0.1);
+    color: #00bcd4;
+  }
+
+  .path-display {
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    opacity: 0.8;
+  }
+
+  .deploy-btn {
+    width: calc(100% - 20px);
+    height: 38px;
+    margin: 0 10px 10px 10px;
+    background: var(--accent-color);
+    color: #000;
+    border: none;
+    padding: 0 12px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .deploy-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #444;
+    box-shadow: none;
+    color: #888;
+  }
+
   .toolbar {
     height: 48px;
     background: rgba(18, 24, 26, 0.8);
@@ -255,7 +568,7 @@
     gap: 10px;
   }
 
-  .glow-icon {
+  :global(.glow-icon) {
     color: var(--accent-color);
     filter: drop-shadow(0 0 8px var(--accent-color));
   }
@@ -280,7 +593,7 @@
     overflow: hidden;
   }
 
-  .stage-flow {
+  .stage-column {
     background: rgba(18, 24, 26, 0.6);
     display: flex;
     flex-direction: column;
@@ -529,7 +842,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.01);
   }
 
-  .spin {
+  :global(.spin) {
     animation: spin 1s linear infinite;
   }
 

@@ -25,6 +25,7 @@
   import BloomControl from "./BloomControl.svelte";
   import TacticalToolbar from "./TacticalToolbar.svelte";
   import TacticalContainer from "./TacticalContainer.svelte";
+  import { vhdStore } from "./store";
   import { notificationStore } from "./notifications";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
@@ -237,8 +238,8 @@
 
         const match = systemApps.find(
           (a) => {
-            const aId = a.AppId || a.app_id || "";
-            const aName = a.FriendlyName || a.friendly_name || "";
+            const aId = a.AppId || "";
+            const aName = a.FriendlyName || "";
             
             const aIdLower = aId.toLowerCase();
             const aNameLower = aName.toLowerCase();
@@ -261,9 +262,11 @@
         );
 
         if (match) {
-          const finalId = (match.AppId || match.app_id || "").trim();
-          console.log(`[Apps] MATCH: "${pId}" -> "${finalId}"`);
-          newSelection.add(finalId);
+          const finalId = (match.AppId || "").trim();
+          if (finalId) {
+            console.log(`[Apps] MATCH: "${pId}" -> "${finalId}"`);
+            newSelection.add(finalId);
+          }
         } else {
            console.warn(`[Apps] NO MATCH FOUND for: "${pId}" (Base: "${pIdBase}")`);
         }
@@ -518,7 +521,9 @@
         await invoke("install_app", { 
           appId: app.AppId, 
           appName: app.FriendlyName,
-          isSystem: app.IsProvisioned || app.IsUser
+          isSystem: app.IsProvisioned || app.IsUser,
+          remote_active: $vhdStore.remoteActive,
+          vm_name: $vhdStore.vmName || null
         });
       }
       await loadData(); // Refresh list to update status

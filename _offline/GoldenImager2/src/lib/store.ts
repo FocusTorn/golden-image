@@ -45,3 +45,28 @@ export const accentRgb = derived(settings, $s => {
   const b = parseInt(hex.substring(4, 6), 16);
   return `${r}, ${g}, ${b}`;
 });
+
+// VHD/VM GLOBAL CONTEXT
+export interface VhdState {
+  vhdPath: string;
+  vmName: string;
+  vhdMounted: boolean;
+  vhdAttached: boolean;
+  vhdDiskNumber: number | null;
+  processing: boolean;
+  selectedProfile: string;
+  remoteActive: boolean;
+}
+
+const DEFAULT_VHD_STATE: VhdState = {
+  vhdPath: "",
+  vmName: "",
+  vhdMounted: false,
+  vhdAttached: false,
+  vhdDiskNumber: null,
+  processing: false,
+  selectedProfile: "",
+  remoteActive: false
+};
+
+export const vhdStore = writable<VhdState>(DEFAULT_VHD_STATE);

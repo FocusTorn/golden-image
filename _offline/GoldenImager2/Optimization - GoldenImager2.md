@@ -126,3 +126,15 @@ IMPLEMENTATION PRIORITY: Focus on HIGH IMPACT optimizations (Caching and Async I
 - [x] **Dependency Graph Implementation**: Handle inter-feature dependencies within the JSON schema.
 - [x] **Offline Hive Support**: Enable loading external registry hives for cold-image tweaking.
 - [ ] **Profile Cloud Sync**: Sync configurations across different environments.
+
+### Phase 4: Maintainability & Developer Experience
+**Goal**: Long-term stability and iteration speed.
+- [x] **Core Schema Refactoring**: Audit all Svelte JSON arrays (e.g. Apps, Features, UI Groups) and enforce absolute parameter parity.
+- [ ] **Hot-Reloadable Configuration**: Listen for `Features.json` modifications using filesystem watchers to hot-refresh Tauri state without restarting.
+
+### Phase 5: VHD Ecosystem Integration
+**Goal**: Native image management without transferring execution contexts.
+- [x] **VHD Management Integration**: Copy and encapsulate the host's `vhd-management` utilities directly into GoldenImager2 to automate image mounting and prep.
+- [ ] **PowerShell Direct Execution**: Reroute script executions through `Invoke-Command -VMName` or local chroot during offline hive scenarios to process script tweaks autonomously.
+- [ ] **Remote Provisioning Support**: Add capability to send and execute provisioning stages on network-connected target machines over WinRM.
+- [ ] **Tweak Debugger Console**: Build a graphical terminal layer to expose real-time registry and script operations visually.

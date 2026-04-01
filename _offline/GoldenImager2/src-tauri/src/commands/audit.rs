@@ -12,7 +12,7 @@ pub struct AppError {
 }
 
 impl AppError {
-    fn new(action: &str, message: &str) -> Self {
+    pub fn new(action: &str, message: &str) -> Self {
         AppError { action: action.to_string(), message: message.to_string() }
     }
 }
@@ -42,7 +42,12 @@ pub async fn get_features_config(state: State<'_, AppState>) -> Result<config::F
 }
 
 #[tauri::command]
-pub async fn apply_feature(state: State<'_, AppState>, feature_id: String, offline_hive: Option<String>) -> Result<(), AppError> {
+pub async fn apply_feature(
+    state: State<'_, AppState>, 
+    feature_id: String, 
+    offline_hive: Option<String>,
+    target_vm: Option<String>
+) -> Result<(), AppError> {
     let feature = state.config.features.iter().find(|f| f.feature_id == feature_id)
         .ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", feature_id)))?;
 
@@ -52,48 +57,80 @@ pub async fn apply_feature(state: State<'_, AppState>, feature_id: String, offli
             return Err(AppError::new("Registry Path", &format!("Registry file not found: {:?}", full_path)));
         }
 
-        let mut final_path = full_path.to_str().ok_or_else(|| AppError::new("Registry Path", &format!("Invalid path: {:?}", full_path)))?.to_string();
-
-        // Implement Offline Hive Logic: String Replace Root Keys before import
-        if let Some(hive_target) = &offline_hive {
+        if let Some(vm_name) = &target_vm {
+            // REMOTE VM MODE: We read on host, then inject into VM
             let content = tokio::fs::read_to_string(&full_path)
                 .await
-                .map_err(|e| AppError::new("Offline Hive", &e.to_string()))?;
-                
-            // Convert HKEY_LOCAL_MACHINE to HKEY_LOCAL_MACHINE\OFFLINE_SOFTWARE
-            let modified = content.replace("HKEY_LOCAL_MACHINE\\SOFTWARE", &format!("HKEY_LOCAL_MACHINE\\{}\\SOFTWARE", hive_target))
-                                  .replace("HKEY_LOCAL_MACHINE\\SYSTEM", &format!("HKEY_LOCAL_MACHINE\\{}\\SYSTEM", hive_target));
-                                  
-            let temp_path = std::env::temp_dir().join(format!("golden_imager_offline_{}.reg", feature_id));
-            tokio::fs::write(&temp_path, modified)
+                .map_err(|e| AppError::new("Registry Read", &e.to_string()))?;
+
+            // Inside the VM, we write to a temp file and import
+            let remote_script = format!(
+                "$content = @'\n{}\n'@; $path = \"$env:TEMP\\remote_tweak_{}.reg\"; $content | Out-File -FilePath $path -Encoding utf8; reg import $path; Remove-Item $path",
+                content, feature_id
+            );
+
+            let output = tokio::process::Command::new("powershell")
+                .args([
+                    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                    "-Command", 
+                    &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, remote_script)
+                ])
+                .output()
                 .await
-                .map_err(|e| AppError::new("Offline Hive", &e.to_string()))?;
-                
-            final_path = temp_path.to_str().unwrap().to_string();
-        }
+                .map_err(|e| AppError::new("Remote Registry", &e.to_string()))?;
 
-        let output = tokio::process::Command::new("reg")
-            .args(["import", &final_path])
-            .output()
-            .await
-            .map_err(|e| AppError::new("Registry Import", &e.to_string()))?;
+            if !output.status.success() {
+                return Err(AppError::new("Remote Registry", &String::from_utf8_lossy(&output.stderr)));
+            }
+        } else {
+            // OFFLINE or LOCAL HOST MODE
+            let mut final_path = full_path.to_str().ok_or_else(|| AppError::new("Registry Path", &format!("Invalid path: {:?}", full_path)))?.to_string();
 
-        if !output.status.success() {
-            return Err(AppError::new("Registry Import", &String::from_utf8_lossy(&output.stderr)));
+            // Implement Offline Hive Logic: String Replace Root Keys before import
+            if let Some(hive_target) = &offline_hive {
+                let content = tokio::fs::read_to_string(&full_path)
+                    .await
+                    .map_err(|e| AppError::new("Offline Hive", &e.to_string()))?;
+                    
+                let modified = content.replace("HKEY_LOCAL_MACHINE\\SOFTWARE", &format!("HKEY_LOCAL_MACHINE\\{}\\SOFTWARE", hive_target))
+                                      .replace("HKEY_LOCAL_MACHINE\\SYSTEM", &format!("HKEY_LOCAL_MACHINE\\{}\\SYSTEM", hive_target));
+                                      
+                let temp_path = std::env::temp_dir().join(format!("golden_imager_offline_{}.reg", feature_id));
+                tokio::fs::write(&temp_path, modified)
+                    .await
+                    .map_err(|e| AppError::new("Offline Hive", &e.to_string()))?;
+                    
+                final_path = temp_path.to_str().unwrap().to_string();
+            }
+
+            let output = tokio::process::Command::new("reg")
+                .args(["import", &final_path])
+                .output()
+                .await
+                .map_err(|e| AppError::new("Registry Import", &e.to_string()))?;
+
+            if !output.status.success() {
+                return Err(AppError::new("Registry Import", &String::from_utf8_lossy(&output.stderr)));
+            }
         }
     }
 
     if let Some(script) = &feature.invoke_script {
-        let output = tokio::process::Command::new("powershell")
-            .args([
-                "-NoProfile", 
-                "-NonInteractive", 
-                "-NoLogo", 
-                "-WindowStyle", "Hidden",
-                "-ExecutionPolicy", "Bypass", 
+        let mut cmd = tokio::process::Command::new("powershell");
+        if let Some(vm_name) = &target_vm {
+            cmd.args([
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-Command", 
+                &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, script)
+            ]);
+        } else {
+            cmd.args([
+                "-NoProfile", "-NonInteractive", "-NoLogo", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", 
                 "-Command", script
-            ])
-            .output()
+            ]);
+        }
+
+        let output = cmd.output()
             .await
             .map_err(|e| AppError::new("PowerShell Execute", &e.to_string()))?;
 
@@ -107,7 +144,12 @@ pub async fn apply_feature(state: State<'_, AppState>, feature_id: String, offli
 
 #[tauri::command]
 #[allow(non_snake_case)]
-pub async fn apply_features_batch(state: State<'_, AppState>, featureIds: Vec<String>, _offlineHive: Option<String>) -> Result<(), AppError> {
+pub async fn apply_features_batch(
+    state: State<'_, AppState>, 
+    featureIds: Vec<String>, 
+    _offlineHive: Option<String>,
+    targetVm: Option<String>
+) -> Result<(), AppError> {
     let mut resolved = Vec::new();
 
     fn resolve_dag(
@@ -139,14 +181,18 @@ pub async fn apply_features_batch(state: State<'_, AppState>, featureIds: Vec<St
 
     // Process all topologically sorted 
     for resolved_id in resolved {
-        apply_feature(state.clone(), resolved_id, _offlineHive.clone()).await?;
+        apply_feature(state.clone(), resolved_id, _offlineHive.clone(), targetVm.clone()).await?;
     }
     
     Ok(())
 }
 
 #[tauri::command]
-pub async fn undo_feature(state: State<'_, AppState>, feature_id: String) -> Result<(), AppError> {
+pub async fn undo_feature(
+    state: State<'_, AppState>, 
+    feature_id: String,
+    target_vm: Option<String>
+) -> Result<(), AppError> {
     let feature = state.config.features.iter().find(|f| f.feature_id == feature_id)
         .ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", feature_id)))?;
 
@@ -156,29 +202,51 @@ pub async fn undo_feature(state: State<'_, AppState>, feature_id: String) -> Res
             return Err(AppError::new("Undo Registry Path", &format!("Undo registry file not found: {:?}", full_path)));
         }
 
-        let final_path = full_path.to_str().ok_or_else(|| AppError::new("Undo Registry Path", &format!("Invalid path: {:?}", full_path)))?;
-        let output = tokio::process::Command::new("reg")
-            .args(["import", final_path])
-            .output()
-            .await
-            .map_err(|e| AppError::new("Undo Registry Import", &e.to_string()))?;
+        if let Some(vm_name) = &target_vm {
+            let script = format!("reg import '{}'", full_path.to_str().unwrap());
+            let output = tokio::process::Command::new("powershell")
+                .args([
+                    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                    "-Command", 
+                    &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, script)
+                ])
+                .output()
+                .await
+                .map_err(|e| AppError::new("Remote Registry Undo", &e.to_string()))?;
 
-        if !output.status.success() {
-            return Err(AppError::new("Undo Registry Import", &String::from_utf8_lossy(&output.stderr)));
+            if !output.status.success() {
+                return Err(AppError::new("Remote Registry Undo", &String::from_utf8_lossy(&output.stderr)));
+            }
+        } else {
+            let final_path = full_path.to_str().ok_or_else(|| AppError::new("Undo Registry Path", &format!("Invalid path: {:?}", full_path)))?;
+            let output = tokio::process::Command::new("reg")
+                .args(["import", final_path])
+                .output()
+                .await
+                .map_err(|e| AppError::new("Undo Registry Import", &e.to_string()))?;
+
+            if !output.status.success() {
+                return Err(AppError::new("Undo Registry Import", &String::from_utf8_lossy(&output.stderr)));
+            }
         }
     }
 
     if let Some(script) = &feature.undo_script {
-        let output = tokio::process::Command::new("powershell")
-            .args([
-                "-NoProfile", 
-                "-NonInteractive", 
-                "-NoLogo", 
-                "-WindowStyle", "Hidden",
-                "-ExecutionPolicy", "Bypass", 
+        let mut cmd = tokio::process::Command::new("powershell");
+        if let Some(vm_name) = &target_vm {
+            cmd.args([
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-Command", 
+                &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, script)
+            ]);
+        } else {
+            cmd.args([
+                "-NoProfile", "-NonInteractive", "-NoLogo", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", 
                 "-Command", script
-            ])
-            .output()
+            ]);
+        }
+
+        let output = cmd.output()
             .await
             .map_err(|e| AppError::new("Undo PowerShell Execute", &e.to_string()))?;
 

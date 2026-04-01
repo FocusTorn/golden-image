@@ -26,6 +26,7 @@
   import TacticalToolbar from "./TacticalToolbar.svelte";
   import TacticalContainer from "./TacticalContainer.svelte";
   import TweakSelect from "./TweakSelect.svelte";
+  import { vhdStore } from "./store";
   import { notificationStore } from "./notifications";
 
   export let appliedCount = 0;
@@ -116,13 +117,22 @@
         ...Object.values(groupStagedChanges).filter(id => id && id !== "none")
       ];
       
-      await invoke("apply_features_batch", { featureIds: allStagedIds, offlineHive: null });
+      await invoke("apply_features_batch", { 
+        featureIds: allStagedIds, 
+        offlineHive: null,
+        targetVm: $vhdStore.remoteActive ? $vhdStore.vmName : null
+      });
 
       stagedChanges.clear();
       groupStagedChanges = {};
-      await loadData(); // Refresh system audit
+      stagedChanges = stagedChanges;
+      groupStagedChanges = groupStagedChanges;
+      
+      await loadData();
+      notificationStore.add("Changes applied successfully.", "success");
     } catch (e) {
       console.error("Action failed:", e);
+      notificationStore.add(`Failed to apply changes: ${e}`, "error");
     } finally {
       loading = false;
     }

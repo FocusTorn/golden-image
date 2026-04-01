@@ -97,7 +97,13 @@ fn main() {
             commands::provisioning::run_provisioning_stage,
             commands::provisioning::install_app,
             commands::window::minimize_window,
-            commands::window::close_window
+            commands::window::close_window,
+            commands::vhd::mount_vhd,
+            commands::vhd::unmount_vhd,
+            commands::vhd::attach_vhd_to_vm,
+            commands::vhd::detach_vhd_from_vm,
+            commands::vhd::get_master_config,
+            commands::vhd::transition_vhd
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {
