@@ -161,6 +161,7 @@ This section defines the universal baseline for high-fidelity Rust engineering. 
 
 ### 1. :: Compilation & Validation Standards
 - **Always use `cargo build`** for final validation. `cargo check` is for intermediate feedback only.
+- **Build-Before-Complete**: Before announcing that any work (new feature or bug fix) is complete, you MUST execute a successful `cargo build` (passing the `--bin` target flag if applicable) to verify total compilation integrity. Do not append additional commands, flags, or scripts to the build (no "extra crap"); just the clean build command. Do not skip this step under any circumstances.
 - **Zero Warnings Policy**: All builds MUST complete with zero warnings. Warnings are treated as errors.
 - **Sequential Validation**: (1) `cargo build` -> (2) Fix ALL warnings/errors -> (3) Re-run `cargo build` until clean.
 - **Dev Priority**: Use standard `cargo build` for development; reserve `--release` for deployment or benchmarking.

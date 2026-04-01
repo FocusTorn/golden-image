@@ -91,7 +91,24 @@
     }
   }
 
-  onMount(loadData);
+  onMount(() => {
+    loadData();
+    
+    let unlisten: any;
+    if (isTauri) {
+      import("@tauri-apps/api/event").then(({ listen }) => {
+        listen("features-config-updated", () => {
+          console.log(">>> Live Update: Refreshing config labels...");
+          loadData();
+          notificationStore.add("Configuration updated live.", "info");
+        }).then(u => unlisten = u);
+      });
+    }
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  });
 
   function getStatus(id: string) {
     const res = auditResults.find(r => r.FeatureId === id);
@@ -323,20 +340,12 @@
     return cats;
   })();
 
-  // Filter categories that have no items matching the search query
-  $: visibleCategories = displayCategories.filter(cat => {
-    return getCombinedItems(cat.displayName).length > 0;
-  });
-
   // Set of feature IDs that belong to a group (to hide standalone toggles)
   $: groupedFeatureIds = new Set(
     (featuresConfig?.UiGroups || []).flatMap(g => 
       (g.Values || []).flatMap(v => v.FeatureIds || [])
     )
   );
-
-  // Re-run distribution when visible categories OR search query changes
-  $: [col1, col2, col3] = distributeCategories(visibleCategories, searchQuery);
 
   function getCombinedItems(displayName: string) {
     const allFeatures = featuresConfig?.Features || [];
@@ -360,12 +369,17 @@
     return [...features, ...groups].sort((a: any, b: any) => (a.Priority || 99) - (b.Priority || 99));
   }
 
-  // Balanced distribution for 3 columns
-  function distributeCategories(cats: any[], _trigger: string) {
+  // Balanced distribution for 3 columns - Filters empty categories during search
+  $: [col1, col2, col3] = distributeCategories(displayCategories, searchQuery);
+
+  function distributeCategories(cats: any[], query: string) {
     const cols: any[][] = [[], [], []];
     const heights = [0, 0, 0];
     
-    cats.forEach(cat => {
+    // Filtering logic moved inside distribution for absolute consistency
+    const visible = cats.filter(cat => getCombinedItems(cat.displayName).length > 0);
+
+    visible.forEach(cat => {
       const items = getCombinedItems(cat.displayName);
       const weight = 30 + (items.length * 10);
       

@@ -9,6 +9,7 @@ trigger: always_on
 ### 1.1. :: Development Workflow
 - [ ] **Atomic Scaffolding**: Batch `cargo init`, `Cargo.toml` configuration, and core module setup (`main.rs`, `lib.rs`) into a single turn to minimize compilation latency.
 - [ ] **Pre-emptive `cargo check`**: Never request user review or frontend integration without first running `cargo check --bin [target]` to ensure back-end integrity.
+- [ ] **Build-Before-Complete**: Before announcing that any work (new feature or bug fix) is complete, you MUST execute a successful `cargo build` (passing the `--bin` target flag if applicable) to verify total compilation integrity. Do not append additional commands, flags, or scripts to the build (no "extra crap"); just the clean build command. Do not skip this step under any circumstances.
 - [ ] **Native-First Logic**: Delegate performance-critical operations (registry scanning, file I/O, crypto) to the Rust engine. Use PowerShell/JS only for orchestration and UI.
 
 ### 1.2. :: Dependency & Test Maturity

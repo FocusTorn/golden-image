@@ -28,13 +28,46 @@ fn main() {
             let reg_path = utils::resolve_resource_path(&app_handle, "regfiles")
                 .ok_or_else(|| tauri::Error::AssetNotFound(format!("regfiles (CWD: {:?})", cwd)))?;
 
-            // 2. Load Config once for caching in memory
-            let config = Arc::new(config::load_config(resource_path).map_err(|e| format!("Config load error: {}", e))?);
+            // 2. Initial Config Load
+            let config_path = resource_path.clone();
+            let config = Arc::new(config::load_config(config_path.clone()).map_err(|e| format!("Config load error: {}", e))?);
             
             // 3. Initialize Shared State
             app.manage(AppState {
-                config,
+                config: tokio::sync::RwLock::new(config),
                 reg_path,
+            });
+
+            // 4. Hot Update Watcher (Polling for changes)
+            let app_handle_for_watch = app.handle();
+            tauri::async_runtime::spawn(async move {
+                let mut last_mtime = std::fs::metadata(&config_path).and_then(|m| m.modified()).ok();
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    if let Ok(mtime) = std::fs::metadata(&config_path).and_then(|m| m.modified()) {
+                        if Some(mtime) != last_mtime {
+                            last_mtime = Some(mtime);
+
+                            // Capture the config and immediately drop the Result container
+                            // to ensure the non-Send Box<dyn Error> doesn't cross the await.
+                            let new_config = match config::load_config(config_path.clone()) {
+                                Ok(cfg) => Some(cfg),
+                                Err(e) => {
+                                    eprintln!(">>> Hot Update Failed: {}", e);
+                                    None
+                                }
+                            };
+
+                            if let Some(cfg) = new_config {
+                                let state = app_handle_for_watch.state::<AppState>();
+                                let mut state_lock = state.config.write().await;
+                                *state_lock = Arc::new(cfg);
+                                let _ = app_handle_for_watch.emit_all("features-config-updated", ());
+                                println!(">>> Hot Update: Features.json reloaded.");
+                            }
+                        }
+                    }
+                }
             });
 
             // 4. Taskbar Icon Fix (Dynamic Resolution)

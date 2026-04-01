@@ -20,10 +20,13 @@ impl AppError {
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_audit_results(state: State<'_, AppState>, featureIds: Option<Vec<String>>) -> Result<Vec<audit::AuditResult>, AppError> {
-    let features_to_audit = if let Some(ids) = featureIds {
-        state.config.features.iter().filter(|f| ids.contains(&f.feature_id)).cloned().collect()
-    } else {
-        state.config.features.clone()
+    let features_to_audit = {
+        let conf = state.config.read().await;
+        if let Some(ids) = featureIds {
+            conf.features.iter().filter(|f| ids.contains(&f.feature_id)).cloned().collect()
+        } else {
+            conf.features.clone()
+        }
     };
 
     let reg_path = state.reg_path.clone();
@@ -38,7 +41,9 @@ pub async fn get_audit_results(state: State<'_, AppState>, featureIds: Option<Ve
 
 #[tauri::command]
 pub async fn get_features_config(state: State<'_, AppState>) -> Result<config::FeaturesConfig, AppError> {
-    Ok((*state.config).clone())
+    let conf = state.config.read().await;
+    let data = (**conf).clone();
+    Ok(data)
 }
 
 #[tauri::command]
@@ -48,8 +53,19 @@ pub async fn apply_feature(
     offline_hive: Option<String>,
     target_vm: Option<String>
 ) -> Result<(), AppError> {
-    let feature = state.config.features.iter().find(|f| f.feature_id == feature_id)
-        .ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", feature_id)))?;
+    apply_feature_logic(state.inner(), feature_id, offline_hive, target_vm).await
+}
+
+pub async fn apply_feature_logic(
+    state: &AppState, 
+    feature_id: String, 
+    offline_hive: Option<String>,
+    target_vm: Option<String>
+) -> Result<(), AppError> {
+    let feature = {
+        let conf = state.config.read().await;
+        conf.features.iter().find(|f| f.feature_id == feature_id).cloned()
+    }.ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", feature_id)))?;
 
     if let Some(reg_file) = &feature.registry_key {
         let full_path = state.reg_path.join(reg_file);
@@ -175,13 +191,17 @@ pub async fn apply_features_batch(
 
     for id in &featureIds {
         let mut seen = std::collections::HashSet::new();
-        resolve_dag(id, &state.config.features, &mut resolved, &mut seen)
+        let features = {
+            let conf = state.config.read().await;
+            conf.features.clone()
+        };
+        resolve_dag(id, &features, &mut resolved, &mut seen)
             .map_err(|e| AppError::new("Dependency Graph", &e))?;
     }
 
     // Process all topologically sorted 
     for resolved_id in resolved {
-        apply_feature(state.clone(), resolved_id, _offlineHive.clone(), targetVm.clone()).await?;
+        apply_feature_logic(state.inner(), resolved_id, _offlineHive.clone(), targetVm.clone()).await?;
     }
     
     Ok(())
@@ -193,8 +213,10 @@ pub async fn undo_feature(
     feature_id: String,
     target_vm: Option<String>
 ) -> Result<(), AppError> {
-    let feature = state.config.features.iter().find(|f| f.feature_id == feature_id)
-        .ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", feature_id)))?;
+    let feature = {
+        let conf = state.config.read().await;
+        conf.features.iter().find(|f| f.feature_id == feature_id).cloned()
+    }.ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", feature_id)))?;
 
     if let Some(reg_file) = &feature.registry_undo_key {
         let full_path = state.reg_path.join(reg_file);

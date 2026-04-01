@@ -1,0 +1,31 @@
+   Compiling goldenimager2 v0.1.0 (P:\Projects\golden-image\_offline\GoldenImager2\src-tauri)
+error: future cannot be sent between threads safely
+   --> src\main.rs:43:13
+    |
+ 43 | /             tokio::spawn(async move {
+ 44 | |                 let mut last_mtime = std::fs::metadata(&config_path).and_then(|m| m.modified()).ok();
+ 45 | |                 loop {
+ 46 | |                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+...   |
+ 63 | |             });
+    | |______________^ future created by async block is not `Send`
+    |
+    = help: the trait `Send` is not implemented for `dyn StdError`
+note: future is not `Send` as this value is used across an await
+   --> src\main.rs:53:79
+    |
+ 50 | ...                   match config::load_config(config_path.clone()) {
+    |                             ---------------------------------------- has type `Result<FeaturesConfig, Box<dyn StdError>>` which is not `Send`
+...
+ 53 | ...                           let mut state_lock = state.config.write().await;
+    |                                                                         ^^^^^ await occurs here, with `config::load_config(config_path.clone())` maybe used later
+note: required by a bound in `tokio::spawn`
+   --> P:\._pkg\rust\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tokio-1.50.0\src\task\spawn.rs:176:21
+    |
+174 |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+    |            ----- required by a bound in this function
+175 |     where
+176 |         F: Future + Send + 'static,
+    |                     ^^^^ required by this bound in `spawn`
+
+error: could not compile `goldenimager2` (bin "goldenimager2") due to 1 previous error
