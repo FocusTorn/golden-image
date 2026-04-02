@@ -18,7 +18,8 @@ $GuestConfigPath = Join-Path $LocalProjectRoot "_offline\_offline_config.json"
 $script:ReservedMasterKeys = @(
     'shared', '_offline', 'offline_host', 'ahk',
     'VMDetails', 'VMFileSystem', 'VMCredentials', 'VMProvisioning',
-    'defaultVMProfile', 'activeVMProfile', 'VMProfiles', 'VMProfile'
+    'defaultVMProfile', 'activeVMProfile', 'VMProfiles', 'VMProfile',
+    'VMProvisioningTemplates'
 )
 
 function Test-IsLikelyVmProfileObject {

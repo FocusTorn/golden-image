@@ -38,7 +38,7 @@
 <main 
   class="app-container" 
   class:mock-window={!isTauri}
-  style="--accent-color: {$settings.accentColor}; --accent-rgb: {$accentRgb};"
+  style="--accent-color: {$settings.accentColor}; --accent-rgb: {$accentRgb}; --glass-opacity: {$settings.glassOpacity / 100};"
 >
   <div class="app-frame">
     <!-- Full-Width Title Bar -->

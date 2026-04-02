@@ -9,36 +9,48 @@ mod commands;
 mod utils;
 
 use std::sync::Arc;
-use tauri::Manager;
+use std::sync::Arc;
+use tauri::{Manager, WindowEvent};
 use state::AppState;
+use std::process::Command;
 
-// Resource resolution moved to utils::resolve_resource_path
+fn run_resource_cleanup() {
+    println!("[*] Rust: Initiating automatic resource release / environment cleanup...");
+    // We use a detached process to ensure cleanup finishes even if the main process exits quickly.
+    let _ = Command::new("powershell")
+        .args(&[
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-Command",
+            "& { . 'P:\\Projects\\golden-image\\_helpers\\ConfigUtils.ps1'; . 'P:\\Projects\\golden-image\\_offline_host\\vhd-management\\scripts\\VhdUtils.ps1'; if (Test-Path 'P:\\Projects\\golden-image\\_master_config.json') { $cfg = Get-Config -Target Host; Invoke-SmartRelease $cfg.VhdPath $cfg.VMName } }"
+        ])
+        .spawn();
+}
 
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            let app_handle = app.handle();
+            // Pre-emptive cleanup on launch
+            run_resource_cleanup();
             
+            let app_handle = app.handle();
             let cwd = std::env::current_dir().unwrap_or_default();
-
-            // 1. Initial Path Resolution
+            
+            // ... [Rest of setup logic remains unchanged] ...
             let resource_path = utils::resolve_resource_path(&app_handle, "config/Features.json")
                 .ok_or_else(|| tauri::Error::AssetNotFound(format!("config/Features.json (CWD: {:?})", cwd)))?;
             
             let reg_path = utils::resolve_resource_path(&app_handle, "regfiles")
                 .ok_or_else(|| tauri::Error::AssetNotFound(format!("regfiles (CWD: {:?})", cwd)))?;
 
-            // 2. Initial Config Load
             let config_path = resource_path.clone();
             let config = Arc::new(config::load_config(config_path.clone()).map_err(|e| format!("Config load error: {}", e))?);
             
-            // 3. Initialize Shared State
             app.manage(AppState {
                 config: tokio::sync::RwLock::new(config),
                 reg_path,
             });
 
-            // 4. Hot Update Watcher (Polling for changes)
             let app_handle_for_watch = app.handle();
             tauri::async_runtime::spawn(async move {
                 let mut last_mtime = std::fs::metadata(&config_path).and_then(|m| m.modified()).ok();
@@ -47,9 +59,6 @@ fn main() {
                     if let Ok(mtime) = std::fs::metadata(&config_path).and_then(|m| m.modified()) {
                         if Some(mtime) != last_mtime {
                             last_mtime = Some(mtime);
-
-                            // Capture the config and immediately drop the Result container
-                            // to ensure the non-Send Box<dyn Error> doesn't cross the await.
                             let new_config = match config::load_config(config_path.clone()) {
                                 Ok(cfg) => Some(cfg),
                                 Err(e) => {
@@ -70,7 +79,6 @@ fn main() {
                 }
             });
 
-            // 4. Taskbar Icon Fix (Dynamic Resolution)
             #[cfg(windows)]
             {
                 if let Some(window) = app.get_window("main") {
@@ -110,6 +118,12 @@ fn main() {
             }
             Ok(())
         })
+        .on_window_event(|event| {
+            if let WindowEvent::CloseRequested { .. } = event {
+                // Final cleanup on exit
+                run_resource_cleanup();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             commands::audit::get_audit_results,
             commands::audit::get_features_config,
@@ -136,7 +150,10 @@ fn main() {
             commands::vhd::attach_vhd_to_vm,
             commands::vhd::detach_vhd_from_vm,
             commands::vhd::get_master_config,
-            commands::vhd::transition_vhd
+            commands::vhd::transition_vhd,
+            commands::vhd::check_vm_status,
+            commands::vhd::update_default_profile,
+            commands::audit::run_debug_diagnostic
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

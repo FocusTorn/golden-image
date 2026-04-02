@@ -1,29 +1,12 @@
 use crate::apps;
 use crate::utils;
 use tauri::{AppHandle, command};
-use std::path::{Path, PathBuf};
 
 #[command]
 pub async fn get_apps(app: AppHandle) -> Result<Vec<apps::AppEntry>, String> {
     let resource_path = utils::resolve_resource_path(&app, "config/Apps.json");
-    let path = match resource_path {
-        Some(p) if p.exists() => p,
-        _ => {
-            let original_path = Path::new("../GoldenImager/Foundation/Win11Debloat/Config/Apps.json");
-            if original_path.exists() {
-                original_path.to_path_buf()
-            } else {
-                let mut found = None;
-                for p in &["resources/config/Apps.json", "../resources/config/Apps.json"] {
-                    if Path::new(p).exists() {
-                        found = Some(PathBuf::from(p));
-                        break;
-                    }
-                }
-                found.ok_or("Apps.json not found.")?
-            }
-        }
-    };
+    let path = resource_path.ok_or_else(|| "Apps.json configuration not found in resources.".to_string())?;
+
     let config = apps::load_apps_config(&path).map_err(|e| format!("Failed to read/parse {:?}: {}", path, e))?;
     Ok(apps::scan_installed_apps(&config.apps).await)
 }

@@ -27,13 +27,17 @@ pub async fn run_provisioning_stage(
     let script_str = script_path.to_str().expect("Valid path string");
 
     let mut command = if remote_active && vm_name.is_some() {
-        let name = vm_name.unwrap();
+        let name = vm_name.ok_or("Remote active but no VM name provided")?;
+        let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()?;
+        let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
+
         let mut cmd = Command::new("powershell");
+        cmd.env("VMU", user).env("VMP", pass);
         cmd.args([
             "-NoProfile", 
             "-ExecutionPolicy", "Bypass", 
             "-Command", 
-            &format!("Invoke-Command -VMName '{}' -FilePath '{}' -ErrorAction Stop", name, script_str)
+            &format!("{} Invoke-Command -VMName '{}' -FilePath '{}' -ErrorAction Stop @auth", auth_fragment, name, script_str)
         ]);
         cmd
     } else {
@@ -84,13 +88,17 @@ pub async fn install_app(
     };
 
     let mut command = if remote_active && vm_name.is_some() {
-        let name = vm_name.unwrap();
+        let name = vm_name.ok_or("Remote active but no VM name provided")?;
+        let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()?;
+        let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
+
         let mut cmd = Command::new("powershell");
+        cmd.env("VMU", user).env("VMP", pass);
         cmd.args([
             "-NoProfile", 
             "-ExecutionPolicy", "Bypass", 
             "-Command", 
-            &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", name, inner_command)
+            &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, name, inner_command)
         ]);
         cmd
     } else {

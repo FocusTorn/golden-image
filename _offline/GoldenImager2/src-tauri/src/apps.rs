@@ -167,8 +167,8 @@ fn parse_appx_json(stdout: Vec<u8>) -> Result<Vec<AppEntry>, Box<dyn std::error:
 
     if let Some(array) = json.as_array() {
         for item in array {
-            let name = item["Name"].as_str().unwrap_or("").to_string();
-            let app_id = item["PackageFullName"].as_str().unwrap_or("").to_string();
+            let name = item["Name"].as_str().ok_or("Missing Appx Name")?.to_string();
+            let app_id = item["PackageFullName"].as_str().ok_or("Missing Appx PackageFullName")?.to_string();
             if name.is_empty() || app_id.is_empty() { continue; }
             
             let publisher = item["Publisher"].as_str().map(|s| s.to_string());
@@ -193,8 +193,8 @@ fn parse_appx_json(stdout: Vec<u8>) -> Result<Vec<AppEntry>, Box<dyn std::error:
         }
     } else if let Some(obj) = json.as_object() {
         // Handle single object return
-        let name = obj["Name"].as_str().unwrap_or("").to_string();
-        let app_id = obj["PackageFullName"].as_str().unwrap_or("").to_string();
+        let name = obj["Name"].as_str().ok_or("Missing Appx Name (Single)")?.to_string();
+        let app_id = obj["PackageFullName"].as_str().ok_or("Missing Appx PackageFullName (Single)")?.to_string();
         if !name.is_empty() && !app_id.is_empty() {
              apps.push(AppEntry {
                 app_id: app_id.clone(),
@@ -253,9 +253,12 @@ fn get_app_details(parent_key: HKEY, subkey_name: PCWSTR, fallback_name: &str) -
     unsafe {
         RegOpenKeyExW(parent_key, subkey_name, 0, KEY_READ, &mut hkey).map_err(|e| e.to_string())?;
         
-        // Use RegGetValueW for safer reading
+        // Ensure we have a valid name or error
         let mut friendly_name = read_reg_string(hkey, "DisplayName").unwrap_or_default();
         if friendly_name.is_empty() {
+            if fallback_name.is_empty() {
+                 return Err("No DisplayName or subkey name found for registry app".into());
+            }
             friendly_name = fallback_name.to_string();
         }
         

@@ -85,13 +85,18 @@ pub async fn apply_feature_logic(
                 content, feature_id
             );
 
-            let output = tokio::process::Command::new("powershell")
-                .args([
-                    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-                    "-Command", 
-                    &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, remote_script)
-                ])
-                .output()
+            let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()
+                .map_err(|e| AppError::new("Auth Info", &e))?;
+            let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
+
+            let mut cmd = tokio::process::Command::new("powershell");
+            cmd.env("VMU", user).env("VMP", pass);
+            cmd.args([
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-Command", 
+                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, vm_name, remote_script)
+            ]);
+            let output = cmd.output()
                 .await
                 .map_err(|e| AppError::new("Remote Registry", &e.to_string()))?;
 
@@ -134,10 +139,14 @@ pub async fn apply_feature_logic(
     if let Some(script) = &feature.invoke_script {
         let mut cmd = tokio::process::Command::new("powershell");
         if let Some(vm_name) = &target_vm {
+            let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()
+                .map_err(|e| AppError::new("Auth Info", &e))?;
+            let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
+            cmd.env("VMU", user).env("VMP", pass);
             cmd.args([
                 "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                 "-Command", 
-                &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, script)
+                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, vm_name, script)
             ]);
         } else {
             cmd.args([
@@ -225,14 +234,18 @@ pub async fn undo_feature(
         }
 
         if let Some(vm_name) = &target_vm {
+            let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()
+                .map_err(|e| AppError::new("Auth Info", &e))?;
+            let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
             let script = format!("reg import '{}'", full_path.to_str().unwrap());
-            let output = tokio::process::Command::new("powershell")
-                .args([
-                    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-                    "-Command", 
-                    &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, script)
-                ])
-                .output()
+            let mut cmd = tokio::process::Command::new("powershell");
+            cmd.env("VMU", user).env("VMP", pass);
+            cmd.args([
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-Command", 
+                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, vm_name, script)
+            ]);
+            let output = cmd.output()
                 .await
                 .map_err(|e| AppError::new("Remote Registry Undo", &e.to_string()))?;
 
@@ -256,10 +269,14 @@ pub async fn undo_feature(
     if let Some(script) = &feature.undo_script {
         let mut cmd = tokio::process::Command::new("powershell");
         if let Some(vm_name) = &target_vm {
+            let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()
+                .map_err(|e| AppError::new("Auth Info", &e))?;
+            let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
+            cmd.env("VMU", user).env("VMP", pass);
             cmd.args([
                 "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                 "-Command", 
-                &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, script)
+                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, vm_name, script)
             ]);
         } else {
             cmd.args([
@@ -279,3 +296,22 @@ pub async fn undo_feature(
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn run_debug_diagnostic(script: String) -> Result<String, String> {
+    let output = tokio::process::Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", &script])
+        .output()
+        .await
+        .map_err(|e| format!("Failed to launch diagnostic: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    if output.status.success() {
+        Ok(stdout.to_string())
+    } else {
+        Err(if stderr.is_empty() { format!("Command failed (Exit code: {:?})", output.status.code()) } else { stderr.to_string() })
+    }
+}
+

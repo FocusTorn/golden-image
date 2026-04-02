@@ -1,4 +1,4 @@
-﻿# Dashboard: ROG Strix VHD Infrastructure Manager
+# Dashboard: ROG Strix VHD Infrastructure Manager
 # ---------------------------------------------------------------------------
 param([string]$Action)
 
@@ -570,6 +570,9 @@ while ($true) {
                     $m = Read-JsonCFile -Path $MasterConfigPath
                     $activePk = Get-ActiveVmProfileKey -Master $m
                     $ctx = Build-MergedHostVmConfig -Master $m -ProfileKey $activePk
+                    
+                    # --- RESOURCE RELEASE SYNC (Mirroring V and H stability) ---
+                    Invoke-SmartRelease $ctx.VhdPath $ctx.VMName
 
                     $tplKey = $ctx.HardwareTemplateKey
                     if ([string]::IsNullOrWhiteSpace($tplKey)) { throw "No HardwareTemplate defined in active profile $activePk" }
@@ -682,6 +685,9 @@ while ($true) {
                     $activePk = Get-ActiveVmProfileKey -Master $m
                     $ctx = Build-MergedHostVmConfig -Master $m -ProfileKey $activePk
 
+                    # --- RESOURCE RELEASE SYNC (Mirroring V and H stability) ---
+                    Invoke-SmartRelease $ctx.VhdPath $ctx.VMName
+
                     $defaultTpl = $ctx.HardwareTemplateKey
                     $tplNames = @()
                     if ($null -ne $m.VMProvisioningTemplates) {
@@ -736,4 +742,10 @@ while ($true) {
         Write-DetailedError $_ "Dashboard main loop encountered a critical error"
         if ($isCliAction) { exit 1 } else { Wait-AutoContinue }
     }
+} finally {
+    if ($null -ne $ctx -and $ctx.VhdPath) {
+        Write-Host "`n[*] Flushing SCSI handles and dismounting host volumes before exit..." -ForegroundColor Cyan
+        Invoke-SmartRelease $ctx.VhdPath $ctx.VMName
+    }
+    Write-Host "`n[*] Exiting Staging Dashboard." -ForegroundColor DarkGray
 }

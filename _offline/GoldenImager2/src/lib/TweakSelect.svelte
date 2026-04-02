@@ -8,6 +8,8 @@
   export let label: string = "Select Option";
   export let options: { Label: string; FeatureIds: string[] }[] = [];
   export let width: string = "120px";
+  export let height: string = "22px";
+  export let noDiff: boolean = false;
 
   const dispatch = createEventDispatcher();
   let isOpen = false;
@@ -43,14 +45,14 @@
 <div class="tweak-select-container" style="--width: {width}">
   <BloomControl
     {width}
-    height="22px"
+    {height}
     active={isOpen}
     on:click={toggle}
     style="padding: 0 8px; justify-content: flex-start !important; border-radius: 4px !important;"
   >
     <span 
       class="select-label truncate"
-      class:staged-diff={value !== appliedValue && value !== "none"}
+      class:staged-diff={!noDiff && value !== appliedValue && value.toLowerCase() !== "none" && !value.toLowerCase().startsWith("none")}
     >
       {activeLabel}
     </span>

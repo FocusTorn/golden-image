@@ -437,7 +437,6 @@ try {
         }
     }
 
-    Get-VMSnapshot -VMName $newName -ErrorAction SilentlyContinue | Remove-VMSnapshot -IncludeAllChildSnapshots -ErrorAction SilentlyContinue
 
     if (-not $NoConfigSave) {
         try {

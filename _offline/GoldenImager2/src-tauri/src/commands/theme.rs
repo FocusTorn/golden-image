@@ -11,25 +11,30 @@ pub struct ThemeInfo {
 }
 
 #[command]
-pub async fn get_theme_info() -> ThemeInfo {
+pub async fn get_theme_info() -> Result<ThemeInfo, String> {
     use winreg::RegKey;
     use winreg::enums::HKEY_CURRENT_USER;
     
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     
-    let (r, g, b, is_dark) = if let Ok(dwm_key) = hkcu.open_subkey("Software\\Microsoft\\Windows\\DWM") {
-        let color_val: u32 = dwm_key.get_value("AccentColor").unwrap_or(0xFFD47800);
-        let r = (color_val & 0xFF) as u8;
-        let g = ((color_val >> 8) & 0xFF) as u8;
-        let b = ((color_val >> 16) & 0xFF) as u8;
-        let personalization = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
-        let is_dark = personalization.and_then(|k| k.get_value::<u32, _>("AppsUseLightTheme")).map(|v| v == 0).unwrap_or(true);
-        (r, g, b, is_dark)
-    } else {
-        (0, 120, 212, true)
-    };
+    let dwm_key = hkcu.open_subkey("Software\\Microsoft\\Windows\\DWM")
+        .map_err(|e| format!("Failed to open DWM registry key: {}", e))?;
+        
+    let color_val: u32 = dwm_key.get_value("AccentColor")
+        .map_err(|e| format!("Failed to read AccentColor: {}", e))?;
+        
+    let r = (color_val & 0xFF) as u8;
+    let g = ((color_val >> 8) & 0xFF) as u8;
+    let b = ((color_val >> 16) & 0xFF) as u8;
+    
+    let personalization = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
+        .map_err(|e| format!("Failed to open Personalize registry key: {}", e))?;
+        
+    let is_dark = personalization.get_value::<u32, _>("AppsUseLightTheme")
+        .map(|v| v == 0)
+        .map_err(|e| format!("Failed to read AppsUseLightTheme: {}", e))?;
 
-    ThemeInfo { r, g, b, is_dark }
+    Ok(ThemeInfo { r, g, b, is_dark })
 }
 
 #[derive(Serialize)]
@@ -40,6 +45,7 @@ pub struct DashboardStats {
     pub audit_mode: bool,
     pub connection: ConnectionAudit,
     pub stages: StagesAudit,
+    pub vm_active: bool,
 }
 
 #[derive(Serialize)]
@@ -60,8 +66,11 @@ pub struct StagesAudit {
 }
 
 #[command]
-pub async fn get_dashboard_stats(target_vm: Option<String>) -> DashboardStats {
+pub async fn get_dashboard_stats(target_vm: Option<String>) -> Result<DashboardStats, String> {
     if let Some(vm_name) = target_vm {
+        if vm_name.trim().is_empty() {
+             return Err("Target VM name cannot be empty for remote connection.".to_string());
+        }
         return get_remote_stats(&vm_name).await;
     }
 
@@ -71,48 +80,59 @@ pub async fn get_dashboard_stats(target_vm: Option<String>) -> DashboardStats {
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let limit_blank = hklm.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Lsa")
-        .and_then(|k| k.get_value::<u32, _>("LimitBlankPasswordUse"))
-        .map(|v| v == 0).unwrap_or(false);
+        .map_err(|e| format!("Failed to open LSA key: {}", e))?
+        .get_value::<u32, _>("LimitBlankPasswordUse")
+        .map(|v| v == 0)
+        .map_err(|e| format!("Failed to read LimitBlankPasswordUse: {}", e))?;
 
     let winrm = check_service_status("WinRM");
     let keyiso = check_service_status("KeyIso");
-    let admin_enabled = std::process::Command::new("net")
+    
+    let admin_output = std::process::Command::new("net")
         .args(["user", "Administrator"])
         .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).contains("Account active               Yes"))
-        .unwrap_or(false);
+        .map_err(|e| format!("Failed to execute net user: {}", e))?;
+        
+    let admin_enabled = String::from_utf8_lossy(&admin_output.stdout).contains("Account active               Yes");
 
     let pwsh7 = Path::new("C:\\Program Files\\PowerShell\\7\\pwsh.exe").exists();
     let msvc = hklm.open_subkey("SOFTWARE\\Classes\\Installer\\Dependencies\\VC,redist.x64,amd64,14.0,bundle").is_ok();
     let app_infra = check_command_exists("choco") || check_command_exists("winget");
 
-    let os_build = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion")
-        .and_then(|k| {
-            let build: String = k.get_value("CurrentBuild").unwrap_or_default();
-            Ok(build)
-        })
-        .unwrap_or_else(|_| "22631".to_string());
+    let os_build: String = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion")
+        .map_err(|e| format!("Failed to open CurrentVersion key: {}", e))?
+        .get_value("CurrentBuild")
+        .map_err(|e| format!("Failed to read CurrentBuild: {}", e))?;
 
-    let audit_mode = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup\\State")
-        .and_then(|k| k.get_value::<u32, _>("ImageState"))
-        .unwrap_or(0) == 1;
+    // Fix: ImageState is a REG_SZ (string), not a u32. 
+    // IMAGE_STATE_COMPLETE means normal. Other states (like UNDEPLOYABLE) often indicate audit/sysprep mode.
+    let image_state: String = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup\\State")
+        .map_err(|e| format!("Failed to open Setup State key: {}", e))?
+        .get_value("ImageState")
+        .map_err(|e| format!("Failed to read ImageState: {}", e))?;
+    
+    let audit_mode = image_state != "IMAGE_STATE_COMPLETE";
 
-    let uptime = std::process::Command::new("powershell")
+    let uptime_output = std::process::Command::new("powershell")
         .args(["-NoProfile", "-Command", "(get-date) - (gcim Win32_OperatingSystem).LastBootUpTime | Select-Object -ExpandProperty ToString"])
         .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().split('.').next().unwrap_or("00:00:00").to_string())
-        .unwrap_or_else(|_| "00:00:00".to_string());
+        .map_err(|e| format!("Failed to get uptime via PowerShell: {}", e))?;
+        
+    let uptime = String::from_utf8_lossy(&uptime_output.stdout).trim().split('.').next()
+        .ok_or_else(|| "Malformed uptime output".to_string())?
+        .to_string();
 
-    DashboardStats {
+    Ok(DashboardStats {
         os_build,
         uptime,
         audit_mode,
         connection: ConnectionAudit { limit_blank, winrm, keyiso, admin_enabled },
-        stages: StagesAudit { pwsh7, msvc, app_infra }
-    }
+        stages: StagesAudit { pwsh7, msvc, app_infra },
+        vm_active: true,
+    })
 }
 
-async fn get_remote_stats(vm_name: &str) -> DashboardStats {
+async fn get_remote_stats(target_vm: &str) -> Result<DashboardStats, String> {
     let script = r#"
         $stats = @{
             OsBuild = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuild;
@@ -129,42 +149,57 @@ async fn get_remote_stats(vm_name: &str) -> DashboardStats {
         $stats | ConvertTo-Json
     "#;
 
-    let output = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-Command", &format!("Invoke-Command -VMName '{}' -ScriptBlock {{ {} }}", vm_name, script)])
-        .output();
+    // 1. Pre-fetch VM Power State to avoid hanging or misleading "connected" status
+    let vm_check = std::process::Command::new("powershell")
+        .args(["-NoProfile", "-Command", &format!("(Get-VM -Name '{}' -ErrorAction SilentlyContinue).State", target_vm)])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    let vm_state = String::from_utf8_lossy(&vm_check.stdout).trim().to_string();
+    if vm_state != "Running" {
+        return Err(format!("Remote Target Offline: VM '{}' must be running (Current: {})", target_vm, if vm_state.is_empty() { "NOT_FOUND" } else { &vm_state }));
+    }
 
-    if let Ok(o) = output {
-        if o.status.success() {
-            let json = String::from_utf8_lossy(&o.stdout);
-            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&json) {
-                return DashboardStats {
-                    os_build: data["OsBuild"].as_str().unwrap_or("Unknown").to_string(),
-                    uptime: data["Uptime"].as_str().unwrap_or("00:00:00").to_string(),
-                    audit_mode: data["AuditMode"].as_bool().unwrap_or(false),
+    let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()?;
+    let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
+
+    let mut command = std::process::Command::new("powershell");
+    command.env("VMU", user).env("VMP", pass);
+    command.args(["-NoProfile", "-Command", &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, target_vm, script)]);
+
+    let o = command.output().map_err(|e| e.to_string())?;
+
+    if o.status.success() {
+        let json = String::from_utf8_lossy(&o.stdout);
+        match serde_json::from_str::<serde_json::Value>(&json) {
+            Ok(data) => {
+                return Ok(DashboardStats {
+                    os_build: data["OsBuild"].as_str().ok_or("Remote missing OsBuild")?.to_string(),
+                    uptime: data["Uptime"].as_str().ok_or("Remote missing Uptime")?.to_string(),
+                    audit_mode: data["AuditMode"].as_bool().ok_or("Remote missing AuditMode")?,
                     connection: ConnectionAudit {
-                        limit_blank: data["LimitBlank"].as_bool().unwrap_or(false),
-                        winrm: data["WinRM"].as_bool().unwrap_or(false),
-                        keyiso: data["KeyIso"].as_bool().unwrap_or(false),
-                        admin_enabled: data["AdminEnabled"].as_bool().unwrap_or(false),
+                        limit_blank: data["LimitBlank"].as_bool().ok_or("Remote missing LimitBlank")?,
+                        winrm: data["WinRM"].as_bool().ok_or("Remote missing WinRM")?,
+                        keyiso: data["KeyIso"].as_bool().ok_or("Remote missing KeyIso")?,
+                        admin_enabled: data["AdminEnabled"].as_bool().ok_or("Remote missing AdminEnabled")?,
                     },
                     stages: StagesAudit {
-                        pwsh7: data["Pwsh7"].as_bool().unwrap_or(false),
-                        msvc: data["Msvc"].as_bool().unwrap_or(false),
-                        app_infra: data["AppInfra"].as_bool().unwrap_or(false),
-                    }
-                };
+                        pwsh7: data["Pwsh7"].as_bool().ok_or("Remote missing Pwsh7")?,
+                        msvc: data["Msvc"].as_bool().ok_or("Remote missing Msvc")?,
+                        app_infra: data["AppInfra"].as_bool().ok_or("Remote missing AppInfra")?,
+                    },
+                    vm_active: true,
+                });
+            },
+            Err(e) => {
+                let err_msg = format!("Remote Data Parse Error: {} (Raw: {})", e, json.trim());
+                return Err(err_msg);
             }
         }
     }
 
-    // Return empty stats if remote query fails
-    DashboardStats {
-        os_build: "N/A".to_string(),
-        uptime: "OFFLINE".to_string(),
-        audit_mode: false,
-        connection: ConnectionAudit { limit_blank: false, winrm: false, keyiso: false, admin_enabled: false },
-        stages: StagesAudit { pwsh7: false, msvc: false, app_infra: false }
-    }
+    let stderr = String::from_utf8_lossy(&o.stderr);
+    Err(if stderr.is_empty() { "Unknown Remote Command Failure (No Stderr)".to_string() } else { stderr.to_string() })
 }
 
 fn check_service_status(name: &str) -> bool {

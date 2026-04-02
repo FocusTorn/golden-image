@@ -55,7 +55,7 @@ pub struct Feature {
     pub undo_script: Option<String>,
 }
 
-pub fn load_config<P: AsRef<Path>>(path: P) -> Result<FeaturesConfig, Box<dyn std::error::Error>> {
+pub fn load_config<P: AsRef<Path>>(path: P) -> Result<FeaturesConfig, Box<dyn std::error::Error + Send + Sync>> {
     let content = fs::read_to_string(path)?;
     let stripped = json_comments::StripComments::new(content.as_bytes());
     let config: FeaturesConfig = serde_json::from_reader(stripped)?;

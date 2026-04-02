@@ -19,7 +19,8 @@
     ShieldCheck,
     Loader2,
     Database,
-    ChevronDown
+    ChevronDown,
+    Shield
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import TweakSelect from "./TweakSelect.svelte";
@@ -31,19 +32,25 @@
   let stats: any = null;
   let masterConfig: any = null;
   let vmProfiles: string[] = [];
+  let currentOsVhd: string = "";
   let isProfileOpen = false;
   let loading = true;
   let error: string | null = null;
   let executingActions = new Set<string>();
-
+  let isRemoteStats = false;
   async function loadStats() {
     loading = true;
     error = null;
+    isRemoteStats = false;
+    const name = $vhdStore.remoteActive ? $vhdStore.vmName : null;
     try {
       if (isTauri) {
         stats = await invoke("get_dashboard_stats", {
-          target_vm: $vhdStore.remoteActive ? $vhdStore.vmName : null
+          target_vm: name
         });
+        if (stats.remoteName && stats.remoteName === name) {
+          isRemoteStats = true;
+        }
       } else {
         // Mock stats for dev
         stats = {
@@ -65,6 +72,11 @@
       }
     } catch (e) {
       error = typeof e === "string" ? e : JSON.stringify(e);
+      // Auto-fallback if remote fails
+      if ($vhdStore.remoteActive) {
+        vhdStore.update(s => ({ ...s, remoteActive: false }));
+        notificationStore.add(`Remote Connection Failed: ${error}`, "error"); 
+      }
     } finally {
       loading = false;
     }
@@ -76,10 +88,9 @@
         masterConfig = await invoke("get_master_config");
         vmProfiles = Object.keys(masterConfig.VMProfiles);
         
-        // Sync initial state if a profile is already selected globally
-        const currentProfile = $vhdStore.selectedProfile;
-        if (currentProfile && !vmProfiles.includes(currentProfile)) {
-          // Profile exists but perhaps config reloaded
+        // Sync initial state from Default Profile if nothing is selected
+        if (!$vhdStore.selectedProfile && masterConfig.defaultVMProfile) {
+          handleProfileChange(masterConfig.defaultVMProfile);
         }
       } else {
         vmProfiles = ["Pro-Gaming", "Workstation-Ultra", "Server-Core"];
@@ -94,10 +105,13 @@
     if (profile) {
       vhdStore.update(s => ({
         ...s,
-        vhdPath: profile.VMDetails?.OsVhdPath || masterConfig.VMFileSystem.HostVhdPath,
+        // The Hub Hub should ALWAYS target the Staging VHD for sync ops
+        vhdPath: masterConfig.VMFileSystem.HostVhdPath, 
         vmName: profile.VMDetails?.VMName || "",
         selectedProfile: selected
       }));
+      // Optional display variable for the OS VHD
+      currentOsVhd = profile.VMDetails?.OsVhdPath || "";
     }
   }
 
@@ -181,7 +195,8 @@
       }
       notificationStore.add(`VHD active on ${target}.`, "success");
     } catch (e: any) {
-      notificationStore.add(`VHD Error: ${e}`, "error");
+      const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
+      notificationStore.add(`VHD Error: ${msg}`, "error");
     } finally {
       vhdStore.update(s => ({ ...s, processing: false }));
     }
@@ -200,11 +215,42 @@
         vhdStore.update(s => ({ ...s, vhdMounted: false, vhdAttached: false, vhdDiskNumber: null }));
       }
       notificationStore.add("VHD released.", "info");
-    } catch (e) {
-      notificationStore.add("Release failed.", "error");
+    } catch (e: any) {
+      const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
+      notificationStore.add(`Release failed: ${msg}`, "error");
     } finally {
       vhdStore.update(s => ({ ...s, processing: false }));
     }
+  }
+
+  async function toggleRemote() {
+    if (loading) return;
+    const targetState = !$vhdStore.remoteActive;
+    
+    // Safety: Don't allow remote toggle if no VM name exists
+    if (targetState && !$vhdStore.vmName) {
+      notificationStore.add("Activation Failed: No VM profile selected.", "error");
+      return;
+    }
+
+    if (targetState) {
+      loading = true;
+      try {
+        const state = await invoke("check_vm_status", { vmName: $vhdStore.vmName });
+        if (state !== "Running") {
+          notificationStore.add(`Activation Blocked: VM ['${$vhdStore.vmName}'] is currently ${state}.`, "error");
+          loading = false;
+          return;
+        }
+      } catch (e) {
+        notificationStore.add(`Activation Error: ${e}`, "error");
+        loading = false;
+        return;
+      }
+      loading = false;
+    }
+
+    vhdStore.update(s => ({ ...s, remoteActive: targetState }));
   }
 
   onMount(async () => {
@@ -212,8 +258,8 @@
     await loadMasterConfig();
   });
 
-  // Automatically refresh stats when the environment target changes
-  $: if ($vhdStore.remoteActive !== undefined || $vhdStore.vhdAttached !== undefined) {
+  // Automatically refresh stats when the environment target or profile changes
+  $: if ($vhdStore.remoteActive !== undefined || $vhdStore.vhdAttached !== undefined || $vhdStore.selectedProfile !== undefined) {
      loadStats();
   }
 
@@ -235,17 +281,22 @@
             <Monitor size={16} strokeWidth={3.5} />
           </span>
           <h3>SYSTEM & SESSION SNAPSHOT</h3>
+          {#if loading}
+            <div class="header-loader">
+              <Loader2 size={10} class="spin" />
+            </div>
+          {/if}
         </div>
         
         <div class="card-body">
           <div class="stats-hub">
             <div class="stat-row">
-              <div class="stat-label">HOST OS BUILD</div>
-              <div class="stat-value">{stats?.OsBuild || "22631.PRO"}</div>
+              <div class="stat-label">{isRemoteStats ? 'REMOTE' : 'HOST'} OS BUILD</div>
+              <div class="stat-value">{stats?.build || "22631.PRO"}</div>
             </div>
             <div class="stat-row">
-              <div class="stat-label">HOST UPTIME</div>
-              <div class="stat-value">{stats?.Uptime || "00:00:00"}</div>
+              <div class="stat-label">{isRemoteStats ? 'REMOTE' : 'HOST'} UPTIME</div>
+              <div class="stat-value">{stats?.uptime || "00:00:00"}</div>
             </div>
           </div>
 
@@ -253,11 +304,34 @@
 
           <div class="stats-hub">
             <div class="stat-row">
-              <div class="stat-label">ACTIVE VHD</div>
-              <div class="stat-value truncate" title={vhdState.vhdPath || 'No VHD Loaded'}>
-                {vhdState.vhdPath ? vhdState.vhdPath.split(/[\\/]/).pop() : 'NONE'}
+              <div class="stat-label">IMAGE AUDIT MODE</div>
+              <div class="stat-value">{stats?.auditMode ? 'YES' : 'NO'}</div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-label">BUILD TARGET</div>
+              <div class="stat-badge" class:active={isRemoteStats}>
+                {isRemoteStats ? 'REMOTE VM' : 'LOCAL HOST'}
               </div>
             </div>
+          </div>
+          <div class="divider"></div>
+
+          <div class="stats-hub">
+            <div class="stat-row">
+              <div class="stat-label">STAGING SYNC VHD</div>
+              <div class="stat-value truncate" title={vhdState.vhdPath || 'No VHD Loaded'}>
+                {vhdState.vhdPath ? vhdState.vhdPath.split(/[\\/ ]/).pop() : 'NONE'}
+              </div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-label">VM BOOT OS VHD</div>
+              <div class="stat-value truncate" title={currentOsVhd || 'N/A'}>
+                {currentOsVhd ? currentOsVhd.split(/[\\/ ]/).pop() : 'N/A'}
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-hub">
             <div class="stat-row">
               <div class="stat-label">IMAGE AUDIT MODE</div>
               <div class="stat-badge" class:active={stats?.AuditMode}>
@@ -378,7 +452,7 @@
               {#if executingActions.has('ClearStart')}
                 <RefreshCw size={12} class="spin" />
               {:else}
-                <Play size={10} fill="currentColor" />
+                <Trash2 size={11} strokeWidth={2.5} />
               {/if}
             </button>
           </div>
@@ -399,35 +473,19 @@
             </button>
           </div>
 
-          <div class="action-item tweak-row">
+          <div class="action-item tweak-row restricted" title="Ghost Mode (Pending Stage 4 Engine)">
             <span class="tweak-name">Scrub Communication Apps</span>
             <div class="spacer"></div>
-            <button 
-              class="zap-btn" 
-              class:executing={executingActions.has('RemoveCommApps')}
-              on:click={() => runAction('RemoveCommApps')}
-            >
-              {#if executingActions.has('RemoveCommApps')}
-                <RefreshCw size={12} class="spin" />
-              {:else}
+            <button class="zap-btn" disabled>
                 <Mail size={11} strokeWidth={2.5} />
-              {/if}
             </button>
           </div>
 
-          <div class="action-item tweak-row">
+          <div class="action-item tweak-row restricted" title="Ghost Mode (Awaiting OEM Registry Map)">
             <span class="tweak-name">Remove HP OEM Bloat</span>
             <div class="spacer"></div>
-            <button 
-              class="zap-btn" 
-              class:executing={executingActions.has('RemoveHPApps')}
-              on:click={() => runAction('RemoveHPApps')}
-            >
-              {#if executingActions.has('RemoveHPApps')}
-                <RefreshCw size={12} class="spin" />
-              {:else}
-                <Trash2 size={11} strokeWidth={2.5} />
-              {/if}
+            <button class="zap-btn" disabled>
+                <Shield size={11} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -485,12 +543,16 @@
             <div class="stat-label">REMOTE TARGET</div>
             <button 
               class="bloom-select remote-btn" 
-              class:active={vhdState.remoteActive}
-              disabled={!vhdState.vmName}
-              title={!vhdState.vmName ? "Select an Image Profile to unlock Remote mode" : ""}
-              on:click={() => vhdStore.update(s => ({ ...s, remoteActive: !s.remoteActive }))}
+              class:active={vhdState.remoteActive && !loading}
+              class:connecting={loading && vhdState.remoteActive}
+              disabled={!vhdState.vmName || loading}
+              on:click={toggleRemote}
             >
-              {vhdState.remoteActive ? 'ACTIVE (VM)' : 'OFF (LOCAL)'}
+              {#if loading && vhdState.remoteActive}
+                <Loader2 size={10} class="spin" />
+              {:else}
+                {vhdState.remoteActive ? 'ACTIVE (VM)' : 'OFF (LOCAL)'}
+              {/if}
             </button>
           </div>
 
@@ -556,7 +618,7 @@
 
   .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     grid-gap: 16px;
     padding: 16px;
     overflow-y: auto;
@@ -574,7 +636,7 @@
   /* REPRODUCED TWEAK CARD STYLING */
   .category-card {
     width: 100%;
-    background: #1a1f22; /* Calibrated slate charcoal */
+    background: rgba(26, 31, 34, var(--glass-opacity, 0.8)); 
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     box-shadow: 
@@ -605,6 +667,14 @@
   .header-icon {
     margin-right: 12px;
     color: var(--accent-color);
+  }
+
+  .header-loader {
+    margin-left: auto;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    opacity: 0.6;
   }
 
   .card-body {
@@ -896,6 +966,20 @@
      border-color: #00bcd4;
   }
 
+  .remote-btn.connecting {
+     background: rgba(0, 188, 212, 0.1);
+     color: #00bcd4;
+     border-color: rgba(0, 188, 212, 0.4);
+     cursor: wait;
+     animation: pulse 1.5s infinite ease-in-out;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 5px rgba(0, 188, 212, 0.2); }
+    50% { box-shadow: 0 0 15px rgba(0, 188, 212, 0.4); }
+    100% { box-shadow: 0 0 5px rgba(0, 188, 212, 0.2); }
+  }
+
   .vhd-control-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -952,8 +1036,10 @@
     cursor: not-allowed;
   }
 
-  .vhd-action-btn:disabled {
-    opacity: 0.4;
+  .action-item.restricted {
+    opacity: 0.35;
+    pointer-events: none;
+    filter: grayscale(1);
     cursor: not-allowed;
   }
 </style>
