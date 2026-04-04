@@ -1,4 +1,4 @@
-<#
+<##
 .SYNOPSIS
     Workspace-wide configuration management utilities.
     Loads JSONC master config, resolves VM profiles, and syncs derived JSON files.
@@ -9,7 +9,7 @@
 
     Active profile: $env:GOLDEN_IMAGE_VM_PROFILE, else master.activeVMProfile, else master.defaultVMProfile,
     else first VMProfiles entry, else 'Windows 11 Master' if present.
-#>
+##>
 
 $LocalProjectRoot = Split-Path $PSScriptRoot -Parent
 $MasterConfigPath = Join-Path $LocalProjectRoot "_master_config.json"
@@ -22,12 +22,12 @@ $script:ReservedMasterKeys = @(
     'VMProvisioningTemplates'
 )
 
-function Test-IsLikelyVmProfileObject {
+function Test-IsLikelyVmProfileObject { #>
     param($Node)
     return $null -ne $Node -and ($Node -is [PSCustomObject]) -and $null -ne $Node.PSObject.Properties['VMDetails']
-}
+} #<
 
-function Ensure-NewtonsoftJsonLoaded {
+function Ensure-NewtonsoftJsonLoaded { #>
     if ([AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.GetName().Name -eq 'Newtonsoft.Json' }) {
         return
     }
@@ -40,9 +40,9 @@ Or use PowerShell 7+ for native JSONC support.
 "@
     }
     [void][Reflection.Assembly]::LoadFrom((Resolve-Path -LiteralPath $dll).Path)
-}
+} #<
 
-function Write-DetailedError {
+function Write-DetailedError { #>
     param(
         [Parameter(Mandatory = $true)]$ErrorRecord,
         [string]$ContextMessage = "An error occurred"
@@ -60,9 +60,9 @@ function Write-DetailedError {
         }
     }
     Write-Host ""
-}
+} #<
 
-function Read-JsonCFile {
+function Read-JsonCFile { #>
     param([Parameter(Mandatory = $true)][string]$Path)
     if (-not (Test-Path -LiteralPath $Path)) {
         throw "JSONC file not found: $Path"
@@ -87,9 +87,9 @@ function Read-JsonCFile {
     $token = [Newtonsoft.Json.Linq.JToken]::ReadFrom($jsonReader, $loadSettings)
     $json = $token.ToString([Newtonsoft.Json.Formatting]::None)
     return $json | ConvertFrom-Json
-}
+} #<
 
-function Get-FirstNonEmpty {
+function Get-FirstNonEmpty { #>
     param([object[]]$Candidates)
     foreach ($c in $Candidates) {
         if ($null -eq $c) { continue }
@@ -100,9 +100,9 @@ function Get-FirstNonEmpty {
         }
     }
     return $null
-}
+} #<
 
-function Get-VmProfileSection {
+function Get-VmProfileSection { #>
     param(
         [Parameter(Mandatory = $true)]$Master,
         [Parameter(Mandatory = $true)][string]$ProfileKey
@@ -114,9 +114,9 @@ function Get-VmProfileSection {
         return $Master.$ProfileKey
     }
     throw "Unknown VM profile '$ProfileKey'. Define it under VMProfiles or as a legacy top-level profile object."
-}
+} #<
 
-function Get-ActiveVmProfileKey {
+function Get-ActiveVmProfileKey { #>
     param($Master)
     if ($env:GOLDEN_IMAGE_VM_PROFILE -and $env:GOLDEN_IMAGE_VM_PROFILE.Trim().Length -gt 0) {
         return $env:GOLDEN_IMAGE_VM_PROFILE.Trim()
@@ -139,13 +139,9 @@ function Get-ActiveVmProfileKey {
         if (Test-IsLikelyVmProfileObject $p.Value) { return $p.Name }
     }
     throw "Could not determine active VM profile. Set defaultVMProfile, VMProfiles, or `$env:GOLDEN_IMAGE_VM_PROFILE."
-}
+} #<
 
-function Get-VmProfileNames {
-    <#
-    .SYNOPSIS
-        Returns profile keys from VMProfiles plus legacy top-level profile objects in the master file.
-    #>
+function Get-VmProfileNames { #>
     param(
         $Master = $null
     )
@@ -173,9 +169,9 @@ function Get-VmProfileNames {
         }
     }
     return @($ordered)
-}
+} #<
 
-function Get-ProfileResolutionSummary {
+function Get-ProfileResolutionSummary { #>
     param($Master = $null)
     if (-not $Master) {
         if (-not (Test-Path -LiteralPath $MasterConfigPath)) {
@@ -190,15 +186,16 @@ function Get-ProfileResolutionSummary {
         MasterDefaultVMProfile     = $Master.defaultVMProfile
         ResolvedProfileKey         = $resolved
     }
-}
+} #<
 
-function Build-MergedHostVmConfig {
+function Build-MergedHostVmConfig { #>
     param(
         [Parameter(Mandatory = $true)]$Master,
         [Parameter(Mandatory = $true)][string]$ProfileKey
     )
     $prof = Get-VmProfileSection -Master $Master -ProfileKey $ProfileKey
     $vd = $prof.VMDetails
+    
     if (-not $vd) { throw "Profile '$ProfileKey' is missing VMDetails." }
 
     $hwTemplateKey = Get-FirstNonEmpty @($prof.HardwareTemplate)
@@ -254,10 +251,14 @@ function Build-MergedHostVmConfig {
         OSImagePath         = $vd.OSImagePath
         UnattendIsoPath     = $vd.UnattendIsoPath
     }
-}
+} #<
+
+
+
 
 # --- Mutable master JSON (comments in file are stripped on save; use PS 7+ JsonNode or Newtonsoft) ---
-function Read-MasterJsonEditable {
+
+function Read-MasterJsonEditable { #>
     if (-not (Test-Path -LiteralPath $MasterConfigPath)) {
         throw "Master config not found: $MasterConfigPath"
     }
@@ -274,9 +275,9 @@ function Read-MasterJsonEditable {
     $ls.CommentHandling = [Newtonsoft.Json.Linq.CommentHandling]::Ignore
     $root = [Newtonsoft.Json.Linq.JObject]::Parse($raw, $ls)
     return @{ Kind = 'JObject'; Root = $root }
-}
+} #<
 
-function Write-MasterJsonEditable {
+function Write-MasterJsonEditable { #>
     param([hashtable]$Doc)
     $tmp = "$MasterConfigPath.tmp"
     if ($Doc.Kind -eq 'Node') {
@@ -289,9 +290,12 @@ function Write-MasterJsonEditable {
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
     [System.IO.File]::WriteAllText($tmp, $text, $utf8NoBom)
     Move-Item -LiteralPath $tmp -Destination $MasterConfigPath -Force
-}
+} #<
 
-function Get-ProfileVmDetailsEditable {
+
+
+
+function Get-ProfileVmDetailsEditable { #>
     param(
         $Doc,
         [string]$ProfileKey
@@ -327,15 +331,15 @@ function Get-ProfileVmDetailsEditable {
         return , $prof['VMDetails']
     }
     throw "Profile '$ProfileKey' not found under VMProfiles or as a top-level profile object."
-}
+} #<
 
-function Save-HostVmSettingsToMaster {
-    <#
+function Save-HostVmSettingsToMaster { #>
+    <##
     .SYNOPSIS
         Writes host-oriented settings into _master_config.json for the active (or specified) VM profile.
     .NOTES
         Saving re-serializes JSON; // comments in the master file are removed. Prefer PS 7+ or keep edits in Git.
-    #>
+    ##>
     param(
         [string]$VMProfileKey,
         [string]$VhdPath,
@@ -393,17 +397,17 @@ function Save-HostVmSettingsToMaster {
 
     Write-MasterJsonEditable -Doc $doc
     Write-Host "Updated _master_config.json (profile '$pk'). Note: JSONC comments in that file were removed by this save." -ForegroundColor Yellow
-}
+} #<
 
-function Save-DefaultVmProfileToMaster {
-    <#
+function Save-DefaultVmProfileToMaster { #>
+    <##
     .SYNOPSIS
         Persists the default VM profile key in _master_config.json (defaultVMProfile).
     .NOTES
         Removes activeVMProfile from the root object if present so it cannot override defaultVMProfile.
         Resolution order is unchanged: $env:GOLDEN_IMAGE_VM_PROFILE still wins when set.
         Saving re-serializes JSON; // comments in the master file are removed.
-    #>
+    ##>
     param(
         [Parameter(Mandatory = $true)][string]$ProfileKey
     )
@@ -425,9 +429,9 @@ function Save-DefaultVmProfileToMaster {
 
     Write-MasterJsonEditable -Doc $doc
     Write-Host "Saved default VM profile '$pk' in _master_config.json (defaultVMProfile). `$env:GOLDEN_IMAGE_VM_PROFILE still overrides when set. JSONC comments were removed by this save." -ForegroundColor Yellow
-}
+} #<
 
-function Sync-Configs {
+function Sync-Configs { #>
     if (-not (Test-Path $MasterConfigPath)) { return }
     $master = Read-JsonCFile -Path $MasterConfigPath
 
@@ -439,9 +443,9 @@ function Sync-Configs {
         }
     }
     $offCfg | ConvertTo-Json -Depth 10 | Set-Content $GuestConfigPath
-}
+} #<
 
-function Get-Config {
+function Get-Config { #>
     Param(
         [ValidateSet("Host", "Guest")][string]$Target = "Host",
         [string]$VMProfileKey
@@ -454,9 +458,9 @@ function Get-Config {
     }
     if (Test-Path $GuestConfigPath) { return Get-Content $GuestConfigPath | ConvertFrom-Json }
     return @{}
-}
+} #<
 
-function Get-VMCreds {
+function Get-VMCreds { #>
     Param([string]$User, [object]$Config)
     if (-not $User) { $User = "Administrator" }
     $usePass = $Config.UsePasswordCreds -eq $true -or $Config.UsePasswordCreds -eq "true"
@@ -464,11 +468,11 @@ function Get-VMCreds {
         ConvertTo-SecureString $Config.VMPassword.ToString() -AsPlainText -Force
     } else { New-Object System.Security.SecureString }
     return New-Object System.Management.Automation.PSCredential($User, $pass)
-}
+} #<
 
-function Get-GuestDriveLetter {
+function Get-GuestDriveLetter { #>
     param($val)
     if (-not $val) { return 'F' }
     $s = if ($val -is [string]) { $val } elseif ($val.value) { $val.value } else { $val.ToString() }
     if ($s) { return $s.ToString().Trim().TrimEnd(':')[0] } else { return 'F' }
-}
+} #<

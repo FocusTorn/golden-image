@@ -1913,9 +1913,60 @@
       "Category": "Maintenance",
       "Action": "Reinstall",
       "ApplyText": "Repairing WinGet...",
-      "InvokeScript": "$winget = Get-AppxPackage -Name Microsoft.DesktopAppInstaller; if ($winget) { Add-AppxPackage -Register \"$($winget.InstallLocation)\\AppxManifest.xml\" -DisableDevelopmentMode -ForceApplicationShutdown } else { winget install Microsoft.DesktopAppInstaller --source msstore --accept-package-agreements --accept-source-agreements --silent }",
-      "MinVersion": null,
-      "MaxVersion": null
+      "InvokeScript": "$winget = Get-AppxPackage -Name Microsoft.DesktopAppInstaller; if ($winget) { Add-AppxPackage -Register \"$($winget.InstallLocation)\\AppxManifest.xml\" -DisableDevelopmentMode -ForceApplicationShutdown } else { winget install Microsoft.DesktopAppInstaller --source msstore --accept-package-agreements --accept-source-agreements --silent }"
+    },
+    {
+      "FeatureId": "LimitBlank",
+      "Label": "LSA Admin Passwords",
+      "Category": "System",
+      "Action": "Allow Blank Passwords",
+      "RegistryKey": null,
+      "ApplyText": "Enabling blank password use for local admin accounts...",
+      "InvokeScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name 'LimitBlankPasswordUse' -Type DWord -Value 0",
+      "UndoScript": "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name 'LimitBlankPasswordUse' -Type DWord -Value 1"
+    },
+    {
+      "FeatureId": "WinRM",
+      "Label": "WinRM Management Stack",
+      "Category": "System",
+      "Action": "Enable WinRM",
+      "ApplyText": "Configuring WinRM for remote management...",
+      "InvokeScript": "winrm quickconfig -quiet; Set-Service WinRM -StartupType Automatic; Start-Service WinRM",
+      "UndoScript": "Stop-Service WinRM; Set-Service WinRM -StartupType Disabled"
+    },
+    {
+      "FeatureId": "AdminAccount",
+      "Label": "Local Admin Account",
+      "Category": "System",
+      "Action": "Activate Administrator",
+      "ApplyText": "Activating built-in Administrator account...",
+      "InvokeScript": "net user Administrator /active:yes",
+      "UndoScript": "net user Administrator /active:no"
+    },
+    {
+      "FeatureId": "KeyIso",
+      "Label": "CNG Key Isolation",
+      "Category": "System",
+      "Action": "Enable KeyIso",
+      "ApplyText": "Enabling CNG Key Isolation service...",
+      "InvokeScript": "Set-Service KeyIso -StartupType Automatic; Start-Service KeyIso"
+    },
+    {
+      "FeatureId": "RDP",
+      "Label": "Remote Desktop Protocol",
+      "Category": "System",
+      "Action": "Enable RDP",
+      "ApplyText": "Enabling Remote Desktop Protocol...",
+      "InvokeScript": "Set-ItemProperty -Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' -Name 'fDenyTSConnections' -Type DWord -Value 0; Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'",
+      "UndoScript": "Set-ItemProperty -Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' -Name 'fDenyTSConnections' -Type DWord -Value 1"
+    },
+    {
+      "FeatureId": "NetDiscovery",
+      "Label": "Network Discovery",
+      "Category": "System",
+      "Action": "Enable Discovery",
+      "ApplyText": "Enabling Network Discovery services...",
+      "InvokeScript": "Set-Service FDResPub -StartupType Automatic; Start-Service FDResPub; netsh advfirewall firewall set rule group='Network Discovery' new enable=Yes"
     }
   ]
 }

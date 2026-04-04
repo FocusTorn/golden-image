@@ -5,7 +5,18 @@
 #>
 
 # Resolve project root relative to this script
-$LocalProjectRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+$LocalProjectRoot = $null
+try {
+    $p1 = Split-Path $PSScriptRoot -Parent
+    $p2 = if ($p1) { Split-Path $p1 -Parent }
+    $p3 = if ($p2) { Split-Path $p2 -Parent }
+    if ($p3) { $LocalProjectRoot = $p3 }
+} catch { }
+
+if (-not $LocalProjectRoot) {
+    # Fallback to current directory or throw if critical
+    $LocalProjectRoot = (Get-Item ".").FullName
+}
 
 # Import shared configuration utilities
 . (Join-Path $LocalProjectRoot "_helpers\ConfigUtils.ps1")

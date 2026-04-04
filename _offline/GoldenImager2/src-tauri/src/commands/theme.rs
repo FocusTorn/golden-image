@@ -49,12 +49,19 @@ pub struct DashboardStats {
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "PascalCase")]
 pub struct ConnectionAudit {
+    #[serde(rename = "LimitBlank")]
     pub limit_blank: bool,
+    #[serde(rename = "Winrm")]
     pub winrm: bool,
+    #[serde(rename = "KeyIso")]
     pub keyiso: bool,
+    #[serde(rename = "AdminEnabled")]
     pub admin_enabled: bool,
+    #[serde(rename = "Rdp")]
+    pub rdp: bool,
+    #[serde(rename = "NetDiscovery")]
+    pub net_discovery: bool,
 }
 
 #[derive(Serialize)]
@@ -95,6 +102,12 @@ pub async fn get_dashboard_stats(target_vm: Option<String>) -> Result<DashboardS
         
     let admin_enabled = String::from_utf8_lossy(&admin_output.stdout).contains("Account active               Yes");
 
+    let rdp = hklm.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server")
+        .map(|k| k.get_value::<u32, _>("fDenyTSConnections").unwrap_or(1) == 0)
+        .unwrap_or(false);
+
+    let net_discovery = check_service_status("FDResPub");
+
     let pwsh7 = Path::new("C:\\Program Files\\PowerShell\\7\\pwsh.exe").exists();
     let msvc = hklm.open_subkey("SOFTWARE\\Classes\\Installer\\Dependencies\\VC,redist.x64,amd64,14.0,bundle").is_ok();
     let app_infra = check_command_exists("choco") || check_command_exists("winget");
@@ -126,7 +139,7 @@ pub async fn get_dashboard_stats(target_vm: Option<String>) -> Result<DashboardS
         os_build,
         uptime,
         audit_mode,
-        connection: ConnectionAudit { limit_blank, winrm, keyiso, admin_enabled },
+        connection: ConnectionAudit { limit_blank, winrm, keyiso, admin_enabled, rdp, net_discovery },
         stages: StagesAudit { pwsh7, msvc, app_infra },
         vm_active: true,
     })
@@ -142,6 +155,8 @@ async fn get_remote_stats(target_vm: &str) -> Result<DashboardStats, String> {
             WinRM = (Get-Service WinRM -ErrorAction SilentlyContinue).Status -eq 'Running';
             KeyIso = (Get-Service KeyIso -ErrorAction SilentlyContinue).Status -eq 'Running';
             AdminEnabled = (net user Administrator) -match 'Account active\s+Yes';
+            RDP = (Get-ItemProperty "HKLM:\System\CurrentControlSet\Control\Terminal Server").fDenyTSConnections -eq 0;
+            NetDiscovery = (Get-Service FDResPub -ErrorAction SilentlyContinue).Status -eq 'Running';
             Pwsh7 = Test-Path "C:\Program Files\PowerShell\7\pwsh.exe";
             Msvc = Test-Path "HKLM:\SOFTWARE\Classes\Installer\Dependencies\VC,redist.x64,amd64,14.0,bundle";
             AppInfra = (Get-Command choco -ErrorAction SilentlyContinue) -or (Get-Command winget -ErrorAction SilentlyContinue);
@@ -182,6 +197,8 @@ async fn get_remote_stats(target_vm: &str) -> Result<DashboardStats, String> {
                         winrm: data["WinRM"].as_bool().ok_or("Remote missing WinRM")?,
                         keyiso: data["KeyIso"].as_bool().ok_or("Remote missing KeyIso")?,
                         admin_enabled: data["AdminEnabled"].as_bool().ok_or("Remote missing AdminEnabled")?,
+                        rdp: data["RDP"].as_bool().ok_or("Remote missing RDP")?,
+                        net_discovery: data["NetDiscovery"].as_bool().ok_or("Remote missing NetDiscovery")?,
                     },
                     stages: StagesAudit {
                         pwsh7: data["Pwsh7"].as_bool().ok_or("Remote missing Pwsh7")?,

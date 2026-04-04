@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
+  import { listen } from "@tauri-apps/api/event";
   import { 
     Cog, 
     RefreshCw, 
@@ -96,13 +97,11 @@
     
     let unlisten: any;
     if (isTauri) {
-      import("@tauri-apps/api/event").then(({ listen }) => {
-        listen("features-config-updated", () => {
-          console.log(">>> Live Update: Refreshing config labels...");
-          loadData();
-          notificationStore.add("Configuration updated live.", "info");
-        }).then(u => unlisten = u);
-      });
+      listen("features-config-updated", () => {
+        console.log(">>> Live Update: Refreshing config labels...");
+        loadData();
+        notificationStore.add("Configuration updated live.", "info");
+      }).then((u) => (unlisten = u));
     }
 
     return () => {
@@ -173,7 +172,7 @@
         return val.Label;
       }
     }
-    return "Applied"; // Fallback label or "No Change"
+    return "NONE"; // Clean UI fallback
   }
 
   function getStatusColor(id: string) {

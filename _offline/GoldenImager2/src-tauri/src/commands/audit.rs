@@ -47,13 +47,14 @@ pub async fn get_features_config(state: State<'_, AppState>) -> Result<config::F
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn apply_feature(
     state: State<'_, AppState>, 
-    feature_id: String, 
-    offline_hive: Option<String>,
-    target_vm: Option<String>
+    featureId: String, 
+    _offlineHive: Option<String>,
+    targetVm: Option<String>
 ) -> Result<(), AppError> {
-    apply_feature_logic(state.inner(), feature_id, offline_hive, target_vm).await
+    apply_feature_logic(state.inner(), featureId, _offlineHive, targetVm).await
 }
 
 pub async fn apply_feature_logic(
@@ -85,16 +86,17 @@ pub async fn apply_feature_logic(
                 content, feature_id
             );
 
-            let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()
+            let (user, pass, use_creds) = crate::utils::get_vm_auth_info()
                 .map_err(|e| AppError::new("Auth Info", &e))?;
+            let final_pass = if use_creds { pass } else { "".to_string() };
             let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
 
             let mut cmd = tokio::process::Command::new("powershell");
-            cmd.env("VMU", user).env("VMP", pass);
+            cmd.env("VMU", user).env("VMP", final_pass);
             cmd.args([
                 "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                 "-Command", 
-                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, vm_name, remote_script)
+                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} $auth_arg", auth_fragment, vm_name, remote_script)
             ]);
             let output = cmd.output()
                 .await
@@ -139,14 +141,15 @@ pub async fn apply_feature_logic(
     if let Some(script) = &feature.invoke_script {
         let mut cmd = tokio::process::Command::new("powershell");
         if let Some(vm_name) = &target_vm {
-            let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()
+            let (user, pass, use_creds) = crate::utils::get_vm_auth_info()
                 .map_err(|e| AppError::new("Auth Info", &e))?;
+            let final_pass = if use_creds { pass } else { "".to_string() };
             let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
-            cmd.env("VMU", user).env("VMP", pass);
+            cmd.env("VMU", user).env("VMP", final_pass);
             cmd.args([
                 "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                 "-Command", 
-                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, vm_name, script)
+                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} $auth_arg", auth_fragment, vm_name, script)
             ]);
         } else {
             cmd.args([
@@ -217,15 +220,16 @@ pub async fn apply_features_batch(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn undo_feature(
     state: State<'_, AppState>, 
-    feature_id: String,
-    target_vm: Option<String>
+    featureId: String,
+    targetVm: Option<String>
 ) -> Result<(), AppError> {
     let feature = {
         let conf = state.config.read().await;
-        conf.features.iter().find(|f| f.feature_id == feature_id).cloned()
-    }.ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", feature_id)))?;
+        conf.features.iter().find(|f| f.feature_id == featureId).cloned()
+    }.ok_or_else(|| AppError::new("Locate Feature", &format!("Feature not found: {}", featureId)))?;
 
     if let Some(reg_file) = &feature.registry_undo_key {
         let full_path = state.reg_path.join(reg_file);
@@ -233,17 +237,18 @@ pub async fn undo_feature(
             return Err(AppError::new("Undo Registry Path", &format!("Undo registry file not found: {:?}", full_path)));
         }
 
-        if let Some(vm_name) = &target_vm {
-            let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()
+        if let Some(vm_name) = &targetVm {
+            let (user, pass, use_creds) = crate::utils::get_vm_auth_info()
                 .map_err(|e| AppError::new("Auth Info", &e))?;
+            let final_pass = if use_creds { pass } else { "".to_string() };
             let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
             let script = format!("reg import '{}'", full_path.to_str().unwrap());
             let mut cmd = tokio::process::Command::new("powershell");
-            cmd.env("VMU", user).env("VMP", pass);
+            cmd.env("VMU", user).env("VMP", final_pass);
             cmd.args([
                 "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                 "-Command", 
-                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, vm_name, script)
+                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} $auth_arg", auth_fragment, vm_name, script)
             ]);
             let output = cmd.output()
                 .await
@@ -268,15 +273,16 @@ pub async fn undo_feature(
 
     if let Some(script) = &feature.undo_script {
         let mut cmd = tokio::process::Command::new("powershell");
-        if let Some(vm_name) = &target_vm {
-            let (user, pass, _use_creds) = crate::utils::get_vm_auth_info()
+        if let Some(vm_name) = &targetVm {
+            let (user, pass, use_creds) = crate::utils::get_vm_auth_info()
                 .map_err(|e| AppError::new("Auth Info", &e))?;
+            let final_pass = if use_creds { pass } else { "".to_string() };
             let auth_fragment = crate::utils::get_sac_safe_auth_fragment();
-            cmd.env("VMU", user).env("VMP", pass);
+            cmd.env("VMU", user).env("VMP", final_pass);
             cmd.args([
                 "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                 "-Command", 
-                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} @auth", auth_fragment, vm_name, script)
+                &format!("{} Invoke-Command -VMName '{}' -ScriptBlock {{ {} }} $auth_arg", auth_fragment, vm_name, script)
             ]);
         } else {
             cmd.args([

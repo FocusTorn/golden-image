@@ -57,6 +57,16 @@ pub struct Feature {
 
 pub fn load_config<P: AsRef<Path>>(path: P) -> Result<FeaturesConfig, Box<dyn std::error::Error + Send + Sync>> {
     let content = fs::read_to_string(path)?;
+    parse_config_str(&content)
+}
+
+pub fn load_embedded_config() -> Result<FeaturesConfig, Box<dyn std::error::Error + Send + Sync>> {
+    // Physically bake the config into the binary at compile time
+    let content = include_str!("../../resources/config/Features.json");
+    parse_config_str(content)
+}
+
+fn parse_config_str(content: &str) -> Result<FeaturesConfig, Box<dyn std::error::Error + Send + Sync>> {
     let stripped = json_comments::StripComments::new(content.as_bytes());
     let config: FeaturesConfig = serde_json::from_reader(stripped)?;
     Ok(config)

@@ -190,12 +190,8 @@ pub async fn transition_vhd(target: String, vhd_path: String, vm_name: Option<St
     } else {
         let name = vm_name.ok_or_else(|| AppError::new("VHD Transition", "VM Name required for VM target"))?;
         
-        // Snapshot protection: Hyper-V creates .avhdx if snapshots exist before attachment
-        let snapshot_check = format!("if (Get-VMSnapshot -VMName '{}' -ErrorAction SilentlyContinue) {{ Get-VMSnapshot -VMName '{}' | Remove-VMSnapshot -IncludeAllChildSnapshots -ErrorAction SilentlyContinue }}", name, name);
-        let _ = tokio::process::Command::new("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", &snapshot_check])
-            .output()
-            .await;
+        // Snapshot protection: Hyper-V attachment logic continues without purging checkpoints
+        // as per user requirement to maintain VM state history.
 
         // Final attempt to attach to VM
         attach_vhd_to_vm(vhd_path.clone(), name).await?;
@@ -225,7 +221,7 @@ pub async fn check_vm_status(vm_name: String) -> Result<String, String> {
         .map_err(|e| e.to_string())?;
 
     let state = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let _stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
     
     Ok(state)
 }
@@ -233,8 +229,6 @@ pub async fn check_vm_status(vm_name: String) -> Result<String, String> {
 #[tauri::command]
 pub async fn update_default_profile(profile: String) -> Result<(), AppError> {
     let path = "p:/Projects/golden-image/_master_config.json";
-    
-    // 1. Read existing (to preserve other fields)
     let content = std::fs::read_to_string(path)
         .map_err(|e| AppError::new("Config Update Read", &e.to_string()))?;
         
@@ -245,10 +239,8 @@ pub async fn update_default_profile(profile: String) -> Result<(), AppError> {
     let mut config: serde_json::Value = serde_json::from_str(&stripped_str)
         .map_err(|e| AppError::new("Config Update Parse", &e.to_string()))?;
 
-    // 2. Modify just the default profile key
     config["defaultVMProfile"] = serde_json::Value::String(profile);
 
-    // 3. Write back (Note: Comments will be lost on this specific write)
     let new_content = serde_json::to_string_pretty(&config)
         .map_err(|e| AppError::new("Config Update Serialize", &e.to_string()))?;
         
@@ -256,4 +248,68 @@ pub async fn update_default_profile(profile: String) -> Result<(), AppError> {
         .map_err(|e| AppError::new("Config Update Write", &e.to_string()))?;
         
     Ok(())
+}
+
+#[tauri::command]
+pub async fn update_initial_view(view: String) -> Result<(), AppError> {
+    let path = "p:/Projects/golden-image/_master_config.json";
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| AppError::new("Config Update Read", &e.to_string()))?;
+        
+    let mut stripped = json_comments::StripComments::new(content.as_bytes());
+    let mut stripped_str = String::new();
+    stripped.read_to_string(&mut stripped_str).ok();
+
+    let mut config: serde_json::Value = serde_json::from_str(&stripped_str)
+        .map_err(|e| AppError::new("Config Update Parse", &e.to_string()))?;
+
+    config["defaultInitialView"] = serde_json::Value::String(view);
+
+    let new_content = serde_json::to_string_pretty(&config)
+        .map_err(|e| AppError::new("Config Update Serialize", &e.to_string()))?;
+        
+    std::fs::write(path, new_content)
+        .map_err(|e| AppError::new("Config Update Write", &e.to_string()))?;
+        
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_vhd_hub_statuses(vm_names: Vec<String>) -> Result<std::collections::HashMap<String, String>, AppError> {
+    if vm_names.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+
+    let names_str = vm_names.iter().map(|n| format!("'{}'", n)).collect::<Vec<_>>().join(",");
+    let script = format!(
+        "$vms = Get-VM -ErrorAction SilentlyContinue; $names = @({}); $results = @{{}}; foreach ($n in $names) {{ \
+           if (-not $n) {{ continue }}; \
+           $hit = $vms | Where-Object {{ $_.Name -like \"*$n*\" -or $_.Name -eq $n }}; \
+           if ($hit) {{ $results[$n] = $hit.State.ToString() }} else {{ $results[$n] = 'Missing' }} \
+         }}; $results | ConvertTo-Json",
+        names_str
+    );
+
+    let output = tokio::process::Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+        .output()
+        .await
+        .map_err(|e| AppError::new("Batch VM Check", &e.to_string()))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if !stderr.is_empty() {
+            return Err(AppError::new("Batch VM Check", &stderr));
+        }
+    }
+
+    let json_str = String::from_utf8_lossy(&output.stdout);
+    if json_str.trim().is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+
+    let statuses_val: std::collections::HashMap<String, String> = serde_json::from_str(&json_str)
+        .map_err(|e| AppError::new("Batch VM Parse", &e.to_string()))?;
+
+    Ok(statuses_val)
 }

@@ -55,14 +55,17 @@
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     user-select: none;
+
+    /* DYNAMIC BLOOM COLOR - DEFAULT TO ACCENT */
+    --bloom-rgb: var(--accent-rgb);
   }
 
   .bloom-control:hover:not(.locked-sunken), .bloom-control.active {
     background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(var(--accent-rgb), 0.6) !important; /* Vibrant teal border */
+    border-color: rgba(var(--bloom-rgb), 0.6) !important; /* Dynamic border */
     box-shadow: 
-      0 0 15px rgba(var(--accent-rgb), 0.2), /* Vibrant teal bloom */
-      0 0 4px rgba(var(--accent-rgb), 0.4);
+      0 0 15px rgba(var(--bloom-rgb), 0.2), /* Dynamic bloom */
+      0 0 4px rgba(var(--bloom-rgb), 0.4);
     color: #fff; /* Icons brighten to 1.0 on hover */
     z-index: 50;
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.3); /* Premium white text glow */
@@ -74,10 +77,10 @@
   }
 
   .bloom-control.active {
-    border-color: rgba(var(--accent-rgb), 0.8) !important;
-    background: rgba(var(--accent-rgb), 0.1); 
+    border-color: rgba(var(--bloom-rgb), 0.8) !important;
+    background: rgba(var(--bloom-rgb), 0.1); 
     box-shadow: 
-      0 0 12px rgba(var(--accent-rgb), 0.15),
-      inset 0 0 0 1px rgba(var(--accent-rgb), 0.05);
+      0 0 12px rgba(var(--bloom-rgb), 0.15),
+      inset 0 0 0 1px rgba(var(--bloom-rgb), 0.05);
   }
 </style>

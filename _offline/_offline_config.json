@@ -1,5 +1,6 @@
 {
-  "GuestStagingDrive": "E",
+  "DVDBootDrive": "E",
+  "GuestStagingDrive": "D",
   "StagingVolumeLabel": "Golden Imaging",
   "OfflinePath": "_offline",
   "InstallersPath": "installers",

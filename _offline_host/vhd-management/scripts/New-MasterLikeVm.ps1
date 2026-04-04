@@ -143,11 +143,16 @@ try {
     $stagingPath = ($ctx.VhdPath -replace '/', '\')
 
     $isoPath = $null
-    if (-not $SkipDvd -and $ctx.OSImagePath) {
-        $isoPath = ($ctx.OSImagePath.ToString() -replace '/', '\')
-        if (-not (Test-Path -LiteralPath $isoPath)) {
-            Write-Warning "OS ISO not found: $isoPath — continuing without DVD."
-            $isoPath = $null
+    if (-not $SkipDvd) {
+        # Priority: Environment Override -> Config Path
+        $rawIso = if ($env:GOLDEN_IMAGE_ISO_OVERRIDE) { $env:GOLDEN_IMAGE_ISO_OVERRIDE } else { $ctx.OSImagePath }
+        
+        if ($rawIso) {
+            $isoPath = ($rawIso.ToString() -replace '/', '\')
+            if (-not (Test-Path -LiteralPath $isoPath)) {
+                Write-Warning "OS ISO not found: $isoPath — continuing without DVD."
+                $isoPath = $null
+            }
         }
     }
 

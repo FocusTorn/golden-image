@@ -48,7 +48,7 @@
     gap: 8px;
   }
 
-  .icon-pulse {
+  :global(.icon-pulse) {
     color: rgb(var(--accent-rgb));
     opacity: 0.8;
   }

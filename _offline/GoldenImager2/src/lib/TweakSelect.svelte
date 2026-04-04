@@ -7,7 +7,7 @@
   export let appliedValue: string = "none"; // The currently active setting in the system
   export let label: string = "Select Option";
   export let options: { Label: string; FeatureIds: string[] }[] = [];
-  export let width: string = "120px";
+  export let width: string = "auto";
   export let height: string = "22px";
   export let noDiff: boolean = false;
 
@@ -72,9 +72,6 @@
           on:click={() => selectOption(opt.FeatureIds[0])}
         >
           {opt.Label}
-          {#if isApplied}
-            <span class="applied-badge">APPLIED</span>
-          {/if}
         </button>
       {/each}
     </div>
@@ -84,7 +81,8 @@
 <style>
   .tweak-select-container {
     position: relative;
-    width: var(--width);
+    width: fit-content;
+    min-width: 100px;
     z-index: 50; /* Ensure this stacks above adjacent rows */
   }
 
@@ -157,19 +155,6 @@
   .dropdown-item.applied {
     color: #00bcd4; /* Applied Bloom Color */
     font-weight: 800;
-  }
-
-  .applied-badge {
-    margin-left: auto;
-    font-size: 7px;
-    font-weight: 900;
-    letter-spacing: 0.05em;
-    background: rgba(0, 188, 212, 0.15);
-    border: 1px solid rgba(0, 188, 212, 0.3);
-    color: #00bcd4;
-    padding: 1px 4px;
-    border-radius: 2px;
-    text-transform: uppercase;
   }
 
   .dropdown-item:hover:not(.active) {

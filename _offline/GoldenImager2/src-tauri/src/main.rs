@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+extern crate tauri;
+
 mod audit;
 mod config;
 mod apps;
@@ -9,8 +11,7 @@ mod commands;
 mod utils;
 
 use std::sync::Arc;
-use std::sync::Arc;
-use tauri::{Manager, WindowEvent};
+use tauri::{Manager, WindowEvent, GlobalWindowEvent};
 use state::AppState;
 use std::process::Command;
 
@@ -29,7 +30,7 @@ fn run_resource_cleanup() {
 
 fn main() {
     tauri::Builder::default()
-        .setup(|app| {
+        .setup(|app: &mut tauri::App| {
             // Pre-emptive cleanup on launch
             run_resource_cleanup();
             
@@ -44,7 +45,10 @@ fn main() {
                 .ok_or_else(|| tauri::Error::AssetNotFound(format!("regfiles (CWD: {:?})", cwd)))?;
 
             let config_path = resource_path.clone();
-            let config = Arc::new(config::load_config(config_path.clone()).map_err(|e| format!("Config load error: {}", e))?);
+            let config = match config::load_config(config_path.clone()) {
+                Ok(cfg) => Arc::new(cfg),
+                Err(_) => Arc::new(config::load_embedded_config().map_err(|e| format!("Both Local and Embedded Config Load Failed: {}", e))?)
+            };
             
             app.manage(AppState {
                 config: tokio::sync::RwLock::new(config),
@@ -70,7 +74,7 @@ fn main() {
                             if let Some(cfg) = new_config {
                                 let state = app_handle_for_watch.state::<AppState>();
                                 let mut state_lock = state.config.write().await;
-                                *state_lock = Arc::new(cfg);
+                                *state_lock = std::sync::Arc::new(cfg);
                                 let _ = app_handle_for_watch.emit_all("features-config-updated", ());
                                 println!(">>> Hot Update: Features.json reloaded.");
                             }
@@ -82,7 +86,8 @@ fn main() {
             #[cfg(windows)]
             {
                 if let Some(window) = app.get_window("main") {
-                    if let Ok(hwnd) = window.hwnd() {
+                    let hwnd_res: Result<_, tauri::Error> = window.hwnd();
+                    if let Ok(hwnd) = hwnd_res {
                         unsafe {
                             type HWND = isize;
                             extern "system" {
@@ -118,8 +123,8 @@ fn main() {
             }
             Ok(())
         })
-        .on_window_event(|event| {
-            if let WindowEvent::CloseRequested { .. } = event {
+        .on_window_event(|event: GlobalWindowEvent| {
+            if let WindowEvent::CloseRequested { .. } = event.event() {
                 // Final cleanup on exit
                 run_resource_cleanup();
             }
@@ -135,6 +140,8 @@ fn main() {
             commands::apps::load_app_profile,
             commands::apps::save_app_profile,
             commands::apps::delete_app_profile,
+            commands::vhd::get_vhd_hub_statuses,
+            commands::vhd::update_initial_view,
             commands::theme::get_theme_info,
             commands::theme::get_dashboard_stats,
             commands::tweaks::list_tweak_profiles,

@@ -1,0 +1,19 @@
+# Robocopy Sync Exclusions File (.syncignore)
+# ---------------------------------------------------------------------------
+# Directories to exclude (Space-separated patterns or names)
+# Robocopy /XD parameter
+[DIRS]
+.git
+.agents
+.gemini
+node_modules
+bin
+obj
+# Files to exclude (Space-separated patterns or names)
+# Robocopy /XF parameter
+[FILES]
+RDP-Tcp.reg
+.DS_Store
+Desktop.ini
+Thumbs.db
+*.log

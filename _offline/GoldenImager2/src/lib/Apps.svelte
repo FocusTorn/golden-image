@@ -28,6 +28,10 @@
   import { vhdStore } from "./store";
   import { notificationStore } from "./notifications";
 
+  function focus(node: HTMLElement) {
+    node.focus();
+  }
+
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
   export let selectionList: string[] = [];
@@ -534,19 +538,15 @@
 </script>
 
 {#if showSaveModal}
-  <div
+  <button
     class="modal-overlay"
-    on:click={closeModals}
+    on:click|self={closeModals}
     on:keydown={(e) => e.key === "Escape" && closeModals()}
-    role="button"
     tabindex="0"
     aria-label="Close modal"
   >
     <div
       class="modal-content"
-      on:click|stopPropagation
-      role="dialog"
-      aria-modal="true"
     >
       <div class="modal-header">
         <h3>Save Profile</h3>
@@ -562,7 +562,7 @@
           placeholder="e.g. Minimalist-Build"
           class="modal-input"
           on:keydown={(e) => e.key === "Enter" && executeSave(saveName)}
-          autofocus
+          use:focus
         />
       </div>
       <div class="modal-footer">
@@ -579,7 +579,7 @@
         </button>
       </div>
     </div>
-  </div>
+  </button>
 {/if}
 
 <svelte:window on:click={closeAll} />
@@ -705,10 +705,16 @@
         </div>
 
         {#if isRiskOpen}
-          <div class="dropdown-list risk-dropdown">
+          <div 
+            class="dropdown-list risk-dropdown"
+            role="menu"
+            tabindex="0"
+            on:keydown={(e) => e.key === 'Escape' && closeAll()}
+          >
             {#each RISK_OPTIONS as opt}
               <button
                 class="dropdown-item risk-item"
+                role="menuitem"
                 on:click|stopPropagation={() => toggleRiskOption(opt.id)}
               >
                 <div class="risk-check-row">
@@ -810,8 +816,12 @@
   <div 
     class="context-menu" 
     style="left: {contextMenuPos.x}px; top: {contextMenuPos.y}px;"
+    role="menu"
+    tabindex="-1"
     on:click|stopPropagation
     on:contextmenu|preventDefault
+    on:mouseleave={closeContextMenu}
+    on:keydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
     <div class="menu-header">
       <span class="menu-title truncate">{contextMenuApp.FriendlyName}</span>
@@ -975,31 +985,6 @@
     align-items: center;
     flex-shrink: 0;
   }
-  .col-copy {
-    width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 4px;
-  }
-  .copy-trigger-wrapper {
-    position: relative;
-    display: flex;
-  }
-  .row-copy-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    border-radius: 4px;
-    transition: all 0.2s;
-  }
-  .row-copy-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--accent-color);
-  }
   .dropdown-item:hover {
     background: rgba(255, 255, 255, 0.08) !important;
     color: #fff;
@@ -1115,6 +1100,11 @@
     color: #000;
   }
 
+  .row-action-btn:hover :global(.icon-pulse) {
+    color: rgb(var(--accent-rgb));
+    opacity: 0.8;
+  }
+
   .row-action-btn.install:hover {
     background: #00e676;
     border-color: #00e676;
@@ -1188,16 +1178,6 @@
     -webkit-text-fill-color: transparent;
   }
 
-  .state-msg {
-    padding: 40px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 11px;
-  }
-
-  .state-msg.error {
-    color: #f44336;
-  }
 
   .state-view {
     flex: 1;
@@ -1308,10 +1288,6 @@
     cursor: pointer;
   }
 
-  :global(.icon-muted) {
-    opacity: 0.25;
-    filter: grayscale(1);
-  }
 
   /* Scrollbar */
   .table-body::-webkit-scrollbar {
@@ -1341,6 +1317,9 @@
     align-items: center;
     justify-content: center;
     z-index: 9000;
+    border: none;
+    padding: 0;
+    cursor: default;
   }
 
   .dropdown-list {
@@ -1388,47 +1367,6 @@
     text-transform: none !important;
   }
   
-  .select-label {
-    text-align: left;
-    display: block;
-    width: 100%;
-    margin-top: 1px; /* Subtle downward nudge for industrial balance */
-    padding-left: 2px;
-  }
-
-  .dropdown-item-wrapper {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    gap: 0;
-    position: relative;
-  }
-
-  .delete-profile-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.2);
-    padding: 0 8px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: absolute;
-    right: 4px;
-    z-index: 10;
-    opacity: 0; /* Hidden by default, revealed on wrapper hover */
-  }
-
-  .delete-profile-btn:hover {
-    color: #ff3d60;
-    filter: drop-shadow(0 0 4px #ff3d60);
-  }
-
-  .dropdown-item-wrapper:hover .delete-profile-btn {
-    opacity: 1;
-  }
 
   .dropdown-item:hover {
     background: rgba(255, 255, 255, 0.08) !important;
@@ -1445,10 +1383,6 @@
     filter: brightness(1.15);
   }
 
-  .dropdown-item.active {
-    color: var(--accent-color);
-    font-weight: 700;
-  }
 
   .modal-content {
     background: #12181a;
@@ -1580,26 +1514,6 @@
   .modal-btn.confirm.active:hover {
     filter: brightness(1.15);
   }
-  .header-selection-btn {
-    background: rgba(0, 0, 0, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    color: rgba(255, 255, 255, 0.2);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-
-  .header-selection-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(var(--accent-rgb), 0.4);
-    color: rgba(var(--accent-rgb), 0.6);
-  }
 
   .risk-filter-container {
     position: relative;
@@ -1616,29 +1530,6 @@
     cursor: pointer;
   }
 
-  .risk-header-btn {
-    background: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px; /* Reduced to provide tighter centering in col-status */
-    height: 16px;
-    border-radius: 4px;
-    transition: background 0.2s;
-    opacity: 1 !important; /* MASTER LUMINOSITY LOCK */
-  }
-
-  .risk-header-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .risk-header-btn :global(svg) {
-    opacity: 1 !important; /* EXEMPT from global toolbar dimming */
-    filter: none !important; /* EXEMPT from global toolbar drop-shadows */
-  }
 
   .header-pie {
     width: 11px !important; /* Synchronized to 11px Row Dots */

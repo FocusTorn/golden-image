@@ -84,12 +84,45 @@ try {
     if ($Cfg.StagingVolumeLabel) { Set-Volume -DriveLetter $driveLetter -NewFileSystemLabel $Cfg.StagingVolumeLabel -ErrorAction SilentlyContinue }
 
 
+    # --- EXCLUSION LOGIC (.syncignore) ---
+    $xf = @()
+    $xd = @()
+    $vhdManagementDir = Split-Path $PSScriptRoot -Parent
+    $ignorePath = Join-Path $vhdManagementDir ".syncignore"
+    if (Test-Path $ignorePath) {
+        $content = Get-Content $ignorePath
+        $section = ""
+        foreach ($line in $content) {
+            $l = $line.Trim()
+            if ($l.StartsWith("#") -or [string]::IsNullOrWhiteSpace($l)) { continue }
+            if ($l -eq "[DIRS]") { $section = "DIRS"; continue }
+            if ($l -eq "[FILES]") { $section = "FILES"; continue }
+            
+            if ($section -eq "DIRS") { $xd += $l }
+            elseif ($section -eq "FILES") { $xf += $l }
+        }
+    } else {
+        # Fallback defaults if no .syncignore is found
+        $xd = @(".git")
+        $xf = @("RDP-Tcp.reg")
+    }
+
+    $robocopyArgs = @("/MIR", "/MT:16", "/R:2", "/W:5", "/NP", "/NDL", "/FFT")
+    if ($xf) { $robocopyArgs += "/XF"; $robocopyArgs += $xf }
+    if ($xd) { $robocopyArgs += "/XD"; $robocopyArgs += $xd }
+
+
     foreach ($Source in $Sources) {
+        if ([string]::IsNullOrWhiteSpace($Source) -or $Source -eq "\" -or $Source -match "^[A-Za-z]:\\?$") {
+            Write-Host "[ERROR] Invalid sync source detected: '$Source'. Aborting to prevent system-root sync." -ForegroundColor Red
+            continue
+        }
+
         $sourceLeaf = Split-Path $Source -Leaf
         $destFolder = if ($sourceLeaf -eq "_offline") { $Cfg.OfflinePath } elseif ($sourceLeaf -eq "installers") { $Cfg.InstallersPath } else { $sourceLeaf }
         $destination = Join-Path $drive $destFolder
         Write-Host "[Syncing] $Source -> $destination" -ForegroundColor Yellow
-        robocopy $Source $destination /MIR /MT:16 /R:2 /W:5 /NP /NDL /FFT /XF RDP-Tcp.reg /XD .git
+        & robocopy $Source $destination $robocopyArgs
     }
 
     Write-Host "[2/2] Reconnecting VHD to VM..." -ForegroundColor Gray

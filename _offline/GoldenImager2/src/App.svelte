@@ -11,13 +11,26 @@
   import StatusBar from './lib/StatusBar.svelte';
   import ToastStack from './lib/ToastStack.svelte';
 
-  let activeTab = 'apps';
+  import { onMount } from 'svelte';
+  
+  let activeTab = 'dashboard';
   let isDark = true;
   let appCount = 0;
   let hasLoggedGeometry = false;
   
   let containerRef: HTMLElement;
   let listRef: HTMLElement;
+
+  onMount(async () => {
+    try {
+      const config = await invoke("get_master_config");
+      if (config && (config as any).defaultInitialView) {
+        activeTab = (config as any).defaultInitialView.toLowerCase();
+      }
+    } catch (e) {
+      console.error("Failed to load startup view", e);
+    }
+  });
 
   /* GEOMETRY PROBE LOGIC (Logs once per app pane load) */
   $: if (activeTab === 'apps' && containerRef && listRef && !hasLoggedGeometry) {
@@ -133,8 +146,8 @@
   }
 
   .mock-window .app-frame {
-    width: 1100px;
-    height: 720px;
+    width: 1175px;
+    height: 750px;
     border: 1px solid rgba(255, 255, 255, 0.08); 
     border-radius: 8px;
     box-shadow: 

@@ -31,6 +31,7 @@
   let runningDebug = false;
   let vmProfiles: string[] = [];
   let defaultProfile = "";
+  let initialView = "Dashboard";
 
   onMount(async () => {
     try {
@@ -38,6 +39,7 @@
       if (config && (config as any).VMProfiles) {
         vmProfiles = Object.keys((config as any).VMProfiles);
         defaultProfile = (config as any).defaultVMProfile || "";
+        initialView = (config as any).defaultInitialView || "Dashboard";
       }
     } catch (e) {
       console.error("Failed to load profiles", e);
@@ -57,6 +59,19 @@
       setTimeout(() => saved = false, 2000);
     } catch (e) {
       console.error("Failed to update default profile", e);
+    }
+  }
+
+  async function updateInitialView(e: any) {
+    const val = e.detail?.value || e.target?.value;
+    initialView = val;
+    
+    try {
+      await invoke("update_initial_view", { view: initialView });
+      saved = true;
+      setTimeout(() => saved = false, 2000);
+    } catch (e) {
+      console.error("Failed to update initial view", e);
     }
   }
 
@@ -114,6 +129,19 @@
         </div>
         <div class="card-body">
           <div class="action-item tweak-row">
+            <span class="tweak-name">Initial Startup View</span>
+            <div class="spacer"></div>
+            <TweakSelect 
+              options={["Dashboard", "Provisioning", "Apps", "Tweaks", "Settings"].map(v => ({ Label: v, FeatureIds: [v] }))} 
+              value={initialView} 
+              appliedValue={initialView} 
+              on:change={updateInitialView}
+              height="30px"
+              noDiff={true}
+            />
+          </div>
+
+          <div class="action-item tweak-row">
             <span class="tweak-name">Default VM Profile</span>
             <div class="spacer"></div>
             <TweakSelect 
@@ -121,7 +149,6 @@
               value={defaultProfile || 'None (Force Manual)'} 
               appliedValue={defaultProfile || 'None (Force Manual)'} 
               on:change={updateDefaultProfile}
-              width="180px"
               height="30px"
             />
           </div>
@@ -253,7 +280,6 @@
                   value={diagnostics.find(d => d.script === debugScript)?.label || ""} 
                   appliedValue={diagnostics.find(d => d.script === debugScript)?.label || ""} 
                   on:change={setDiagnostic}
-                  width="220px"
                   height="30px"
                   noDiff={true}
                 />

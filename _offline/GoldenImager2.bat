@@ -1,5 +1,6 @@
 @echo off
 setlocal
+set "CARGO_TARGET_DIR=C:\Users\slett\AppData\Local\Temp\gi2-rust-target"
 cd /d "%~dp0"
 
 :: Step 0: Enter the project directory
@@ -59,12 +60,21 @@ call npm run dev <nul
 goto :eof
 
 :dev
-echo Launching Tauri Dev backend...
-npm run tauri dev
+echo Launching GoldenImager2 App...
+:: Check if Vite server is already running in another terminal
+netstat -ano | findstr :1420 >nul
+if %errorlevel% equ 0 (
+    echo [*] Detected separate Vite server on port 1420. Re-using session...
+    :: Launch GUI only, skipping the beforeDevCommand
+    call npx -y @tauri-apps/cli@^1 dev --config "{\"build\": {\"beforeDevCommand\": \"\"}}" >nul
+) else (
+    echo [*] No existing server found. Launching inline environment...
+    npm run tauri dev >nul
+)
 
 echo.
 echo [*] GUI closed. Initiating automatic resource release...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { . 'P:\Projects\golden-image\_helpers\ConfigUtils.ps1'; . 'P:\Projects\golden-image\_offline_host\vhd-management\scripts\VhdUtils.ps1'; $cfg = Get-Config -Target Host; Invoke-SmartRelease $cfg.VhdPath $cfg.VMName }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& { . 'P:\Projects\golden-image\_helpers\ConfigUtils.ps1'; . 'P:\Projects\golden-image\_offline_host\vhd-management\scripts\VhdUtils.ps1'; $cfg = Get-Config -Target Host; Invoke-SmartRelease $cfg.VhdPath $cfg.VMName }" >nul
 goto :eof
 
 :build
