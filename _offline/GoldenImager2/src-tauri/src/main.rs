@@ -53,6 +53,7 @@ fn main() {
             app.manage(AppState {
                 config: tokio::sync::RwLock::new(config),
                 reg_path,
+                active_packer: tokio::sync::Mutex::new(None),
             });
 
             let app_handle_for_watch = app.handle();
@@ -124,9 +125,20 @@ fn main() {
             Ok(())
         })
         .on_window_event(|event: GlobalWindowEvent| {
-            if let WindowEvent::CloseRequested { .. } = event.event() {
-                // Final cleanup on exit
-                run_resource_cleanup();
+            match event.event() {
+                WindowEvent::CloseRequested { .. } => {
+                    // Final cleanup on exit
+                    run_resource_cleanup();
+                },
+                WindowEvent::Moved(pos) => {
+                    let _ = event.window().emit("window-moved", (pos.x, pos.y));
+                },
+                WindowEvent::Resized(size) => {
+                    let scale_factor = event.window().scale_factor().unwrap_or(1.0);
+                    let logical_size = size.to_logical::<f64>(scale_factor);
+                    let _ = event.window().emit("window-resized", (logical_size.width, logical_size.height));
+                },
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -160,7 +172,16 @@ fn main() {
             commands::vhd::transition_vhd,
             commands::vhd::check_vm_status,
             commands::vhd::update_default_profile,
-            commands::audit::run_debug_diagnostic
+            commands::audit::run_debug_diagnostic,
+            commands::orchestrator::get_orchestrator_status,
+            commands::orchestrator::generate_stealth_payload,
+            commands::orchestrator::run_packer_build,
+            commands::orchestrator::abort_packer_build,
+            commands::orchestrator::show_payload_in_explorer,
+            commands::orchestrator::install_packer,
+            commands::orchestrator::install_osdbuilder,
+            commands::window::set_window_size,
+            commands::window::set_window_position
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

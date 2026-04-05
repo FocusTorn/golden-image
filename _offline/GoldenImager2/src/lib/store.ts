@@ -11,6 +11,11 @@ export interface SystemSettings {
   curatedOnly: boolean;
   parallelAudit: boolean;
   showNotifications: boolean;
+  windowWidth: number;
+  windowHeight: number;
+  windowX: number;
+  windowY: number;
+  retainWindowState: boolean;
 }
 
 const DEFAULT_SETTINGS: SystemSettings = {
@@ -23,7 +28,12 @@ const DEFAULT_SETTINGS: SystemSettings = {
   matchVersioning: true,
   curatedOnly: false,
   parallelAudit: true,
-  showNotifications: true
+  showNotifications: true,
+  windowWidth: 895,
+  windowHeight: 1195,
+  windowX: 100,
+  windowY: 100,
+  retainWindowState: false
 };
 
 // Load initial settings from localStorage if available

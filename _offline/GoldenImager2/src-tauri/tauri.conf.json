@@ -43,10 +43,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 750,
+        "height": 1133,
         "resizable": true,
         "title": "GoldenImager2",
-        "width": 1175,
+        "width": 848,
         "transparent": true,
         "decorations": false
       }

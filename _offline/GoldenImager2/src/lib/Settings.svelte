@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Settings, Shield, LayoutGrid, Palette, Save, RefreshCw, Cpu, Database, Bell, Check, Terminal, Play, Trash2, Loader2, Globe, History, Monitor } from "lucide-svelte";
+  import { Settings, Shield, LayoutGrid, Palette, Save, RefreshCw, Cpu, Database, Bell, Check, Terminal, Play, Trash2, Loader2, Globe, History, Monitor, Maximize, AlertTriangle } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import { settings, vhdStore } from "./store";
   import { invoke } from "@tauri-apps/api/tauri";
+  import { emit } from "@tauri-apps/api/event";
   import { onMount } from "svelte";
   import TweakSelect from "./TweakSelect.svelte";
 
@@ -98,6 +99,69 @@
     } finally {
       runningDebug = false;
     }
+  }
+
+  let localW = $settings.windowWidth;
+  let localH = $settings.windowHeight;
+  let isFocused = false;
+  let clampedWarning = false;
+  let warningTimeout: any;
+
+  function showWarning() {
+    clampedWarning = true;
+    if (warningTimeout) clearTimeout(warningTimeout);
+    warningTimeout = setTimeout(() => clampedWarning = false, 3000);
+  }
+
+  $: if (!isFocused) {
+    localW = $settings.windowWidth;
+    localH = $settings.windowHeight;
+  }
+
+  function clampDimensions(w: number, h: number) {
+    const maxW = typeof window !== 'undefined' ? window.screen.availWidth : 1920;
+    const maxH = typeof window !== 'undefined' ? window.screen.availHeight : 1040;
+    return {
+      w: Math.min(w, maxW),
+      h: Math.min(h, maxH)
+    };
+  }
+
+  async function updateManualSize() {
+    if (!$settings.retainWindowState) {
+      const { w, h } = clampDimensions(
+        parseInt(localW as any) || 895,
+        parseInt(localH as any) || 1195
+      );
+      localW = w;
+      localH = h;
+      await invoke('set_window_size', { 
+        width: w - 47, 
+        height: h - 62 
+      });
+      settings.update(s => ({ ...s, windowWidth: w, windowHeight: h }));
+    }
+  }
+
+  async function handleManualResize() {
+    const rawW = parseInt(localW as any) || 895;
+    const rawH = parseInt(localH as any) || 1195;
+    const { w, h } = clampDimensions(rawW, rawH);
+    
+    const wasClamped = w !== rawW || h !== rawH;
+    localW = w;
+    localH = h;
+    
+    if (wasClamped) showWarning();
+    
+    await emit('manual-resize-start');
+    settings.update(s => ({ ...s, retainWindowState: false, windowWidth: w, windowHeight: h }));
+    await invoke('set_window_size', { 
+      width: w - 47, 
+      height: h - 62 
+    });
+    saved = true;
+    setTimeout(() => saved = false, 2000);
   }
 </script>
 
@@ -264,6 +328,78 @@
              <span class="tweak-name">System Notifications</span>
              <div class="spacer"></div>
              <input type="checkbox" bind:checked={$settings.showNotifications} />
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sub-header-row">
+            <LayoutGrid size={11} />
+            <h4>WINDOW GEOMETRY</h4>
+          </div>
+
+          <div class="geometry-grid trio">
+            <div class="action-item tweak-row">
+              <span class="tweak-name">W</span>
+              <div class="spacer"></div>
+              <input 
+                type="text" 
+                bind:value={localW} 
+                class="num-input digit-4" 
+                class:warning-text={clampedWarning}
+                on:focus={() => isFocused = true}
+                on:blur={() => isFocused = false}
+                on:change={updateManualSize} 
+              />
+            </div>
+            <div class="action-item tweak-row">
+              <span class="tweak-name">H</span>
+              <div class="spacer"></div>
+              <input 
+                type="text" 
+                bind:value={localH} 
+                class="num-input digit-4" 
+                class:warning-text={clampedWarning}
+                on:focus={() => isFocused = true}
+                on:blur={() => isFocused = false}
+                on:change={updateManualSize} 
+              />
+            </div>
+            <button 
+              class="vhd-action-btn resize-trigger" 
+              class:release={clampedWarning}
+              class:active={clampedWarning}
+              on:click={handleManualResize} 
+              title="Force Resize & Un-Retain"
+            >
+              <RefreshCw size={11} class={clampedWarning ? 'spin' : ''} />
+              <span>{clampedWarning ? 'BOUNDS' : 'RESIZE'}</span>
+            </button>
+          </div>
+
+          {#if clampedWarning}
+            <div class="warning-msg">
+              <AlertTriangle size={10} />
+              <span>RESOLUTION BOUNDS ENFORCED</span>
+            </div>
+          {/if}
+
+          <div 
+            class="action-item tweak-row clickable-row" 
+            on:click={() => settings.update(s => ({ ...s, retainWindowState: !s.retainWindowState }))}
+            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && settings.update(s => ({ ...s, retainWindowState: !s.retainWindowState }))}
+            role="button"
+            tabindex="0"
+          >
+            <span class="tweak-name">Retain Window Geometry</span>
+            <div class="spacer"></div>
+            <div class="apps-check-wrapper">
+              <input 
+                type="checkbox" 
+                checked={$settings.retainWindowState} 
+                on:click|stopPropagation
+                on:change={(e) => settings.update(s => ({ ...s, retainWindowState: e.currentTarget.checked }))}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -582,5 +718,168 @@
       color: #ccc;
       overflow-y: auto;
       font-family: 'Consolas', monospace;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 8px 0;
+  }
+
+  .sub-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px;
+    margin-bottom: 6px;
+    opacity: 0.6;
+    color: var(--accent-color);
+  }
+
+  .sub-header-row h4 {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    margin: 0;
+  }
+
+  .geometry-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .geometry-grid.trio {
+    grid-template-columns: 1fr 1fr 100px;
+  }
+
+  .num-input.digit-4 {
+    width: 52px;
+    padding: 2px 4px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .vhd-action-btn {
+    height: 31px;
+    background: #242a2d;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0 10px;
+  }
+
+  .vhd-action-btn:hover {
+    filter: brightness(1.3);
+    color: #fff;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.2);
+  }
+
+  .vhd-action-btn.release.active {
+    background: rgba(255, 61, 96, 0.12); 
+    box-shadow: 
+      0 0 0 1px rgba(255, 61, 96, 0.2), 
+      0 0 12px rgba(255, 61, 96, 0.12); 
+    border-color: rgba(255, 61, 96, 1.0); 
+    color: #ff3d60; /* RISK-UNSAFE PARITY */
+  }
+
+  .vhd-action-btn.release.active :global(svg) {
+     color: #ff3d60;
+  }
+
+  .warning-text {
+    color: #ff3d60 !important;
+    border-color: rgba(255, 61, 96, 0.3) !important;
+    background: rgba(255, 61, 96, 0.05) !important;
+  }
+
+  .warning-msg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: -4px;
+    margin-bottom: 8px;
+    padding-left: 2px;
+    color: #ff3d60;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    animation: flash 0.5s ease;
+  }
+
+  @keyframes flash {
+    0% { opacity: 0; transform: translateY(-2px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .clickable-row {
+    cursor: pointer;
+    transition: background 0.2s;
+    outline: none;
+  }
+
+  .clickable-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .apps-check-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .apps-check-wrapper input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #0d1117;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+  }
+
+  .apps-check-wrapper input[type="checkbox"]:checked {
+    border-color: rgba(var(--accent-rgb), 0.85) !important;
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3), inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  .apps-check-wrapper input[type="checkbox"]:checked::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E") no-repeat center;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+  }
+
+  .apps-check-wrapper input[type="checkbox"]:hover {
+    border-color: rgba(var(--accent-rgb), 0.9) !important;
+    box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.25), 0 0 4px rgba(var(--accent-rgb), 0.45);
   }
 </style>

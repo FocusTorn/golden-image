@@ -12,82 +12,88 @@
 ##>
 
 $LocalProjectRoot = Split-Path $PSScriptRoot -Parent
-$MasterConfigPath = Join-Path $LocalProjectRoot "_master_config.json"
+$MasterConfigPath = Join-Path $LocalProjectRoot "_master_config.yaml"
 $GuestConfigPath = Join-Path $LocalProjectRoot "_offline\_offline_config.json"
 
 $script:ReservedMasterKeys = @(
     'shared', '_offline', 'offline_host', 'ahk',
     'VMDetails', 'VMFileSystem', 'VMCredentials', 'VMProvisioning',
     'defaultVMProfile', 'activeVMProfile', 'VMProfiles', 'VMProfile',
-    'VMProvisioningTemplates'
+    'VMProvisioningTemplates', 'MasterPaths', 'LocalProjectRoot'
 )
+
+function Read-JsonCFile {
+    [CmdletBinding()]
+    param([string]$Path)
+    if ($Path -like "*.yaml") {
+        return Read-MasterConfig -Path $Path
+    }
+    if (-not (Test-Path $Path)) { throw "File not found: $Path" }
+    $raw = Get-Content $Path -Raw
+    # Strip comments for basic JSON compatibility if needed
+    $clean = $raw -replace '(?m)^\s*//.*$', '' -replace '(?m)\s*//.*$', ''
+    try { return $clean | ConvertFrom-Json } catch { throw "Failed to parse $Path logic. Error: $($_.Exception.Message)" }
+}
 
 function Test-IsLikelyVmProfileObject { #>
     param($Node)
     return $null -ne $Node -and ($Node -is [PSCustomObject]) -and $null -ne $Node.PSObject.Properties['VMDetails']
 } #<
 
-function Ensure-NewtonsoftJsonLoaded { #>
-    if ([AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.GetName().Name -eq 'Newtonsoft.Json' }) {
-        return
-    }
-    $dll = Join-Path $PSScriptRoot 'lib\Newtonsoft.Json.dll'
-    if (-not (Test-Path -LiteralPath $dll)) {
-        throw @"
-JSONC parsing requires Newtonsoft.Json on Windows PowerShell 5.1.
-Install: powershell -ExecutionPolicy Bypass -File `"$PSScriptRoot\Install-NewtonsoftJson.ps1`"
-Or use PowerShell 7+ for native JSONC support.
-"@
-    }
-    [void][Reflection.Assembly]::LoadFrom((Resolve-Path -LiteralPath $dll).Path)
-} #<
+# --- YAML ENGINE (Zero-G Pure-PS Parser) ---
 
-function Write-DetailedError { #>
-    param(
-        [Parameter(Mandatory = $true)]$ErrorRecord,
-        [string]$ContextMessage = "An error occurred"
-    )
-    $msg = $ErrorRecord.Exception.Message
-    $trace = $ErrorRecord.ScriptStackTrace
-    Write-Host "" -ForegroundColor Red
-    Write-Host "[ERROR] $ContextMessage" -ForegroundColor Red
-    Write-Host "  Message: $msg" -ForegroundColor Yellow
-    if ($trace) {
-        $lines = $trace.Split("`n") | Where-Object { $_.Trim().Length -gt 0 }
-        Write-Host "  Stack Trace:" -ForegroundColor DarkGray
-        foreach ($l in $lines) {
-            Write-Host "    $($l.Trim())" -ForegroundColor DarkGray
+function ConvertFrom-Yaml {
+    [CmdletBinding()]
+    param([string]$Yaml)
+    
+    $obj = [PSCustomObject]@{}
+    $lines = $Yaml -split "`r?`n"
+    $context = New-Object System.Collections.Generic.Stack[object]
+    $context.Push(@{ Indent = -1; Node = $obj })
+    
+    foreach ($lineRaw in $lines) {
+        $trimmed = $lineRaw.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith("#")) { continue }
+        
+        $indent = $lineRaw.IndexOf($trimmed[0])
+        $line = $trimmed
+        
+        if ($line -match "^([^:]+):\s*(.*)$") {
+            $key = $Matches[1].Trim("- ").Trim().Trim('"').Trim("'")
+            $val = $Matches[2].Trim()
+            
+            # Pop context until we find the parent (indent must be strictly less)
+            while ($context.Count -gt 1 -and $context.Peek().Indent -ge $indent) {
+                [void]$context.Pop()
+            }
+            
+            $target = $context.Peek().Node
+            if ($val -eq "") {
+                $newObj = [PSCustomObject]@{}
+                $target | Add-Member -MemberType NoteProperty -Name $key -Value $newObj -Force
+                $context.Push(@{ Indent = $indent; Node = $newObj })
+            } else {
+                $cleanVal = $val.Trim('"').Trim("'")
+                # Simple type detection
+                $typedVal = if($cleanVal -eq 'true'){$true} elseif($cleanVal -eq 'false'){$false} elseif($cleanVal -match '^\d+$'){$cleanVal -as [int]} else {$cleanVal}
+                $target | Add-Member -MemberType NoteProperty -Name $key -Value $typedVal -Force
+            }
         }
     }
-    Write-Host ""
-} #<
+    return $obj
+}
 
-function Read-JsonCFile { #>
-    param([Parameter(Mandatory = $true)][string]$Path)
-    if (-not (Test-Path -LiteralPath $Path)) {
-        throw "JSONC file not found: $Path"
-    }
-    $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+function Assert-Path {
+    param($Path, $Name = "Value")
+    if (-not (Test-Path $Path)) { throw "Critical: Required Path '$Path' ($Name) not found." }
+}
 
-    if ($PSVersionTable.PSVersion.Major -ge 7) {
-        $docOpts = [System.Text.Json.JsonDocumentOptions]::new()
-        $docOpts.CommentHandling = [System.Text.Json.JsonCommentHandling]::Skip
-        $docOpts.AllowTrailingCommas = $true
-        $node = [System.Text.Json.Nodes.JsonNode]::Parse($raw, $null, $docOpts)
-        $clean = $node.ToJsonString()
-        return $clean | ConvertFrom-Json
-    }
-
-    Ensure-NewtonsoftJsonLoaded
-    $stringReader = New-Object System.IO.StringReader($raw)
-    $jsonReader = New-Object Newtonsoft.Json.JsonTextReader($stringReader)
-    $loadSettings = New-Object Newtonsoft.Json.Linq.JsonLoadSettings
-    $loadSettings.CommentHandling = [Newtonsoft.Json.Linq.CommentHandling]::Ignore
-    $loadSettings.LineInfoHandling = [Newtonsoft.Json.Linq.LineInfoHandling]::Load
-    $token = [Newtonsoft.Json.Linq.JToken]::ReadFrom($jsonReader, $loadSettings)
-    $json = $token.ToString([Newtonsoft.Json.Formatting]::None)
-    return $json | ConvertFrom-Json
-} #<
+function Read-MasterConfig {
+    param([string]$Path = $MasterConfigPath)
+    if (-not (Test-Path $Path)) { throw "Config not found: $Path" }
+    $raw = Get-Content $Path -Raw
+    return ConvertFrom-Yaml -Yaml $raw
+}
 
 function Get-FirstNonEmpty { #>
     param([object[]]$Candidates)
@@ -146,8 +152,7 @@ function Get-VmProfileNames { #>
         $Master = $null
     )
     if (-not $Master) {
-        if (-not (Test-Path -LiteralPath $MasterConfigPath)) { return @() }
-        $Master = Read-JsonCFile -Path $MasterConfigPath
+        $Master = Read-MasterConfig -Path $MasterConfigPath
     }
     $ordered = [System.Collections.Generic.List[string]]::new()
     $seen = @{}
@@ -174,10 +179,7 @@ function Get-VmProfileNames { #>
 function Get-ProfileResolutionSummary { #>
     param($Master = $null)
     if (-not $Master) {
-        if (-not (Test-Path -LiteralPath $MasterConfigPath)) {
-            return [PSCustomObject]@{ Error = "Master config missing: $MasterConfigPath" }
-        }
-        $Master = Read-JsonCFile -Path $MasterConfigPath
+        $Master = Read-MasterConfig -Path $MasterConfigPath
     }
     $resolved = Get-ActiveVmProfileKey -Master $Master
     [PSCustomObject]@{
@@ -231,7 +233,7 @@ function Build-MergedHostVmConfig { #>
     elseif ($null -ne $oh -and $null -ne $oh.UsePasswordCreds) { $oh.UsePasswordCreds }
     else { $false }
 
-    [PSCustomObject]@{
+    $cfg = [PSCustomObject]@{
         ProfileKey          = $ProfileKey
         HardwareTemplateKey = $hwTemplateKey
         VhdPath             = ($vhd -replace '\\', '/')
@@ -250,7 +252,35 @@ function Build-MergedHostVmConfig { #>
         UsePasswordCreds    = [bool]$usePass
         OSImagePath         = $vd.OSImagePath
         UnattendIsoPath     = $vd.UnattendIsoPath
+        MasterPaths         = $null
     }
+
+    # --- HIERARCHICAL MASTER PATHS RESOLUTION ---
+    $globalMasterPaths = $Master.MasterPaths
+    $profileMasterPaths = $prof.MasterPaths
+    
+    $mergedMasterPaths = @{}
+    # 1. Start with Global Defaults
+    if ($globalMasterPaths) {
+        foreach ($prop in $globalMasterPaths.psobject.Properties) {
+            $mergedMasterPaths[$prop.Name] = $prop.Value
+        }
+    }
+    # 2. Layer Profile Overrides
+    if ($profileMasterPaths) {
+        foreach ($prop in $profileMasterPaths.psobject.Properties) {
+            $mergedMasterPaths[$prop.Name] = $prop.Value
+        }
+    }
+    
+    # 3. Add to clean PSCustomObject
+    $finalPaths = [PSCustomObject]@{}
+    foreach ($k in $mergedMasterPaths.Keys) {
+        $finalPaths | Add-Member -MemberType NoteProperty -Name $k -Value ($mergedMasterPaths[$k] -replace '\\', '/')
+    }
+    
+    $cfg.MasterPaths = $finalPaths
+    return $cfg
 } #<
 
 
@@ -450,9 +480,8 @@ function Get-Config { #>
         [ValidateSet("Host", "Guest")][string]$Target = "Host",
         [string]$VMProfileKey
     )
-    Sync-Configs
     if ($Target -eq "Host") {
-        $master = Read-JsonCFile -Path $MasterConfigPath
+        $master = Read-MasterConfig -Path $MasterConfigPath
         $pk = if ($VMProfileKey) { $VMProfileKey } else { Get-ActiveVmProfileKey -Master $master }
         return (Build-MergedHostVmConfig -Master $master -ProfileKey $pk)
     }

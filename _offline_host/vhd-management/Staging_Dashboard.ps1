@@ -4,6 +4,8 @@ param([string]$Action)
 
 #>- CORE INITIALIZATION  ------------------------------------- 
 $ProgressPreference = 'SilentlyContinue'
+
+try {
 function Assert-NotNull {
     param($Value, $Name)
     if ($null -eq $Value -or ($Value -is [string] -and [string]::IsNullOrWhiteSpace($Value))) {
@@ -11,16 +13,19 @@ function Assert-NotNull {
     }
 }
 
-function Assert-Path {
-    param([string]$Path, [string]$Name)
-    Assert-NotNull -Value $Path -Name $Name
-    if (-not (Test-Path -LiteralPath $Path)) {
-        throw "Path '$Name' does not exist (check drives/network): $Path"
-    }
-}
+$LocalProjectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+. (Join-Path $LocalProjectRoot "_helpers\ConfigUtils.ps1")
 
-Assert-Path -Path $PSScriptRoot -Name "PSScriptRoot"
+$ScriptsDir = Join-Path $PSScriptRoot "scripts"
+Assert-Path -Path $ScriptsDir -Name "ScriptsDir"
+
 . (Join-Path $PSScriptRoot "scripts\VhdUtils.ps1")
+# Add engine shim for missing helpers
+. (Join-Path $ScriptsDir "Engine.ps1")
+
+# Use the YAML path if JSON is not found
+$MasterConfigPath = Join-Path $LocalProjectRoot "_master_config.yaml"
+if (-not (Test-Path $MasterConfigPath)) { $MasterConfigPath = Join-Path $LocalProjectRoot "_master_config.json" }
 
 Assert-Path -Path $MasterConfigPath -Name "MasterConfigPath"
 $m = Read-JsonCFile -Path $MasterConfigPath
@@ -31,9 +36,6 @@ Assert-NotNull -Value $activePk -Name "ActiveProfileKey"
 
 $Cfg = Build-MergedHostVmConfig -Master $m -ProfileKey $activePk
 Assert-NotNull -Value $Cfg -Name "MergedConfig"
-
-$ScriptsDir = Join-Path $PSScriptRoot "scripts"
-Assert-Path -Path $ScriptsDir -Name "ScriptsDir"
 
 $LocalProjectRoot = if ($m.LocalProjectRoot) { $m.LocalProjectRoot } elseif ($Cfg.LocalProjectRoot) { $Cfg.LocalProjectRoot } else { 
     $p1 = Split-Path $PSScriptRoot -Parent
@@ -62,8 +64,8 @@ $SlimMasterImage = "N:\OS_Images\Win11_Pro_Final_Master.iso"
 $TinyVanillaOSImage = "N:\Win11_Pro_Tiny_Vanilla.iso"
 $TinyMasterImage = "N:\Win11_Pro_Tiny_Master.iso"
 
-$unattendXml = "N:\_autounattend\autounattend.xml"
-$unattendIso = "N:\_autounattend\autounattend.iso"
+$unattendXml = "P:\Projects\golden-image\_offline_host\vhd-management\unattend_engine\autounattend.xml"
+$unattendIso = "N:\unattend.iso"
 
 
 #------------------------------------------------------------ 
@@ -169,43 +171,47 @@ function Invoke-ProtectedAction { #>
 #------------------------------------------------------------
 
 function Invoke-AutomatedBake { #>
-    try {
-        $m = Read-JsonCFile -Path $MasterConfigPath
-        $activePk = Get-ActiveVmProfileKey -Master $m
-        $ctx = Build-MergedHostVmConfig -Master $m -ProfileKey $activePk
-        Write-Host "`n>>> [BUILD ENGINE] Synchronizing VM Lifecycle..." -ForegroundColor White
-        
-        $vmObj = Get-VM -Name $ctx.VMName -ErrorAction SilentlyContinue
-        $osPath = ($ctx.OsVhdPath -replace '/', '\')
-        $vmFolder = Split-Path (Split-Path $osPath -Parent) -Parent 
-        
-        $envFound = if ($vmObj) { $true } elseif (Test-Path -LiteralPath $osPath) { $true } elseif (Test-Path -LiteralPath $vmFolder) { $true } else { $false }
-        if ($envFound) {
-            Write-Host "[!] Existing environment artifacts found at: $vmFolder" -ForegroundColor Red
-            Write-Host "    [CONFIRM] Deep-wipe existing VM and Physical Storage? [Y/n]: " -NoNewline -ForegroundColor Yellow
-            $resp = Read-Host
-            if ([string]::IsNullOrWhiteSpace($resp) -or $resp -ieq 'y') {
-                if ($vmObj) { Stop-VM -Name $ctx.VMName -Force -ErrorAction SilentlyContinue; Remove-VM -Name $ctx.VMName -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }
-                $locks = Get-Process | Where-Object { $_.Name -match "dism|robocopy|oscdimg" }
-                if ($locks) { $locks | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1 }
-                Dismount-VHD -Path $osPath -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1
-                if (Test-Path -LiteralPath $osPath) { for ($i=0; $i -lt 5; $i++) { try { Remove-Item -LiteralPath $osPath -Force -ErrorAction Stop; break } catch { Start-Sleep -Seconds 1 } } }
-                if (Test-Path -LiteralPath $vmFolder) { for ($i=0; $i -lt 5; $i++) { try { Remove-Item -LiteralPath $vmFolder -Recurse -Force -ErrorAction Stop; break } catch { Start-Sleep -Seconds 1 } } }
-                Write-Host "    [OK] Deep wipe complete." -ForegroundColor Green
-            } else { throw "Build aborted." }
-        }
-        Write-Host "`n>>> [BUILD ENGINE] Provisioning fresh environment..." -ForegroundColor White
-        & "$ScriptsDir\New-MasterLikeVm.ps1" -VMProfile $activePk -ProvisioningTemplateKey $($ctx.HardwareTemplateKey) -NoConfigSave -SkipStagingVhd
-        if ($LASTEXITCODE -ne 0) { throw "New-MasterLikeVm failed." }
-        Set-VM -Name $ctx.VMName -AutomaticStartAction Nothing | Out-Null
-        Start-Sleep -Seconds 3; Start-VM -Name $ctx.VMName -ErrorAction Stop
-    } catch { 
-        $msg = $_.Exception.Message
-        $line = $_.InvocationInfo.ScriptLineNumber
-        $file = if ($_.InvocationInfo.ScriptName) { Split-Path $_.InvocationInfo.ScriptName -Leaf } else { "Internal" }
-        Write-Host "[ERROR] Bake failed: $msg" -ForegroundColor Red
-        Write-Host "        -> Location: $file : $line" -ForegroundColor DarkRed
+    $m = Read-JsonCFile -Path $MasterConfigPath
+    $activePk = Get-ActiveVmProfileKey -Master $m
+    $ctx = Build-MergedHostVmConfig -Master $m -ProfileKey $activePk
+    Write-Host "`n>>> [BUILD ENGINE] Synchronizing VM Lifecycle..." -ForegroundColor White
+    
+    $vmObj = Get-VM -Name $ctx.VMName -ErrorAction SilentlyContinue
+    $osPath = ($ctx.OsVhdPath -replace '/', '\')
+    $vmFolder = Split-Path (Split-Path $osPath -Parent) -Parent 
+    
+    $envFound = if ($vmObj) { $true } elseif (Test-Path -LiteralPath $osPath) { $true } elseif (Test-Path -LiteralPath $vmFolder) { $true } else { $false }
+    if ($envFound) {
+        Write-Host "[!] Existing environment artifacts found at: $vmFolder" -ForegroundColor Red
+        Write-Host "    [CONFIRM] Deep-wipe existing VM and Physical Storage? [Y/n]: " -NoNewline -ForegroundColor Yellow
+        $resp = Read-Host
+        if ([string]::IsNullOrWhiteSpace($resp) -or $resp -ieq 'y') {
+            if ($vmObj) { Stop-VM -Name $ctx.VMName -Force -ErrorAction SilentlyContinue; Remove-VM -Name $ctx.VMName -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }
+            $locks = Get-Process | Where-Object { $_.Name -match "dism|robocopy|oscdimg" }
+            if ($locks) { $locks | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1 }
+            Dismount-VHD -Path $osPath -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1
+            if (Test-Path -LiteralPath $osPath) { for ($i=0; $i -lt 5; $i++) { try { Remove-Item -LiteralPath $osPath -Force -ErrorAction Stop; break } catch { Start-Sleep -Seconds 1 } } }
+            if (Test-Path -LiteralPath $vmFolder) { for ($i=0; $i -lt 5; $i++) { try { Remove-Item -LiteralPath $vmFolder -Recurse -Force -ErrorAction Stop; break } catch { Start-Sleep -Seconds 1 } } }
+            Write-Host "    [OK] Deep wipe complete." -ForegroundColor Green
+        } else { throw "Build aborted." }
     }
+    Write-Host "`n>>> [BUILD ENGINE] Provisioning fresh environment..." -ForegroundColor White
+    $callParams = @{
+        VMProfile = $activePk
+        ProvisioningTemplateKey = $ctx.HardwareTemplateKey
+        NoConfigSave = $true
+        SkipStagingVhd = $true
+        ErrorAction = "Stop"
+    }
+    & "$ScriptsDir\New-MasterLikeVm.ps1" @callParams
+    
+    if ($LASTEXITCODE -ne 0) { 
+        throw "VM Provisioning failed with exit code $LASTEXITCODE. Launch aborted." 
+    }
+    
+    Write-Host "[OK] Environment ready. Finalizing VM settings..." -ForegroundColor Green
+    Set-VM -Name $ctx.VMName -AutomaticStartAction Nothing | Out-Null
+    Start-Sleep -Seconds 3; Start-VM -Name $ctx.VMName -ErrorAction Stop
 } #<
 
 function Invoke-MasteringStage { #>
@@ -232,6 +238,14 @@ function Invoke-MasteringStage { #>
             $isoInstallers = New-Item -ItemType Directory -Path (Join-Path $isoPayload "installers") -Force
             Assert-Path -Path $isoInstallers.FullName -Name "isoInstallers"
 
+            # Merge Repo Scripts into Payload
+            $repoScripts = "P:\Projects\golden-image\_offline_host\vhd-management\unattend_engine\scripts"
+            if (Test-Path $repoScripts) {
+                Write-Host "[*] Merging Repo Scripts into ISO..." -ForegroundColor Cyan
+                Copy-Item -Path "$repoScripts" -Destination $isoPayload -Recurse -Force
+                Copy-Item -Path "$unattendXml" -Destination (Join-Path $isoPayload "autounattend.xml") -Force
+            }
+
             $ps7 = Get-ChildItem -Path "$PSScriptRoot\..\..\installers\PowerShell-7*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($ps7) { 
                 Write-Host "[*] Staging PS7 Payload: $($ps7.Name)" -ForegroundColor Cyan
@@ -242,7 +256,7 @@ function Invoke-MasteringStage { #>
             try { 
                 $worker = Join-Path $ScriptsDir "New-AutoUnattendIso.ps1"
                 Assert-Path -Path $worker -Name "New-AutoUnattendIso script"
-                & $worker -SourceFile $unattendXml -DestinationIso "N:\unattend.iso" -PayloadFolder $isoPayload 
+                & $worker -SourceFile $unattendXml -DestinationIso "N:\unattend.iso" -PayloadFolder $isoPayload -WindowsSourceIso $OrriginalOSImage
                 
                 # --- ISO VERIFICATION LOOP ---
                 Write-Host "`n>>> [BUILD AUDIT] Verifying ISO Payload Integrity..." -ForegroundColor White
@@ -254,9 +268,11 @@ function Invoke-MasteringStage { #>
                         $drive = "$($vol.DriveLetter):\"
                         Write-Host "[*] Mounted as $drive - Reading Payload Tree:" -ForegroundColor Gray
                         Show-Tree -Path $drive
+                        Write-Host "`n>>> AUDIT COMPLETE. Press any key to finalize and proceed to bake..." -ForegroundColor Yellow
+                        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                     }
                     Dismount-DiskImage -ImagePath "N:\unattend.iso" -ErrorAction SilentlyContinue | Out-Null
-                    Write-Host "[OK] Audit complete. ISO healthy and ready for deployment." -ForegroundColor Green
+                    Write-Host "[OK] Audit finalized. ISO ready for deployment." -ForegroundColor Green
                 }
             } finally { 
                 if ($isoPayload -and (Test-Path $isoPayload)) {
@@ -298,7 +314,9 @@ function Show-Tree { #>
         $branch = "├── "
         if ($isLast) { $branch = "└── " }
         
-        Write-Host "$Indent$branch$($item.Name)" -ForegroundColor Gray
+        # Ensure we use the physical casing from the filesystem
+        $realName = (Get-Item -LiteralPath $item.FullName).Name
+        Write-Host "$Indent$branch$realName" -ForegroundColor Gray
         if ($item.PSIsContainer) {
             # PS 5.1 compatible indent logic
             $p = "│   "
@@ -319,7 +337,6 @@ function Show-Tree { #>
 $CapturedCLIAction = $Action
 $Action = $null 
 
-try {
     while ($true) {
         # Total Flush of input buffer to prevent "Phantom Echoes"
         if ($Host.UI.RawUI.KeyAvailable) { [void]$Host.UI.RawUI.FlushInputBuffer() }
@@ -370,7 +387,10 @@ try {
             "cg" { Action-UpdateConfig -Target "Guest"; break }
             "ca" { $nv=-not($currentCfg.UsePasswordCreds -match "true"); Save-HostVmSettingsToMaster -UsePasswordCreds $nv; break }
             "s0" { Invoke-ProtectedAction -Label "S0" -Action { Invoke-MasteringStage -Key "S0" } -ShowProgress -ManualPause; break }
-            "r0" { Invoke-ProtectedAction -Label "R0" -Action { Invoke-MasteringStage -Key "R0" -StepArg $arg } -ShowProgress; break }
+            "r0*" { 
+                $arg = ($choice -replace "r0", "").Trim()
+                Invoke-ProtectedAction -Label "R0" -Action { Invoke-MasteringStage -Key "R0" -StepArg $arg } -ShowProgress; break 
+            }
             "s1" { Invoke-ProtectedAction -Label "S1" -Action { Invoke-MasteringStage -Key "S1" } -ShowProgress -ManualPause; break }
             "s2" { Invoke-ProtectedAction -Label "S2" -Action { Invoke-MasteringStage -Key "S2" } -ShowProgress; break }
             "s3" { Invoke-ProtectedAction -Label "S3" -Action { Invoke-MasteringStage -Key "S3" } -ShowProgress; break }
@@ -384,4 +404,16 @@ try {
             "*"  { if($choice){Write-Host "Unknown: $choice"; Start-Sleep -Seconds 1}; break }
         }
     }
-} finally { }
+} catch {
+    $msg = $_.Exception.Message
+    $line = $_.InvocationInfo.ScriptLineNumber
+    $file = if ($_.InvocationInfo.ScriptName) { Split-Path $_.InvocationInfo.ScriptName -Leaf } else { "Main" }
+    Write-Host "`n[FATAL ERROR] Dashboard failed to start or crashed:" -ForegroundColor Red
+    Write-Host "    $msg" -ForegroundColor White
+    Write-Host "    -> Location: $file : $line" -ForegroundColor DarkRed
+    if ($_.ScriptStackTrace) {
+        Write-Host "    -> Trace: $($_.ScriptStackTrace.Split("`n")[0].Trim())" -ForegroundColor DarkGray
+    }
+    Read-Host "`n[!] CRITICAL: Press Enter to exit"
+    exit 1
+}

@@ -1,0 +1,8 @@
+{
+    "IsoUrl": "N:/OS_Images/Win11_25H2_English_x64.iso",
+    "PackerVersion": "1.11.2",
+    "AdminPassword": "PackerTemp123!",
+    "VMName": "GoldenImager-Orchestrator-Build",
+    "HyperVSwitch": "Default Switch",
+    "OutputVhdDir": "P:/Projects/golden-image/_offline_host/GoldenImager-Orchestrator/output"
+}

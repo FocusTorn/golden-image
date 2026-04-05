@@ -1,0 +1,100 @@
+# ---------------------------------------------------------------------------
+#   Golden Image Master Configuration (Industrial YAML Edition)
+# ---------------------------------------------------------------------------
+
+defaultVMProfile: "GoldenAuto_OG"
+
+# Project Root for relative path resolution
+LocalProjectRoot: "P:/Projects/golden-image"
+
+# ---------------------------------------------------------------------------
+#   Shared Master Paths (Global Defaults)
+#   These can be overridden in individual VM Profiles
+# ---------------------------------------------------------------------------
+MasterPaths:
+    OriginalOSImage: "N:/OS_Images/Win11_25H2_English_x64.iso"
+    FatVanillaImage: "N:/OS_Images/Win11_Vanilla_ZeroTouch.iso"
+    VanillaTinyImage: "N:/Win11_Pro_Tiny_Vanilla.iso"
+    VanillaSlimImage: "N:/OS_Images/Win11_Pro_Slim_Vanilla.iso"
+    MasterTinyImage: "N:/Win11_Pro_Tiny_Master.iso"
+    MasterSlimImage: "N:/OS_Images/Win11_Pro_Final_Master.iso"
+    UnattendXml: "N:/_autounattend/autounattend.xml"
+    UnattendIso: "N:/_autounattend/autounattend.iso"
+
+# ---------------------------------------------------------------------------
+#   VM Infrastructure Settings
+# ---------------------------------------------------------------------------
+VMFileSystem:
+    HostVhdPath: "N:/VHD/Golden-Imaging.vhdx"
+    MainOSDrive: "C"
+    GuestStagingDrive: "D"
+    DVDBootDrive: "E"
+    StagingVolumeLabel: "Golden Imaging"
+    OfflinePath: "_offline"
+    InstallersPath: "installers"
+    ReturnPath: "return"
+
+VMCredentials:
+    VMUser: "Administrator"
+    VMPassword: "654654"
+    UsePasswordCreds: false
+
+# ---------------------------------------------------------------------------
+#   VM Profiles
+# ---------------------------------------------------------------------------
+VMProfiles:
+    GoldenAuto_OG:
+        HardwareTemplate: "OfflineSysprep"
+        VMDetails:
+            VMName: "Golden Auto OG"
+            # OSImagePath: "N:/OS_Images/Win11_25H2_English_x64.iso"
+            OSImagePath: "N:/Win11_Pro_Tiny_Vanilla.iso"
+            UnattendIsoPath: "N:/unattend.iso"
+            OsVhdPath: "N:/VM/Golden Auto OG/Virtual Hard Disks/Golden_Auto_OS.vhdx"
+            VMHostname: "DESKTOP-GoldenAuto"
+            WimDestination: "N:/Win_11_GoldenAuto.wim"
+            MemoryStartupGB: 6
+
+        # Optional: Profile-specific MasterPaths overrides
+        # MasterPaths:
+        #   OriginalOSImage: "N-/Alternative/Source.iso"
+
+# ---------------------------------------------------------------------------
+#   Provisioning Templates
+# ---------------------------------------------------------------------------
+VMProvisioningTemplates:
+    OfflineSysprep:
+        NewOsVhdSizeGB: 80
+        VmMachinePath: "default"
+        Generation: 2
+        ProcessorCount: 4
+        SwitchName: "Not Connected"
+        AttachStagingVhd: false
+        EnableGuestServices: true
+        EnableEnhancedSession: true
+        DisableAutomaticCheckpoints: true
+        DynamicMemoryEnabled: false
+        MemoryStartupGB: 6
+        MemoryPriority: 50
+        ExposeVirtualizationExtensions: false
+        EnableSecureBoot: true
+        SecureBootTemplate: "MicrosoftWindows"
+        TpmEnabled: true
+
+    StandardWindows:
+        NewOsVhdSizeGB: 80
+        VmMachinePath: "Z:/Virtuals/Hyper-V/"
+        Generation: 2
+        ProcessorCount: 4
+        SwitchName: "Default Switch"
+        AttachStagingVhd: true
+        EnableGuestServices: true
+        EnableEnhancedSession: true
+        DisableAutomaticCheckpoints: true
+        DynamicMemoryEnabled: false
+        MemoryStartupGB: 6
+        MemoryPriority: 50
+        ExposeVirtualizationExtensions: false
+        EnableSecureBoot: true
+        SecureBootTemplate: "MicrosoftWindows"
+        TpmEnabled: true

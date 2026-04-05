@@ -1,6 +1,7 @@
 <script lang="ts">
   import { settings, accentRgb } from './lib/store';
   import { invoke } from '@tauri-apps/api/tauri';
+  import { listen } from '@tauri-apps/api/event';
   import Sidebar from './lib/Sidebar.svelte';
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
@@ -8,6 +9,7 @@
   import Tweaks from './lib/Tweaks.svelte';
   import Provisioning from './lib/Provisioning.svelte';
   import Settings from './lib/Settings.svelte';
+  import Orchestrator from './lib/Orchestrator.svelte';
   import StatusBar from './lib/StatusBar.svelte';
   import ToastStack from './lib/ToastStack.svelte';
 
@@ -21,15 +23,74 @@
   let containerRef: HTMLElement;
   let listRef: HTMLElement;
 
-  onMount(async () => {
-    try {
-      const config = await invoke("get_master_config");
-      if (config && (config as any).defaultInitialView) {
-        activeTab = (config as any).defaultInitialView.toLowerCase();
+  onMount(() => {
+    const setup = async () => {
+      try {
+        const config = await invoke("get_master_config");
+        if (config && (config as any).defaultInitialView) {
+          activeTab = (config as any).defaultInitialView.toLowerCase();
+        }
+      } catch (e) {
+        console.error("Failed to load startup view", e);
       }
-    } catch (e) {
-      console.error("Failed to load startup view", e);
-    }
+
+      let isTransitioning = false;
+
+      // Initial Geometry Restore (Clamped)
+      if ($settings.retainWindowState) {
+        const finalW = Math.min($settings.windowWidth, window.screen.availWidth);
+        const finalH = Math.min($settings.windowHeight, window.screen.availHeight);
+        
+        invoke('set_window_size', { 
+          width: finalW - 47, 
+          height: finalH - 62 
+        });
+        invoke('set_window_position', { 
+          x: $settings.windowX, 
+          y: $settings.windowY 
+        });
+      }
+
+      const unlistenResize = await listen('window-resized', (event: any) => {
+        if (isTransitioning) return;
+        const [w, h] = event.payload;
+        if (!$settings.retainWindowState) {
+          settings.update(s => ({ ...s, retainWindowState: true }));
+        }
+        
+        // Dynamic Clamping to Work Area
+        const finalW = Math.min(w + 47, window.screen.availWidth);
+        const finalH = Math.min(h + 62, window.screen.availHeight);
+        
+        settings.update(s => ({ ...s, windowWidth: finalW, windowHeight: finalH }));
+      });
+
+      const unlistenMove = await listen('window-moved', (event: any) => {
+        if (isTransitioning) return;
+        const [x, y] = event.payload;
+        if (!$settings.retainWindowState) {
+          settings.update(s => ({ ...s, retainWindowState: true }));
+        }
+        settings.update(s => ({ ...s, windowX: x, windowY: y }));
+      });
+
+      const unlistenManual = await listen('manual-resize-start', () => {
+        isTransitioning = true;
+        setTimeout(() => isTransitioning = false, 1000);
+      });
+
+      return () => {
+        unlistenResize();
+        unlistenMove();
+        unlistenManual();
+      };
+    };
+
+    const cleanupPromise = setup();
+
+    return () => {
+      cleanupPromise.then(cleanup => cleanup());
+    };
   });
 
   /* GEOMETRY PROBE LOGIC (Logs once per app pane load) */
@@ -86,6 +147,8 @@
           <Provisioning />
         {:else if activeTab === 'settings'}
           <Settings />
+        {:else if activeTab === 'orchestrator'}
+          <Orchestrator />
         {:else}
           <div class="placeholder">
             <h1>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>

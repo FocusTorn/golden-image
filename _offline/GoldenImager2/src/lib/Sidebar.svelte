@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Home, Cog, LayoutList, Settings, Zap } from 'lucide-svelte';
+  import { Home, Cog, LayoutList, Settings, Zap, Hammer } from 'lucide-svelte';
   export let activeTab: string;
 </script>
 
@@ -22,6 +22,11 @@
   <button class:active={activeTab === 'tweaks'} on:click={() => activeTab = 'tweaks'} title="Tweaks">
     <span class="icon-wrapper">
       <Cog size={18} color={activeTab === 'tweaks' ? 'var(--accent-color)' : 'currentColor'} />
+    </span>
+  </button>
+  <button class:active={activeTab === 'orchestrator'} on:click={() => activeTab = 'orchestrator'} title="Image from Code">
+    <span class="icon-wrapper">
+      <Hammer size={18} color={activeTab === 'orchestrator' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <div class="spacer"></div>

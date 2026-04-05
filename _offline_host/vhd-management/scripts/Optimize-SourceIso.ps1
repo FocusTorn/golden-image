@@ -25,22 +25,23 @@ $AppxPatterns = @(
     "*PowerAutomate*"; "*QuickAssist*"; "*SkypeApp*"; "*Solitaire*"; "*StickyNotes*";
     "*Teams*"; "*MSTeams*"; "*Todos*"; "*SoundRecorder*"; "*BingWeather*"; "*YourPhone*";
     "*ZuneVideo*"; "*WindowsMaps*"; "*ZuneMusic*"; "*Skype*"; "*Spotify*"; "*DisneyPlus*";
-    "*TikTok*"; "*LinkedIn*"; "*Wallet*"
-    # Notes: Photos, Xbox, GamingApp, MSPaint, StorePurchaseApp, Camera, WebExperience, Recall, OneSync are kept as per your edit.
+    "*TikTok*"; "*LinkedIn*"; "*Wallet*"; "*PowerBI*"; "*OneNote*"; "*Yammer*"
 )
 
 $CapabilityPatterns = @(
     "Language.Handwriting*"; "Browser.InternetExplorer*"; "MathRecognizer*";
-    "App.Support.QuickAssist*"; "App.StepsRecorder*"; "Media.WindowsMediaPlayer*"
+    "App.Support.QuickAssist*"; "App.StepsRecorder*"; "Media.WindowsMediaPlayer*";
+    "Language.OCR*"; "Language.Speech*"; "Language.TextToSpeech*"; "OneCore.Speech.Common*"
 )
 
-$OptionalFeaturesToDisable = @()
+$OptionalFeaturesToDisable = @("Recall"; "HelloFace")
 
 # --- ENGINE PATHS ---
 $scratchDir = "N:\_bake_temp"
 $mountDir = Join-Path $scratchDir "mount"
 $isoFilesDir = Join-Path $scratchDir "iso_files"
 $stagedWim = Join-Path $scratchDir "install.wim"
+$winrePath = Join-Path $mountDir "Windows\System32\Recovery\Winre.wim"
 
 function Show-Header {
     Clear-Host
@@ -78,7 +79,9 @@ try {
             $p = $p.Trim()
             if ($p -match "-") {
                 $range = $p.Split('-')
-                $targetSteps += [int]($range[0])..([int]$range[1])
+                $start = [int]$range[0]
+                $end = if ([string]::IsNullOrWhiteSpace($range[1])) { 9 } else { [int]$range[1] }
+                $targetSteps += $start..$end
             } else {
                 $targetSteps += [int]$p
             }
@@ -90,10 +93,11 @@ try {
         Write-Host "  [2] Remove Appx Packages"
         Write-Host "  [3] Remove Capabilities"
         Write-Host "  [4] Disable Features (Recall)"
-        Write-Host "  [5] Component Cleanup (ResetBase) - LONG"
-        Write-Host "  [6] Save & Dismount"
-        Write-Host "  [7] WIM Garbage Collection (Compaction)"
-        Write-Host "  [8] Finalize & Build ISO"
+        Write-Host "  [5] Stripping Recovery Environment (WinRE)"
+        Write-Host "  [6] Component Cleanup (ResetBase) - LONG"
+        Write-Host "  [7] Save & Dismount"
+        Write-Host "  [8] WIM Garbage Collection (Compaction)"
+        Write-Host "  [9] Finalize & Build ISO"
         $choice = Read-Host "`nEnter Step(s)"
         if ($choice -match "[,-]") {
              $parts = $choice.Split(',') | Where-Object { $_.Trim() -ne "" }
@@ -101,7 +105,9 @@ try {
                  $p = $p.Trim()
                  if ($p -match "-") {
                      $range = $p.Split('-')
-                     $targetSteps += [int]($range[0])..([int]$range[1])
+                     $start = [int]$range[0]
+                     $end = if ([string]::IsNullOrWhiteSpace($range[1])) { 9 } else { [int]$range[1] }
+                     $targetSteps += $start..$end
                  } else { $targetSteps += [int]$p }
              }
         } else {
@@ -133,6 +139,15 @@ try {
             $imagePath = Join-Path $drive "sources\install.wim"
             if (-not (Test-Path $imagePath)) { $imagePath = Join-Path $drive "sources\install.esd" }
             
+            # --- PRE-BUILD METRICS ---
+            $isoSizeOrig = (Get-Item $SourcePath).Length
+            $wimSizeOrig = (Get-Item $imagePath).Length
+            $script:OriginalMetrics = @{ 
+                IsoSize = $isoSizeOrig; 
+                WimSize = $wimSizeOrig; 
+                StartTime = Get-Date 
+            }
+
             $images = Get-WindowsImage -ImagePath $imagePath
             $proImage = $images | Where-Object { $_.ImageName.Trim() -ieq "Windows 11 Pro" } | Select-Object -First 1
             if (-not $proImage) { 
@@ -148,14 +163,45 @@ try {
             }
             New-Item -ItemType Directory -Path $mountDir -Force | Out-Null
             New-Item -ItemType Directory -Path $isoFilesDir -Force | Out-Null
+            $scratch = Join-Path $scratchDir "DISM"
+            New-Item -ItemType Directory -Path $scratch -Force | Out-Null
 
+            # TURBO: Prevent Defender from scanning our deletions (Requires Admin)
+            try { 
+                Write-Host "[*] TURBO: Adding AV Exclusion for $scratchDir..." -ForegroundColor DarkGray
+                Add-MpPreference -ExclusionPath $scratchDir -ErrorAction SilentlyContinue 
+            } catch { }
+
+            Write-Host "[*] Exporting index $($proImage.ImageIndex) ($($proImage.ImageName)) from $imagePath to $stagedWim..." -ForegroundColor Cyan
             Export-WindowsImage -SourceImagePath $imagePath -SourceIndex $proImage.ImageIndex -DestinationImagePath $stagedWim -CompressionType Maximum
             
             if ($Tiny) {
-                Write-Host "[*] Mounting exported WIM..." -ForegroundColor Gray
-                Mount-WindowsImage -ImagePath $stagedWim -Index 1 -Path $mountDir
+                Write-Host "[*] Mounting exported WIM (Fast Mode)..." -ForegroundColor Gray
+                # Pre-create scratch to be safe
+                if (-not (Test-Path $scratch)) { New-Item -ItemType Directory -Path $scratch -Force | Out-Null }
+                Mount-WindowsImage -ImagePath $stagedWim -Index 1 -Path $mountDir -ScratchDirectory $scratch
             }
             Dismount-DiskImage -ImagePath $SourcePath -ErrorAction SilentlyContinue | Out-Null
+        }
+    }
+
+    # --- MOUNT CONTINUITY CHECK ---
+    if ($Tiny) {
+        $hasStripping = ($targetSteps | Where-Object { $_ -ge 2 -and $_ -le 7 })
+        $isMounted = (Get-WindowsImage -Mounted | Where-Object { $_.MountPath -eq $mountDir })
+        
+        if ($hasStripping -and -not $isMounted) {
+            Write-Host "[!] RESUME DETECTED: Ensuring image is mounted for requested steps..." -ForegroundColor Yellow
+            if (-not (Test-Path $stagedWim)) {
+                throw "ABORT: Staged WIM not found at $stagedWim. You must run Step 1 (Fresh Start) first."
+            }
+            if (-not (Test-Path $mountDir)) { New-Item -ItemType Directory -Path $mountDir -Force | Out-Null }
+            $scratch = Join-Path $scratchDir "DISM"
+            if (-not (Test-Path $scratch)) { New-Item -ItemType Directory -Path $scratch -Force | Out-Null }
+
+            Write-Host "[*] Restoring mount for stripping phase (Fast Mode)..." -ForegroundColor Gray
+            Mount-WindowsImage -ImagePath $stagedWim -Index 1 -Path $mountDir -ScratchDirectory $scratch -ErrorAction Stop
+            Write-Host "[OK] Mount restored successfully." -ForegroundColor Green
         }
     }
 
@@ -246,57 +292,77 @@ try {
             Invoke-Step -Step 4 -Label "Disabling System Features (Validated Audit)" -Action {
                 $totalDisabled = 0
                 $currentFeatures = Get-WindowsOptionalFeature -Path $mountDir
-                
                 foreach ($feat in $OptionalFeaturesToDisable) {
                     try { 
                         $match = $currentFeatures | Where-Object { $_.FeatureName -eq $feat -and $_.State -ne 'Disabled' }
                         if ($match) {
-                            Write-Host "    [-] Disabling: $feat (Current State: $($match.State))" -ForegroundColor Gray
-                            # Use native DISM for consistency and accuracy
-                            & dism.exe /Image:$mountDir /Disable-Feature /FeatureName:$feat /Remove /NoRestart | Out-Null
-                            
-                            # Verification
-                            $verify = Get-WindowsOptionalFeature -Path $mountDir -FeatureName $feat
-                            if ($verify.State -eq 'Disabled') { $totalDisabled++ }
-                            else { Write-Host "        [!] WARNING: Feature $feat remained $($verify.State)." -ForegroundColor Yellow }
-                        } else {
-                            Write-Host "    [ ] Feature $feat is already disabled or missing (Skipping)." -ForegroundColor DarkGray
+                            Write-Host "    [-] Disabling: $feat" -ForegroundColor Gray
+                            & dism.exe /Image:$mountDir /Disable-Feature /FeatureName:$feat /Remove /NoRestart /ScratchDir:$scratchDir | Out-Null
+                            $totalDisabled++
                         }
                     } catch { Write-Host "    [!] ERROR: Failed feature ${feat}: $($_.Exception.Message)" -ForegroundColor Red }
                 }
+
+                # TURBO: Kill 7GB Reserved Storage (Shaves ISO weight)
+                Write-Host "    [-] TURBO: Disabling Reserved Storage..." -ForegroundColor Yellow
+                & dism.exe /Image:$mountDir /Set-ReservedStorageState /State:Disabled /ScratchDir:$scratchDir | Out-Null
+
                 Write-Host "    [!] TOTAL REALITY CHECK: $totalDisabled System Features Disabled." -ForegroundColor Yellow
             }
         }
 
-        # --- STEP 5: CLEANUP ---
+        # --- STEP 5: WinRE NUKING ---
         if ($targetSteps -contains 5) {
-            Invoke-Step -Step 5 -Label "Component Cleanup (ResetBase) - EMPTY TRASH" -Action {
-                # --- BLOAT AUDIT ---
+            Invoke-Step -Step 5 -Label "Stripping Recovery Environment (WinRE.wim)" -Action {
+                if (Test-Path $winrePath) {
+                    Write-Host "    [-] Nuking: $winrePath (Saving ~600MB)" -ForegroundColor Yellow
+                    attrib -h -s -r $winrePath
+                    Remove-Item -Path $winrePath -Force
+                } else {
+                    Write-Host "    [ ] WinRE.wim not found (Skipping)." -ForegroundColor DarkGray
+                }
+            }
+        }
+
+        # --- STEP 6: CLEANUP ---
+        if ($targetSteps -contains 6) {
+            Invoke-Step -Step 6 -Label "Component Cleanup (ResetBase) - EMPTY TRASH" -Action {
+                # --- BLOAT AUDIT (FEEDBACK-ENABLED) ---
                 Write-Host "[*] SCANNING GIGABYTES: Identifying heaviest directories..." -ForegroundColor Cyan
-                $dirAudit = Get-ChildItem -Path $mountDir -Directory -Recurse -Depth 2 -ErrorAction SilentlyContinue | 
-                            Select-Object FullName, @{Name="SizeMB";Expression={(Get-ChildItem $_.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum / 1MB}} |
-                            Sort-Object SizeMB -Descending | Select-Object -First 10
+                $topDirs = Get-ChildItem -Path $mountDir -Directory -ErrorAction SilentlyContinue
+                $dirAudit = @()
+                $count = 0
                 
-                Write-Host "`n[!] TOP 10 HEAVIEST FOLDERS (FOR TARGETING):" -ForegroundColor White
-                foreach ($d in $dirAudit) {
-                    $shortPath = $d.FullName.Replace($mountDir, "")
-                    Write-Host ("    {0:N2} MB  -> {1}" -f $d.SizeMB, $shortPath) -ForegroundColor Gray
+                foreach ($d in $topDirs) {
+                    $count++
+                    Write-Progress -Activity "Weighing System Payload" -Status "Calculating: $($d.Name)" -PercentComplete (($count / $topDirs.Count) * 100)
+                    $size = (Get-ChildItem $d.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum / 1MB
+                    $dirAudit += [PSCustomObject]@{ FullName = $d.FullName; SizeMB = [Math]::Round($size, 2) }
+                }
+                Write-Progress -Activity "Weighing System Payload" -Completed
+
+                $topAudit = $dirAudit | Sort-Object SizeMB -Descending | Select-Object -First 10
+                
+                Write-Host "`n[!] TOP 10 HEAVIEST FOLDERS (TARGETED FOR CLEANUP):" -ForegroundColor White
+                foreach ($auditItem in $topAudit) {
+                    $shortPath = $auditItem.FullName.Replace($mountDir, "")
+                    Write-Host ("    {0,10:N2} MB  -> {1}" -f $auditItem.SizeMB, $shortPath) -ForegroundColor Gray
                 }
                 Write-Host "`n[*] Purging component store (ResetBase)..." -ForegroundColor Cyan
                 & dism.exe /Image:$mountDir /Cleanup-Image /StartComponentCleanup /ResetBase
             }
         }
 
-        # --- STEP 6: DISMOUNT ---
-        if ($targetSteps -contains 6) {
-            Invoke-Step -Step 6 -Label "Dismounting & Saving" -Action {
+        # --- STEP 7: DISMOUNT ---
+        if ($targetSteps -contains 7) {
+            Invoke-Step -Step 7 -Label "Dismounting & Saving" -Action {
                 Dismount-WindowsImage -Path $mountDir -Save
             }
         }
 
-        # --- STEP 7: GARBAGE COLLECTION (Compaction) ---
-        if ($targetSteps -contains 7) {
-            Invoke-Step -Step 7 -Label "COLD COMPRESSION: Finalizing Tiny WIM" -Action {
+        # --- STEP 8: GARBAGE COLLECTION (Compaction) ---
+        if ($targetSteps -contains 8) {
+            Invoke-Step -Step 8 -Label "COLD COMPRESSION: Finalizing Tiny WIM" -Action {
                 $targetWim = $stagedWim
                 if (-not (Test-Path $targetWim)) {
                     $fallback = Join-Path $isoFilesDir "sources\install.wim"
@@ -317,16 +383,34 @@ try {
                 Write-Host "[*] WIM Size (Post-Compaction): $("{0:N2}" -f $postSize) MB" -ForegroundColor Green
                 Write-Host "[!] TOTAL REDUCTION: $("{0:N2}" -f ($preSize - $postSize)) MB" -ForegroundColor Yellow
 
-                Move-Item -Path $compactedWim -Destination $targetWim -Force
+                # INJECTION LOCK: Ensure the compacted WIM is both staged AND placed in the ISO root
+                $finalIsoWim = Join-Path $isoFilesDir "sources\install.wim"
+                $finalIsoSources = Split-Path $finalIsoWim -Parent
+                if (-not (Test-Path $finalIsoSources)) { New-Item -ItemType Directory -Path $finalIsoSources -Force | Out-Null }
+                
+                Write-Host "[*] Injecting Tiny WIM into ISO structure: $finalIsoWim" -ForegroundColor Gray
+                Move-Item -Path $compactedWim -Destination $finalIsoWim -Force
+                if (Test-Path $stagedWim) { Copy-Item -Path $finalIsoWim -Destination $stagedWim -Force }
             }
         }
     }
 
-    # --- STEP 8: BUILD ISO ---
+    # --- STEP 9: BUILD ISO ---
     $targetName = if ($Tiny) { "Win11_Pro_Tiny_Vanilla.iso" } else { "Win11_Pro_Slim_Vanilla.iso" }
     
-    if ($targetSteps -contains 8) {
-        Invoke-Step -Step 8 -Label "Final Building of $targetName" -Action {
+    if ($targetSteps -contains 9) {
+        Invoke-Step -Step 9 -Label "Final Building of $targetName" -Action {
+            # --- PRE-BUILD AUDIT ---
+            $finalIsoWim = Join-Path $isoFilesDir "sources\install.wim"
+            if (Test-Path $finalIsoWim) {
+                $wimSize = (Get-Item $finalIsoWim).Length / 1GB
+                if ($Tiny -and $wimSize -gt 4.5) {
+                    Write-Host "[!] WARNING: Your 'Tiny' WIM is $($wimSize.ToString('N2')) GB. That's FAT!" -ForegroundColor Yellow
+                } else {
+                    Write-Host "[OK] Tiny Payload Verified: $($wimSize.ToString('N2')) GB" -ForegroundColor Green
+                }
+            }
+
             $drive = $null
             # Try to find existing mount
             $img = Get-DiskImage -ImagePath $SourcePath -ErrorAction SilentlyContinue 
@@ -345,9 +429,15 @@ try {
 
             if (-not (Test-Path (Join-Path $isoFilesDir "boot"))) {
                 Write-Host "[*] Building ISO structure..." -ForegroundColor Gray
-                Get-ChildItem -Path $drive | Where-Object { $_.Name -ne "sources" } | Copy-Item -Destination $isoFilesDir -Recurse
-                New-Item -ItemType Directory -Path (Join-Path $isoFilesDir "sources") | Out-Null
-                Get-ChildItem -Path (Join-Path $drive "sources") | Where-Object { $_.Name -ne "install.wim" -and $_.Name -ne "install.esd" -and $_.Name -ne "autounattend.xml"} | Copy-Item -Destination (Join-Path $isoFilesDir "sources") -Recurse
+                Get-ChildItem -Path $drive | Where-Object { $_.Name -ne "sources" -and $_.Name -ne "setup.exe" } | Copy-Item -Destination $isoFilesDir -Recurse
+                New-Item -ItemType Directory -Path (Join-Path $isoFilesDir "sources") -Force | Out-Null
+                
+                # SURGICAL EXTRACTION: Only copy essential setup files, skipping heavy OEM upgrade bloat
+                $blacklist = @("sxs", "dlmanifests", "replacementmanifests", "xp")
+                Get-ChildItem -Path (Join-Path $drive "sources") | Where-Object { 
+                    $_.Name -notin @("install.wim", "install.esd", "autounattend.xml") -and 
+                    $_.Name -notin $blacklist 
+                } | Copy-Item -Destination (Join-Path $isoFilesDir "sources") -Recurse
             }
 
             # NATIVE NO-PROMPT RENAMING: Use the built-in silent files from the ISO itself
@@ -384,6 +474,43 @@ try {
             
             & "oscdimg.exe" -m -o -u2 -udfver102 -bootdata:$bootData "$isoFilesDir" "$targetVanilla"
             Dismount-DiskImage -ImagePath $SourcePath -ErrorAction SilentlyContinue | Out-Null
+            
+            # --- STEP 10: CLEANUP ---
+            Write-Host "`n[*] FINALIZING CLEANUP: Restoring system state..." -ForegroundColor Gray
+            try { 
+                Remove-MpPreference -ExclusionPath $scratchDir -ErrorAction SilentlyContinue 
+                Write-Host "    [OK] AV Exclusion removed." -ForegroundColor DarkGray
+            } catch { }
+            
+            if (Test-Path $scratchDir) { 
+                Remove-Item -Path $scratchDir -Recurse -Force -ErrorAction SilentlyContinue 
+                Write-Host "    [OK] Scratch space purged." -ForegroundColor DarkGray
+            }
+
+            # --- EXECUTIVE SUMMARY ---
+            if (Test-Path $targetVanilla) {
+                $isoSizeFinal = (Get-Item $targetVanilla).Length
+                $finalWim = Join-Path $isoFilesDir "sources\install.wim"
+                $wimSizeFinal = if (Test-Path $finalWim) { (Get-Item $finalWim).Length } else { 0 }
+                
+                $isoReduced = ($script:OriginalMetrics.IsoSize - $isoSizeFinal) / 1MB
+                $wimReduced = ($script:OriginalMetrics.WimSize - $wimSizeFinal) / 1MB
+                $isoSavings = ($isoReduced / ($script:OriginalMetrics.IsoSize / 1MB)) * 100
+                $wimSavings = ($wimReduced / ($script:OriginalMetrics.WimSize / 1MB)) * 100
+                $totalTime = (New-TimeSpan -Start $script:OriginalMetrics.StartTime -End (Get-Date)).TotalMinutes
+
+                Write-Host "`n" + ("=" * 60) -ForegroundColor Cyan
+                Write-Host "             [ TINY-OS EXECUTIVE BUILD SUMMARY ]" -ForegroundColor Cyan
+                Write-Host ("=" * 60) -ForegroundColor Cyan
+                Write-Host (" {0,-20} | {1,-15} | {2,-15} | {3,-10}" -f "Component", "Original", "Tiny", "Savings") -ForegroundColor White
+                Write-Host ("-" * 60) -ForegroundColor DarkGray
+                Write-Host (" {0,-20} | {1,12} MB | {2,12} MB | {3,8:N1}%" -f "Base ISO", ($script:OriginalMetrics.IsoSize / 1MB).ToString("N0"), ($isoSizeFinal / 1MB).ToString("N0"), $isoSavings) -ForegroundColor Gray
+                Write-Host (" {0,-20} | {1,12} MB | {2,12} MB | {3,8:N1}%" -f "Core install.wim", ($script:OriginalMetrics.WimSize / 1MB).ToString("N0"), ($wimSizeFinal / 1MB).ToString("N0"), $wimSavings) -ForegroundColor Yellow
+                Write-Host ("-" * 60) -ForegroundColor DarkGray
+                Write-Host (" [!] TOTAL SHAVE: {0:N0} MB across all structures." -f ($isoReduced)) -ForegroundColor Green
+                Write-Host (" [!] BUILD TIME:  {0:N2} Minutes." -f $totalTime) -ForegroundColor Cyan
+                Write-Host ("=" * 60) -ForegroundColor Cyan
+            }
         }
     }
 

@@ -8,9 +8,16 @@
     "LocalProjectRoot": "P:/Projects/golden-image",
 
     "HostFileSystem": {
+    },
 
-
-
+    "MasterPaths": {
+        "OriginalOSImage": "N:/OS_Images/Win11_25H2_English_x64.iso",
+        "VanillaTinyImage": "N:/Win11_Pro_Tiny_Vanilla.iso",
+        "VanillaSlimImage": "N:/OS_Images/Win11_Pro_Slim_Vanilla.iso",
+        "MasterTinyImage": "N:/Win11_Pro_Tiny_Master.iso",
+        "MasterSlimImage": "N:/OS_Images/Win11_Pro_Final_Master.iso",
+        "UnattendXml": "N:/_autounattend/autounattend.xml",
+        "UnattendIso": "N:/_autounattend/autounattend.iso"
     },
 
     "VMFileSystem": {
@@ -41,9 +48,9 @@
             "HardwareTemplate": "OfflineSysprep",
             "VMDetails": {
                 "VMName": "Golden Auto OG",
-                // "OSImagePath": "N:/OS_Images/Win11_25H2_English_x64.iso",
+                "OSImagePath": "N:/OS_Images/Win11_25H2_English_x64.iso",
                 // "OSImagePath": "N:/OS_Images/Win11_Vanilla_ZeroTouch.iso",
-                "OSImagePath": "N:/Win11_Pro_Tiny_Vanilla.iso",
+                // "OSImagePath": "N:/Win11_Pro_Tiny_Vanilla.iso",
                 "UnattendIsoPath": "N:/unattend.iso",
                 "OsVhdPath": "N:/VM/Golden Auto OG/Virtual Hard Disks/Golden_Auto_OS.vhdx",
                 "VMHostname": "DESKTOP-GoldenAuto",

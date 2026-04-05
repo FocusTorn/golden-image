@@ -381,22 +381,26 @@ try {
 
     if ($isoPath -or $unattendIsoPath) {
         if ($isoPath) {
-            $bootDvd = Add-VMDvdDrive -VMName $newName -Path $isoPath -PassThru
+            $osDvd = Add-VMDvdDrive -VMName $newName -Path $isoPath -PassThru
             Write-Host "[*] OS ISO attached: $isoPath" -ForegroundColor DarkGray
         }
 
         if ($unattendIsoPath) {
-            Add-VMDvdDrive -VMName $newName -Path $unattendIsoPath
+            $unattendDvd = Add-VMDvdDrive -VMName $newName -Path $unattendIsoPath -PassThru
             Write-Host "[*] Unattend ISO attached: $unattendIsoPath" -ForegroundColor DarkGray
         }
 
         try {
+            # Priority: Boot from Unattend ISO (No-Prompt) first, fallback to OS ISO
+            $bootDvd = if ($unattendDvd) { $unattendDvd } else { $osDvd }
+            
             if ($bootDvd) {
                 if ($gen -ge 2) {
                     Set-VMFirmware -VMName $newName -FirstBootDevice $bootDvd
                 } else {
                     Set-VMBios -VMName $newName -StartupOrder @("CD", "IDE", "LegacyNetworkAdapter", "Floppy")
                 }
+                Write-Host "[*] Boot device set to: $($bootDvd.Path)" -ForegroundColor Gray
             }
         } catch {
             Write-Warning "Boot order (DVD first): $_"
@@ -466,6 +470,6 @@ try {
 
 } catch {
     Write-DetailedError $_ "Failed to create virtual machine"
-    throw $_
+    exit 1
 }
 

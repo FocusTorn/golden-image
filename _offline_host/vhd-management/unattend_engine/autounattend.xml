@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+	<settings pass="windowsPE">
+		<component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<SetupUILanguage>
+				<UILanguage>en-US</UILanguage>
+			</SetupUILanguage>
+			<InputLocale>en-US</InputLocale>
+			<SystemLocale>en-US</SystemLocale>
+			<UILanguage>en-US</UILanguage>
+			<UserLocale>en-US</UserLocale>
+		</component>
+		<component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<DiskConfiguration>
+				<WillShowUI>OnError</WillShowUI>
+			</DiskConfiguration>
+			<ImageInstall>
+				<OSImage>
+					<InstallFrom>
+						<MetaData wcm:action="add">
+							<Key>/IMAGE/NAME</Key>
+							<Value>Windows 11 Pro</Value>
+						</MetaData>
+					</InstallFrom>
+					<InstallTo>
+						<DiskID>0</DiskID>
+						<PartitionID>3</PartitionID>
+					</InstallTo>
+				</OSImage>
+			</ImageInstall>
+			<UserData>
+				<ProductKey>
+					<Key>VK7JG-NPHTM-C97JM-9MPGT-3V66T</Key>
+				</ProductKey>
+				<AcceptEula>true</AcceptEula>
+			</UserData>
+			<RunSynchronous>
+				<!-- 1. LabConfig Bypass (Win 11 Hardware Compatibility) -->
+				<RunSynchronousCommand wcm:action="add">
+					<Order>1</Order>
+					<Path>cmd.exe /c "reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d 1 /f &amp; reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t REG_DWORD /d 1 /f &amp; reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t REG_DWORD /d 1 /f &amp; reg add HKLM\SYSTEM\Setup\LabConfig /v BypassCPUCheck /t REG_DWORD /d 1 /f &amp; reg add HKLM\SYSTEM\Setup\LabConfig /v BypassDiskCheck /t REG_DWORD /d 1 /f &amp; reg add HKLM\SYSTEM\Setup\LabConfig /v BypassStorageCheck /t REG_DWORD /d 1 /f"</Path>
+				</RunSynchronousCommand>
+				<!-- 2. Disk Preparation (Hardened for OEM) -->
+				<RunSynchronousCommand wcm:action="add">
+					<Order>2</Order>
+					<Path>cmd.exe /c ">>X:\diskpart.txt (echo SELECT DISK 0 &amp; echo CLEAN &amp; echo CONVERT GPT &amp; echo CREATE PARTITION EFI SIZE=300 &amp; echo FORMAT QUICK FS=FAT32 LABEL=System &amp; echo SET ID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b &amp; echo ASSIGN LETTER=S)"</Path>
+				</RunSynchronousCommand>
+				<RunSynchronousCommand wcm:action="add">
+					<Order>3</Order>
+					<Path>cmd.exe /c ">>X:\diskpart.txt (echo CREATE PARTITION MSR SIZE=16 &amp; echo SET ID=e3c93300-8d93-4447-90d0-aa3c12fce951 &amp; echo CREATE PARTITION PRIMARY)"</Path>
+				</RunSynchronousCommand>
+				<RunSynchronousCommand wcm:action="add">
+					<Order>4</Order>
+					<Path>cmd.exe /c ">>X:\diskpart.txt (echo SHRINK MINIMUM=1000 &amp; echo FORMAT QUICK FS=NTFS LABEL=Windows &amp; echo ASSIGN LETTER=W &amp; echo CREATE PARTITION PRIMARY &amp; echo FORMAT QUICK FS=NTFS LABEL=Recovery &amp; echo ASSIGN LETTER=R &amp; echo SET ID=de94bba4-06d1-4d40-a16a-bfd50179d6ac &amp; echo GPT ATTRIBUTES=0x8000000000000001)"</Path>
+				</RunSynchronousCommand>
+				<RunSynchronousCommand wcm:action="add">
+					<Order>5</Order>
+					<Path>cmd.exe /c "diskpart.exe /s X:\diskpart.txt &gt; X:\diskpart.log"</Path>
+				</RunSynchronousCommand>
+			</RunSynchronous>
+		</component>
+	</settings>
+	<settings pass="specialize">
+		<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<RegisteredOrganization>GoldenImager</RegisteredOrganization>
+			<RegisteredOwner>User</RegisteredOwner>
+		</component>
+		<component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<RunSynchronous>
+				<!-- 1. Discover ISO and Stage Scripts -->
+				<RunSynchronousCommand wcm:action="add">
+					<Order>1</Order>
+					<Path>powershell.exe -Command "$d=(Get-PSDrive|?{Test-Path \"$($_.Root)scripts\"}).Root; mkdir C:\Windows\Setup\Scripts -Force; Copy-Item \"$d\scripts\*\" C:\Windows\Setup\Scripts -Force *&gt;&amp;1 | Out-File 'C:\inlog.log'"</Path>
+				</RunSynchronousCommand>
+				<!-- 2. Execute Main Customization -->
+				<RunSynchronousCommand wcm:action="add">
+					<Order>2</Order>
+					<Path>powershell.exe -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\Specialize.ps1" *&gt;&amp;1 | Out-File -Append 'C:\inlog.log'</Path>
+				</RunSynchronousCommand>
+				<!-- 3. PowerShell 7 Installation -->
+				<RunSynchronousCommand wcm:action="add">
+					<Order>3</Order>
+					<Path>powershell.exe -Command "$d=(Get-PSDrive|?{Test-Path \"$($_.Root)installers\"}).Root; $msi=gci \"$d\installers\PowerShell-*.msi\"|select -first 1; if($msi){msiexec /i \"$($msi.FullName)\" /passive /norestart} *&gt;&amp;1 | Out-File -Append 'C:\inlog.log'"</Path>
+				</RunSynchronousCommand>
+				<!-- 4. Finalize Setup State -->
+				<RunSynchronousCommand wcm:action="add">
+					<Order>4</Order>
+					<Path>cmd /c "reg add HKLM\SYSTEM\Setup\Status\ChildCompletion /v setup.exe /t REG_DWORD /d 3 /f &gt;&gt; C:\inlog.log 2&gt;&amp;1"</Path>
+				</RunSynchronousCommand>
+			</RunSynchronous>
+		</component>
+	</settings>
+	<settings pass="oobeSystem">
+		<component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<InputLocale>en-US</InputLocale>
+			<SystemLocale>en-US</SystemLocale>
+			<UILanguage>en-US</UILanguage>
+			<UserLocale>en-US</UserLocale>
+		</component>
+		<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<OOBE>
+				<HideEULAPage>true</HideEULAPage>
+				<HideLocalUserScreen>true</HideLocalUserScreen>
+				<HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+				<HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+				<ProtectYourPC>3</ProtectYourPC>
+			</OOBE>
+			<AutoLogon>
+				<Password>
+					<Value></Value>
+					<PlainText>true</PlainText>
+				</Password>
+				<Enabled>true</Enabled>
+				<Username>Administrator</Username>
+			</AutoLogon>
+			<FirstLogonCommands>
+				<SynchronousCommand wcm:action="add">
+					<Order>1</Order>
+					<CommandLine>powershell.exe -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\FirstLogon.ps1"</CommandLine>
+				</SynchronousCommand>
+			</FirstLogonCommands>
+		</component>
+		<component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+			<Reseal>
+				<ForceShutdownNow>false</ForceShutdownNow>
+				<Mode>Audit</Mode>
+			</Reseal>
+		</component>
+	</settings>
+</unattend>

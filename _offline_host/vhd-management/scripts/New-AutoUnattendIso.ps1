@@ -57,10 +57,18 @@ try {
         # p0 = BIOS (etfsboot.com), p1 = UEFI (efisys_noprompt.bin)
         $biosBoot = Join-Path $tempDir "boot\etfsboot.com"
         $uefiBoot = Join-Path $tempDir "efi\microsoft\boot\efisys_noprompt.bin"
-        $bootArgs = "-bootdata:2#p0,e,b`"$biosBoot`"#p1,e,b`"$uefiBoot`""
+        
+        # Use argument list (splatting) to prevent double-quoting which causes Error 123.
+        $oscdArgs = @(
+            "-n", "-m", "-o",
+            "-lUNATTEND",
+            "-bootdata:2#p0,e,b$biosBoot#pEF,e,b$uefiBoot",
+            "$tempDir",
+            "$DestinationIso"
+        )
 
         Write-Host "[*] Generating No-Prompt Bootable ISO..." -ForegroundColor Gray
-        & $oscdimg.Source -n -m -o $bootArgs "$tempDir" "$DestinationIso"
+        & $oscdimg.Source @oscdArgs
         
         if ($LASTEXITCODE -ne 0) { throw "Oscdimg failed with exit code $LASTEXITCODE." }
         Write-Host "[OK] Tiny ISO created successfully: $DestinationIso" -ForegroundColor Green
