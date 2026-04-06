@@ -1,23 +1,38 @@
 <script lang="ts">
-  export let active: boolean = false;
-  export let width: string = "auto";
-  export let height: string = "28px";
-  export let style: string = "";
-  export let title: string = "";
-  export let disabled: boolean = false;
-  export let small: boolean = false;
-  let className: string = "";
-  export { className as class };
+  
 
-  $: finalHeight = small ? "22px" : height;
 
   // Forwarding Click
   import { createEventDispatcher } from 'svelte';
+  interface Props {
+    active?: boolean;
+    width?: string;
+    height?: string;
+    style?: string;
+    title?: string;
+    disabled?: boolean;
+    small?: boolean;
+    class?: string;
+    children?: import('svelte').Snippet;
+  }
+
+  let {
+    active = false,
+    width = "auto",
+    height = "28px",
+    style = "",
+    title = "",
+    disabled = false,
+    small = false,
+    class: className = "",
+    children
+  }: Props = $props();
   const dispatch = createEventDispatcher();
 
   function handleClick(e: MouseEvent) {
     if (!disabled) dispatch('click', e);
   }
+  let finalHeight = $derived(small ? "22px" : height);
 </script>
 
 <button 
@@ -27,9 +42,9 @@
   {title}
   {disabled}
   style="--width: {width}; --height: {finalHeight}; {style}"
-  on:click={handleClick}
+  onclick={handleClick}
 >
-  <slot />
+  {@render children?.()}
 </button>
 
 <style>

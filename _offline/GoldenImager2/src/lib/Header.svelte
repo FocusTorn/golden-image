@@ -16,10 +16,10 @@
     Golden Imager 2
   </div>
   <div class="controls">
-    <button class="control-btn" on:click={minimize} title="Minimize">
+    <button class="control-btn" onclick={minimize} title="Minimize">
       <Minus size={14} />
     </button>
-    <button class="control-btn close" on:click={close} title="Close">
+    <button class="control-btn close" onclick={close} title="Close">
       <X size={14} />
     </button>
   </div>

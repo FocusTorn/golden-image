@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
@@ -30,19 +32,23 @@
   import { vhdStore, settings } from "./store";
   import { notificationStore } from "./notifications";
 
-  export let appliedCount = 0;
-  export let totalCount = 0;
+  interface Props {
+    appliedCount?: number;
+    totalCount?: number;
+  }
+
+  let { appliedCount = $bindable(0), totalCount = $bindable(0) }: Props = $props();
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
-  let featuresConfig: any = null;
-  let auditResults: any[] = [];
-  let loading = true;
-  let error: string | null = null;
+  let featuresConfig: any = $state(null);
+  let auditResults: any[] = $state([]);
+  let loading = $state(true);
+  let error: string | null = $state(null);
   let activeCategory = "Titus Essentials";
   let applyingFeature: string | null = null;
-  let searchQuery = "";
-  let stagedChanges = new Set<string>();
+  let searchQuery = $state("");
+  let stagedChanges = $state(new Set<string>());
 
   // Actions migrated to Dashboard Home
   const DASHBOARD_ACTIONS = new Set([
@@ -168,7 +174,7 @@
   }
 
   // Group handling
-  let groupStagedChanges: Record<string, string> = {}; // GroupId -> FeatureId (single selected)
+  let groupStagedChanges: Record<string, string> = $state({}); // GroupId -> FeatureId (single selected)
 
   function toggleGroupStage(groupId: string, featureId: string) {
     if (!featureId || featureId === "none") {
@@ -298,8 +304,8 @@
     }
   }
 
-  let hoveredDescription: string | null = null;
-  let hoveredFeatureId: string | null = null;
+  let hoveredDescription: string | null = $state(null);
+  let hoveredFeatureId: string | null = $state(null);
 
 
   // Mapping for categorical merging and renaming
@@ -310,34 +316,7 @@
     "Optional Windows Features": "WINDOWS"
   };
 
-  $: displayCategories = (() => {
-    if (!featuresConfig) return [];
-    const rawCategories = featuresConfig.Categories || [];
-    const seen = new Set<string>();
-    const cats = rawCategories.map(c => {
-      const name = c.Name || "Other";
-      const mapped = CATEGORY_MAP[name] || name.toUpperCase();
-      return { ...c, displayName: mapped };
-    }).filter(c => {
-      if (seen.has(c.displayName)) return false;
-      seen.add(c.displayName);
-      return true;
-    });
 
-    // Ensure "OTHER" is present if there are features without a matching category
-    const hasUncategorized = (featuresConfig?.Features || []).some(f => !f.Category);
-    if (hasUncategorized && !seen.has("OTHER")) {
-      cats.push({ Name: "Other", displayName: "OTHER" });
-    }
-    return cats;
-  })();
-
-  // Set of feature IDs that belong to a group (to hide standalone toggles)
-  $: groupedFeatureIds = new Set(
-    (featuresConfig?.UiGroups || []).flatMap(g => 
-      (g.Values || []).flatMap(v => v.FeatureIds || [])
-    )
-  );
 
   function getCombinedItems(displayName: string) {
     const allFeatures = featuresConfig?.Features || [];
@@ -361,8 +340,6 @@
     return [...features, ...groups].sort((a: any, b: any) => (a.Priority || 99) - (b.Priority || 99));
   }
 
-  // Balanced distribution for 3 columns - Filters empty categories during search
-  $: [col1, col2, col3] = distributeCategories(displayCategories, searchQuery);
 
   function distributeCategories(cats: any[], query: string) {
     const cols: any[][] = [[], [], []];
@@ -394,11 +371,44 @@
     hoveredFeatureId = null;
   }
 
-  let profiles: string[] = [];
-  let selectedProfile = "";
+  let profiles: string[] = $state([]);
+  let selectedProfile = $state("");
 
-  $: appliedCount = auditResults.filter(r => r.Status === 'Applied').length;
-  $: totalCount = auditResults.length;
+  let displayCategories = $derived((() => {
+    if (!featuresConfig) return [];
+    const rawCategories = featuresConfig.Categories || [];
+    const seen = new Set<string>();
+    const cats = rawCategories.map(c => {
+      const name = c.Name || "Other";
+      const mapped = CATEGORY_MAP[name] || name.toUpperCase();
+      return { ...c, displayName: mapped };
+    }).filter(c => {
+      if (seen.has(c.displayName)) return false;
+      seen.add(c.displayName);
+      return true;
+    });
+
+    // Ensure "OTHER" is present if there are features without a matching category
+    const hasUncategorized = (featuresConfig?.Features || []).some(f => !f.Category);
+    if (hasUncategorized && !seen.has("OTHER")) {
+      cats.push({ Name: "Other", displayName: "OTHER" });
+    }
+    return cats;
+  })());
+  // Set of feature IDs that belong to a group (to hide standalone toggles)
+  let groupedFeatureIds = $derived(new Set(
+    (featuresConfig?.UiGroups || []).flatMap(g => 
+      (g.Values || []).flatMap(v => v.FeatureIds || [])
+    )
+  ));
+  // Balanced distribution for 3 columns - Filters empty categories during search
+  let [col1, col2, col3] = $derived(distributeCategories(displayCategories, searchQuery));
+  run(() => {
+    appliedCount = auditResults.filter(r => r.Status === 'Applied').length;
+  });
+  run(() => {
+    totalCount = auditResults.length;
+  });
 </script>
 
 <div class="panel">
@@ -429,7 +439,7 @@
       <div class="state-view error">
         <RefreshCw size={32} class="dim" />
         <span>Sync Failure: {error}</span>
-        <button class="retry-btn" on:click={loadData}>Retry Connection</button>
+        <button class="retry-btn" onclick={loadData}>Retry Connection</button>
       </div>
     {:else}
       <div class="tweak-grid">
@@ -477,10 +487,10 @@
                         class:selected={stagedChanges.has(item.FeatureId)}
                         class:v-applied={getStatus(item.FeatureId) === 'Applied'}
                         style="--status-color: {getStatusColor(item.FeatureId)}"
-                        on:mouseenter={() => handleMouseEnter(item)}
-                        on:mouseleave={handleMouseLeave}
-                        on:click={() => toggleStage(item.FeatureId)}
-                        on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleStage(item.FeatureId); }}
+                        onmouseenter={() => handleMouseEnter(item)}
+                        onmouseleave={handleMouseLeave}
+                        onclick={() => toggleStage(item.FeatureId)}
+                        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleStage(item.FeatureId); }}
                       >
                         <div class="checkbox-container">
                           {#if applyingFeature === item.FeatureId}

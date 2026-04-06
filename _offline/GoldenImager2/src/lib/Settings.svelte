@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { run, createBubbler, stopPropagation } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import { Settings, Shield, LayoutGrid, Palette, Save, RefreshCw, Cpu, Database, Bell, Check, Terminal, Play, Trash2, Loader2, Globe, History, Monitor, Maximize, AlertTriangle } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import { settings, vhdStore } from "./store";
@@ -26,13 +29,13 @@
     }
   ];
 
-  let saved = false;
-  let debugScript = diagnostics[0].script;
-  let debugOutput = "";
-  let runningDebug = false;
-  let vmProfiles: string[] = [];
-  let defaultProfile = "";
-  let initialView = "Dashboard";
+  let saved = $state(false);
+  let debugScript = $state(diagnostics[0].script);
+  let debugOutput = $state("");
+  let runningDebug = $state(false);
+  let vmProfiles: string[] = $state([]);
+  let defaultProfile = $state("");
+  let initialView = $state("Dashboard");
 
   onMount(async () => {
     try {
@@ -101,10 +104,10 @@
     }
   }
 
-  let localW = $settings.windowWidth;
-  let localH = $settings.windowHeight;
-  let isFocused = false;
-  let clampedWarning = false;
+  let localW = $state($settings.windowWidth);
+  let localH = $state($settings.windowHeight);
+  let isFocused = $state(false);
+  let clampedWarning = $state(false);
   let warningTimeout: any;
 
   function showWarning() {
@@ -113,10 +116,12 @@
     warningTimeout = setTimeout(() => clampedWarning = false, 3000);
   }
 
-  $: if (!isFocused) {
-    localW = $settings.windowWidth;
-    localH = $settings.windowHeight;
-  }
+  run(() => {
+    if (!isFocused) {
+      localW = $settings.windowWidth;
+      localH = $settings.windowHeight;
+    }
+  });
 
   function clampDimensions(w: number, h: number) {
     const maxW = typeof window !== 'undefined' ? window.screen.availWidth : 1920;
@@ -346,9 +351,9 @@
                 bind:value={localW} 
                 class="num-input digit-4" 
                 class:warning-text={clampedWarning}
-                on:focus={() => isFocused = true}
-                on:blur={() => isFocused = false}
-                on:change={updateManualSize} 
+                onfocus={() => isFocused = true}
+                onblur={() => isFocused = false}
+                onchange={updateManualSize} 
               />
             </div>
             <div class="action-item tweak-row">
@@ -359,16 +364,16 @@
                 bind:value={localH} 
                 class="num-input digit-4" 
                 class:warning-text={clampedWarning}
-                on:focus={() => isFocused = true}
-                on:blur={() => isFocused = false}
-                on:change={updateManualSize} 
+                onfocus={() => isFocused = true}
+                onblur={() => isFocused = false}
+                onchange={updateManualSize} 
               />
             </div>
             <button 
               class="vhd-action-btn resize-trigger" 
               class:release={clampedWarning}
               class:active={clampedWarning}
-              on:click={handleManualResize} 
+              onclick={handleManualResize} 
               title="Force Resize & Un-Retain"
             >
               <RefreshCw size={11} class={clampedWarning ? 'spin' : ''} />
@@ -385,8 +390,8 @@
 
           <div 
             class="action-item tweak-row clickable-row" 
-            on:click={() => settings.update(s => ({ ...s, retainWindowState: !s.retainWindowState }))}
-            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && settings.update(s => ({ ...s, retainWindowState: !s.retainWindowState }))}
+            onclick={() => settings.update(s => ({ ...s, retainWindowState: !s.retainWindowState }))}
+            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && settings.update(s => ({ ...s, retainWindowState: !s.retainWindowState }))}
             role="button"
             tabindex="0"
           >
@@ -396,8 +401,8 @@
               <input 
                 type="checkbox" 
                 checked={$settings.retainWindowState} 
-                on:click|stopPropagation
-                on:change={(e) => settings.update(s => ({ ...s, retainWindowState: e.currentTarget.checked }))}
+                onclick={stopPropagation(bubble('click'))}
+                onchange={(e) => settings.update(s => ({ ...s, retainWindowState: e.currentTarget.checked }))}
               />
             </div>
           </div>
@@ -426,14 +431,14 @@
                 <div class="script-side">
                     <textarea bind:value={debugScript} spellcheck="false" placeholder="Enter PowerShell..."></textarea>
                     <div class="term-actions">
-                        <button class="run-diag-btn" on:click={runDiagnostic} disabled={runningDebug}>
+                        <button class="run-diag-btn" onclick={runDiagnostic} disabled={runningDebug}>
                             {#if runningDebug}
                               <RefreshCw size={12} class="spin" /> RUNNING...
                             {:else}
                               <Play size={12} fill="currentColor" /> EXECUTE DIAGNOSTIC
                             {/if}
                         </button>
-                        <button class="clear-diag-btn" on:click={() => debugOutput = ""}>
+                        <button class="clear-diag-btn" onclick={() => debugOutput = ""}>
                             <Trash2 size={12} />
                         </button>
                     </div>

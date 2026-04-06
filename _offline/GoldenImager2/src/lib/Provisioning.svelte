@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run, stopPropagation } from 'svelte/legacy';
+
   import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
@@ -24,14 +26,14 @@
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
-  let activeStage = 1;
-  let running = false;
-  let logs: string[] = ["--- Tactical Provisioning Engine v2.0 ---", "Awaiting deployment signal..."];
-  let logEnd: HTMLElement;
+  let activeStage = $state(1);
+  let running = $state(false);
+  let logs: string[] = $state(["--- Tactical Provisioning Engine v2.0 ---", "Awaiting deployment signal..."]);
+  let logEnd: HTMLElement = $state();
 
   // VHD & VM STATE (Now synced with Global Store)
-  let vhdPath = "";
-  let vm_name = "";
+  let vhdPath = $state("");
+  let vm_name = $state("");
   let vhdMounted = false;
   let vhdAttached = false;
   let vhdDiskNumber: number | null = null;
@@ -53,14 +55,14 @@
     vhdStore.update(s => ({ ...s, ...updates }));
   }
 
-  let stages = [
+  let stages = $state([
     { id: 1, title: "Stage 01: Scoop", desc: "Initializing package manager and tactical CLI tools.", status: "idle" },
     { id: 2, title: "Stage 02: MSVC Runtimes", desc: "Injecting core visual studio runtimes and libraries.", status: "idle" },
     { id: 3, title: "Stage 03: System Apps", desc: "Provisioning standard system-level applications.", status: "idle" },
     { id: 4, title: "Stage 04: Rust Finish", desc: "Compiling final system integrations and binary optimizations.", status: "idle" },
     { id: 5, title: "Stage 05: Finalize", desc: "Performing final cleanup and system normalization.", status: "idle" },
     { id: 6, title: "Stage 06: Customize", desc: "Applying final industrial aesthetic and shell customizations.", status: "idle" }
-  ];
+  ]);
 
   let masterConfig: any = null;
   let vmProfiles: string[] = [];
@@ -109,8 +111,12 @@
   }
 
   // Handle manual input updates
-  $: if (vm_name !== undefined) updateStore({ vmName: vm_name });
-  $: if (vhdPath !== undefined) updateStore({ vhdPath: vhdPath });
+  run(() => {
+    if (vm_name !== undefined) updateStore({ vmName: vm_name });
+  });
+  run(() => {
+    if (vhdPath !== undefined) updateStore({ vhdPath: vhdPath });
+  });
 
   onDestroy(() => {
     if (unlisten) unlisten();
@@ -341,7 +347,7 @@
                class="deploy-btn" 
                class:executing={running} 
                disabled={running || !$vhdStore.vhdPath} 
-               on:click={startDeployment}
+               onclick={startDeployment}
              >
                {#if running}
                  <Loader2 size={16} class="spin" />
@@ -398,7 +404,7 @@
                     <div class="row-actions">
                       <button 
                         class="row-action-btn" 
-                        on:click|stopPropagation={() => runSingleStage(stage)}
+                        onclick={stopPropagation(() => runSingleStage(stage))}
                         disabled={running}
                       >
                         <Play size={10} fill="currentColor" />

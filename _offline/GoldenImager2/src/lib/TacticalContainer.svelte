@@ -1,7 +1,17 @@
 <script lang="ts">
-  export let showHeaderGrad = true;
-  export let showFooterGrad = true;
-  export let padding = "0 6px";
+  interface Props {
+    showHeaderGrad?: boolean;
+    showFooterGrad?: boolean;
+    padding?: string;
+    children?: import('svelte').Snippet;
+  }
+
+  let {
+    showHeaderGrad = true,
+    showFooterGrad = true,
+    padding = "0 6px",
+    children
+  }: Props = $props();
 </script>
 
 <div class="tactical-container" style="--tact-padding: {padding}">
@@ -10,7 +20,7 @@
   {/if}
   
   <div class="scroll-wrapper">
-    <slot />
+    {@render children?.()}
   </div>
 
   {#if showFooterGrad}

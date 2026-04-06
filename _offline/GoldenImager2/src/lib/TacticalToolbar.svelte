@@ -14,34 +14,57 @@
   const dispatch = createEventDispatcher();
 
   // Props for Visibility
-  export let showPolicy = true;
-  export let showProfile = true;
-  export let showSearch = true;
-  export let showRefresh = true;
-  export let showApply = true;
 
   // Labels & Data
-  export let policyLabel = "Select Policy";
-  export let profileLabel = "App-Profiles";
-  export let searchPlaceholder = "Filter list...";
-  export let applyLabel = "Apply Changes";
 
   // State (Binding recommended)
-  export let policyOptions = [];
-  export let selectedPolicy = "";
-  export let profiles = [];
-  export let selectedProfile = "";
-  export let searchTerm = "";
-  export let selectionCount = 0;
-  export let loading = false;
 
   // Calculation Widths (Replicated from Apps.svelte)
-  export let policyCalcWidth = "140px";
-  export let profileCalcWidth = "160px";
+  interface Props {
+    showPolicy?: boolean;
+    showProfile?: boolean;
+    showSearch?: boolean;
+    showRefresh?: boolean;
+    showApply?: boolean;
+    policyLabel?: string;
+    profileLabel?: string;
+    searchPlaceholder?: string;
+    applyLabel?: string;
+    policyOptions?: any;
+    selectedPolicy?: string;
+    profiles?: any;
+    selectedProfile?: string;
+    searchTerm?: string;
+    selectionCount?: number;
+    loading?: boolean;
+    policyCalcWidth?: string;
+    profileCalcWidth?: string;
+  }
+
+  let {
+    showPolicy = true,
+    showProfile = true,
+    showSearch = true,
+    showRefresh = true,
+    showApply = true,
+    policyLabel = "Select Policy",
+    profileLabel = "App-Profiles",
+    searchPlaceholder = "Filter list...",
+    applyLabel = "Apply Changes",
+    policyOptions = [],
+    selectedPolicy = $bindable(""),
+    profiles = [],
+    selectedProfile = $bindable(""),
+    searchTerm = $bindable(""),
+    selectionCount = 0,
+    loading = false,
+    policyCalcWidth = "140px",
+    profileCalcWidth = "160px"
+  }: Props = $props();
 
   // Dropdown States
-  let isPolicyOpen = false;
-  let isProfileOpen = false;
+  let isPolicyOpen = $state(false);
+  let isProfileOpen = $state(false);
 
   function togglePolicy(e) {
     if (e && e.detail && e.detail.stopPropagation) e.detail.stopPropagation();
@@ -73,7 +96,7 @@
   }
 </script>
 
-<svelte:window on:click={closeAll} />
+<svelte:window onclick={closeAll} />
 
 <div class="toolbar-reusable">
   <div class="tool-group">
@@ -99,7 +122,7 @@
               <button
                 class="dropdown-item"
                 class:active={selectedPolicy === opt.id}
-                on:click={() => selectPolicy(opt.id)}
+                onclick={() => selectPolicy(opt.id)}
                 title={opt.description}
               >
                 {opt.label}
@@ -132,7 +155,7 @@
               <button
                 class="dropdown-item"
                 class:active={!selectedProfile}
-                on:click={() => selectProfile("")}
+                onclick={() => selectProfile("")}
               >
                 Clear Selection
               </button>
@@ -141,13 +164,13 @@
                   <button
                     class="dropdown-item"
                     class:active={selectedProfile === p}
-                    on:click={() => selectProfile(p)}
+                    onclick={() => selectProfile(p)}
                   >
                     <span class="truncate">{p.replace(".json", "")}</span>
                   </button>
                   <button
                     class="delete-profile-btn"
-                    on:click={(e) => { e.stopPropagation(); dispatch('deleteProfile', p); }}
+                    onclick={(e) => { e.stopPropagation(); dispatch('deleteProfile', p); }}
                     title="Delete Profile"
                   >
                     <Trash2 size={10} />
@@ -223,7 +246,7 @@
 
   {#if showApply}
     <div class="tool-group right">
-      <button class="action-btn" class:active={selectionCount > 0} on:click={() => dispatch('apply')}>
+      <button class="action-btn" class:active={selectionCount > 0} onclick={() => dispatch('apply')}>
         {applyLabel} ({selectionCount})
       </button>
     </div>

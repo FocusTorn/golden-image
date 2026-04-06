@@ -12,18 +12,18 @@
   import { settings } from './store';
   import { notificationStore } from "./notifications";
 
-  let status = {
+  let status = $state({
     packer_active: false,
     osd_builder_ready: false,
     hyperv_attached: false,
     isMounted: false,
     hivesLoaded: false
-  };
+  });
 
-  let availableImages: any[] = [];
-  let isQuerying = false;
+  let availableImages: any[] = $state([]);
+  let isQuerying = $state(false);
 
-  let config = {
+  let config = $state({
     iso_url: "N:/OS_Images/Win11_24H2_Pro.iso",
     wim_index: 1,
     mount_path: "P:/Projects/golden-image/_offline_host/mount",
@@ -32,21 +32,21 @@
     admin_pass: "PackerTemp123!",
     vm_name: "GoldenImager-Orchestrator-Build",
     base_dir: "P:/Projects/golden-image/_offline_host/GoldenImager-Orchestrator"
-  };
+  });
 
-  let removals = [
+  let removals = $state([
     { id: 'MicrosoftEdge', label: 'Microsoft Edge Browser', checked: true },
     { id: 'MicrosoftStore', label: 'Microsoft Store & Apps', checked: true },
     { id: 'Telemetry', label: 'Telemetry & Data Collection', checked: true },
     { id: 'OneDrive', label: 'OneDrive Cloud Storage', checked: true },
     { id: 'Defender', label: 'Windows Defender (Optional)', checked: false },
     { id: 'Cortana', label: 'Cortana & Search Assist', checked: true }
-  ];
+  ]);
 
-  let logs: string[] = [];
+  let logs: string[] = $state([]);
   let isBuilding = false;
-  let processing = false;
-  let logEnd: HTMLElement;
+  let processing = $state(false);
+  let logEnd: HTMLElement = $state();
 
   async function handleQueryImages() {
     if (!config.iso_url) return;
@@ -227,11 +227,11 @@
           <div class="input-field">
             <label for="iso-url">SOURCE IMAGE (ISO/WIM)</label>
             <div class="input-with-icon">
-              <input id="iso-url" type="text" bind:value={config.iso_url} on:change={handleQueryImages} />
-              <button class="icon-btn" on:click={() => selectFile('iso_url', 'Select Source Image', ['iso', 'wim', 'esd'])}>
+              <input id="iso-url" type="text" bind:value={config.iso_url} onchange={handleQueryImages} />
+              <button class="icon-btn" onclick={() => selectFile('iso_url', 'Select Source Image', ['iso', 'wim', 'esd'])}>
                 <FolderOpen size={14} />
               </button>
-              <button class="icon-btn" on:click={handleQueryImages} disabled={isQuerying}>
+              <button class="icon-btn" onclick={handleQueryImages} disabled={isQuerying}>
                 {#if isQuerying}
                   <RefreshCw size={14} class="spin" />
                 {:else}
@@ -260,7 +260,7 @@
               <label for="mount-path">TARGET MOUNT POINT</label>
               <div class="input-with-icon">
                 <input id="mount-path" type="text" bind:value={config.mount_path} />
-                <button class="icon-btn" on:click={() => selectFolder('mount_path', 'Select Mount Point')}>
+                <button class="icon-btn" onclick={() => selectFolder('mount_path', 'Select Mount Point')}>
                   <FolderOpen size={14} />
                 </button>
               </div>
@@ -275,17 +275,17 @@
           </div>
 
           {#if !status.isMounted}
-            <button class="action-btn primary" on:click={handleMount} disabled={processing}>
+            <button class="action-btn primary" onclick={handleMount} disabled={processing}>
               <Layers size={14} />
               <span>MOUNT IMAGE</span>
             </button>
           {:else}
             <div class="row-flex">
-              <button class="action-btn secondary" on:click={() => handleUnmount(false)} disabled={processing}>
+              <button class="action-btn secondary" onclick={() => handleUnmount(false)} disabled={processing}>
                 <Save size={14} />
                 <span>SAVE & COMMIT</span>
               </button>
-              <button class="action-btn danger" on:click={() => handleUnmount(true)} disabled={processing}>
+              <button class="action-btn danger" onclick={() => handleUnmount(true)} disabled={processing}>
                 <Trash2 size={14} />
                 <span>DISCARD</span>
               </button>
@@ -295,12 +295,12 @@
 
             <div class="row-flex">
               {#if !status.hivesLoaded}
-                <button class="action-btn outline" on:click={handleLoadHives} disabled={processing}>
+                <button class="action-btn outline" onclick={handleLoadHives} disabled={processing}>
                   <Unlock size={14} />
                   <span>LOAD HIVES</span>
                 </button>
               {:else}
-                <button class="action-btn outline active-cyan" on:click={handleUnloadHives} disabled={processing}>
+                <button class="action-btn outline active-cyan" onclick={handleUnloadHives} disabled={processing}>
                   <Lock size={14} />
                   <span>UNLOAD HIVES</span>
                 </button>
@@ -329,7 +329,7 @@
                 <button 
                   class="target-btn small" 
                   class:active={item.checked}
-                  on:click={() => item.checked = !item.checked}
+                  onclick={() => item.checked = !item.checked}
                 >
                   {item.checked ? 'STRIP' : 'KEEP'}
                 </button>
@@ -339,7 +339,7 @@
           
           <div class="divider"></div>
           
-          <button class="action-btn primary" on:click={applyStripping} disabled={!status.isMounted || processing}>
+          <button class="action-btn primary" onclick={applyStripping} disabled={!status.isMounted || processing}>
             <Zap size={14} />
             <span>IGNITE STRIPPING ENGINE</span>
           </button>
@@ -361,7 +361,7 @@
             <label for="drivers-path">DRIVERS REPOSITORY</label>
             <div class="input-with-icon">
               <input id="drivers-path" type="text" bind:value={config.drivers_path} />
-              <button class="icon-btn" on:click={() => selectFolder('drivers_path', 'Select Drivers Directory')}>
+              <button class="icon-btn" onclick={() => selectFolder('drivers_path', 'Select Drivers Directory')}>
                 <FolderOpen size={14} />
               </button>
             </div>
@@ -371,7 +371,7 @@
             <label for="updates-path">OFFLINE UPDATES (MSU/CAB)</label>
             <div class="input-with-icon">
               <input id="updates-path" type="text" bind:value={config.updates_path} />
-              <button class="icon-btn" on:click={() => selectFolder('updates_path', 'Select Updates Directory')}>
+              <button class="icon-btn" onclick={() => selectFolder('updates_path', 'Select Updates Directory')}>
                 <FolderOpen size={14} />
               </button>
             </div>
@@ -379,7 +379,7 @@
 
           <div class="divider"></div>
 
-          <button class="action-btn primary" on:click={applyInjections} disabled={!status.isMounted || processing}>
+          <button class="action-btn primary" onclick={applyInjections} disabled={!status.isMounted || processing}>
             <Download size={14} />
             <span>INJECT CRITICAL ASSETS</span>
           </button>

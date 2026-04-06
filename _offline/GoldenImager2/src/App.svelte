@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { settings, accentRgb } from './lib/store';
   import { invoke } from '@tauri-apps/api/tauri';
   import { listen } from '@tauri-apps/api/event';
@@ -15,13 +17,13 @@
 
   import { onMount } from 'svelte';
   
-  let activeTab = 'dashboard';
+  let activeTab = $state('dashboard');
   let isDark = true;
-  let appCount = 0;
-  let hasLoggedGeometry = false;
+  let appCount = $state(0);
+  let hasLoggedGeometry = $state(false);
   
-  let containerRef: HTMLElement;
-  let listRef: HTMLElement;
+  let containerRef: HTMLElement = $state();
+  let listRef: HTMLElement = $state();
 
   onMount(() => {
     const setup = async () => {
@@ -94,26 +96,34 @@
   });
 
   /* GEOMETRY PROBE LOGIC (Logs once per app pane load) */
-  $: if (activeTab === 'apps' && containerRef && listRef && !hasLoggedGeometry) {
-    const cTop = containerRef.getBoundingClientRect().top;
-    const lTop = listRef.getBoundingClientRect().top;
-    invoke('log_geometry', { container: cTop, scroll: lTop, data: lTop });
-    hasLoggedGeometry = true;
-  }
-  $: if (activeTab !== 'apps') {
-    hasLoggedGeometry = false; // Reset for next time the tab is opened
-  }
+  run(() => {
+    if (activeTab === 'apps' && containerRef && listRef && !hasLoggedGeometry) {
+      const cTop = containerRef.getBoundingClientRect().top;
+      const lTop = listRef.getBoundingClientRect().top;
+      invoke('log_geometry', { container: cTop, scroll: lTop, data: lTop });
+      hasLoggedGeometry = true;
+    }
+  });
+  run(() => {
+    if (activeTab !== 'apps') {
+      hasLoggedGeometry = false; // Reset for next time the tab is opened
+    }
+  });
 
   /* TAB SAFETY LOGIC: Ensure activeTab is available for selected environment */
-  $: if (activeTab === 'provisioning' && $settings.environmentTarget !== 'VHD & VM') {
-    activeTab = 'dashboard';
-  }
-  $: if (activeTab === 'orchestrator' && $settings.environmentTarget !== 'Local Image') {
-    activeTab = 'dashboard';
-  }
+  run(() => {
+    if (activeTab === 'provisioning' && $settings.environmentTarget !== 'VHD & VM') {
+      activeTab = 'dashboard';
+    }
+  });
+  run(() => {
+    if (activeTab === 'orchestrator' && $settings.environmentTarget !== 'Local Image') {
+      activeTab = 'dashboard';
+    }
+  });
 
-  let tweakAppliedCount = 0;
-  let tweakTotalCount = 0;
+  let tweakAppliedCount = $state(0);
+  let tweakTotalCount = $state(0);
   
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 </script>
@@ -124,23 +134,23 @@
   style="--accent-color: {$settings.accentColor}; --accent-rgb: {$accentRgb}; --glass-opacity: {$settings.glassOpacity / 100};"
 >
   {#if isTauri}
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="resize-handle top" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'Top' })}></div>
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="resize-handle right" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'Right' })}></div>
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="resize-handle bottom" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'Bottom' })}></div>
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="resize-handle left" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'Left' })}></div>
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="resize-handle top-left" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'TopLeft' })}></div>
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="resize-handle top-right" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'TopRight' })}></div>
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="resize-handle bottom-left" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'BottomLeft' })}></div>
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="resize-handle bottom-right" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'BottomRight' })}></div>
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="resize-handle top" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'Top' })}></div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="resize-handle right" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'Right' })}></div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="resize-handle bottom" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'Bottom' })}></div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="resize-handle left" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'Left' })}></div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="resize-handle top-left" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'TopLeft' })}></div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="resize-handle top-right" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'TopRight' })}></div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="resize-handle bottom-left" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'BottomLeft' })}></div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="resize-handle bottom-right" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'BottomRight' })}></div>
   {/if}
 
   <div class="app-frame">

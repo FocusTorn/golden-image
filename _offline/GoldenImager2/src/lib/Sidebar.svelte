@@ -1,42 +1,46 @@
 <script lang="ts">
   import { Home, Cog, LayoutList, Settings, Zap, Hammer } from 'lucide-svelte';
   import { settings } from './store';
-  export let activeTab: string;
+  interface Props {
+    activeTab: string;
+  }
+
+  let { activeTab = $bindable() }: Props = $props();
 </script>
 
 <aside class="sidebar" data-tauri-drag-region>
-  <button class:active={activeTab === 'dashboard'} on:click={() => activeTab = 'dashboard'} title="Dashboard">
+  <button class:active={activeTab === 'dashboard'} onclick={() => activeTab = 'dashboard'} title="Dashboard">
     <span class="icon-wrapper">
       <Home size={18} color={activeTab === 'dashboard' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <!-- DYNAMIC PIPELINE TAB -->
   {#if $settings.environmentTarget === 'VHD & VM'}
-    <button class:active={activeTab === 'provisioning'} on:click={() => activeTab = 'provisioning'} title="Tactical Provisioning Engine">
+    <button class:active={activeTab === 'provisioning'} onclick={() => activeTab = 'provisioning'} title="Tactical Provisioning Engine">
       <span class="icon-wrapper">
         <Zap size={18} color={activeTab === 'provisioning' ? 'var(--accent-color)' : 'currentColor'} />
       </span>
     </button>
   {:else if $settings.environmentTarget === 'Local Image'}
-    <button class:active={activeTab === 'orchestrator'} on:click={() => activeTab = 'orchestrator'} title="Image from Code">
+    <button class:active={activeTab === 'orchestrator'} onclick={() => activeTab = 'orchestrator'} title="Image from Code">
       <span class="icon-wrapper">
         <Hammer size={18} color={activeTab === 'orchestrator' ? 'var(--accent-color)' : 'currentColor'} />
       </span>
     </button>
   {/if}
 
-  <button class:active={activeTab === 'apps'} on:click={() => activeTab = 'apps'} title="Apps">
+  <button class:active={activeTab === 'apps'} onclick={() => activeTab = 'apps'} title="Apps">
     <span class="icon-wrapper">
       <LayoutList size={18} color={activeTab === 'apps' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
-  <button class:active={activeTab === 'tweaks'} on:click={() => activeTab = 'tweaks'} title="Tweaks">
+  <button class:active={activeTab === 'tweaks'} onclick={() => activeTab = 'tweaks'} title="Tweaks">
     <span class="icon-wrapper">
       <Cog size={18} color={activeTab === 'tweaks' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <div class="spacer"></div>
-  <button class:active={activeTab === 'settings'} on:click={() => activeTab = 'settings'} title="Settings">
+  <button class:active={activeTab === 'settings'} onclick={() => activeTab = 'settings'} title="Settings">
     <span class="icon-wrapper">
       <Settings size={18} color={activeTab === 'settings' ? 'var(--accent-color)' : 'currentColor'} />
     </span>

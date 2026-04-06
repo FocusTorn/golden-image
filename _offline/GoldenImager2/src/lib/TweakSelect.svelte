@@ -3,16 +3,28 @@
   import { ChevronDown } from 'lucide-svelte';
   import BloomControl from './BloomControl.svelte';
 
-  export let value: string = "none";
-  export let appliedValue: string = "none"; // The currently active setting in the system
-  export let label: string = "Select Option";
-  export let options: { Label: string; FeatureIds: string[] }[] = [];
-  export let width: string = "auto";
-  export let height: string = "22px";
-  export let noDiff: boolean = false;
+  interface Props {
+    value?: string;
+    appliedValue?: string;
+    label?: string;
+    options?: { Label: string; FeatureIds: string[] }[];
+    width?: string;
+    height?: string;
+    noDiff?: boolean;
+  }
+
+  let {
+    value = $bindable("none"),
+    appliedValue = "none",
+    label = "Select Option",
+    options = [],
+    width = "auto",
+    height = "22px",
+    noDiff = false
+  }: Props = $props();
 
   const dispatch = createEventDispatcher();
-  let isOpen = false;
+  let isOpen = $state(false);
 
   function toggle() {
     isOpen = !isOpen;
@@ -38,8 +50,8 @@
     return () => window.removeEventListener('click', handleOutsideClick);
   });
 
-  $: activeLabel = options.find(o => o.FeatureIds.includes(value))?.Label || label;
-  $: isAppliedValue = (ids: string[]) => ids.some(id => id.toLowerCase().trim() === appliedValue.toLowerCase().trim());
+  let activeLabel = $derived(options.find(o => o.FeatureIds.includes(value))?.Label || label);
+  let isAppliedValue = $derived((ids: string[]) => ids.some(id => id.toLowerCase().trim() === appliedValue.toLowerCase().trim()));
 </script>
 
 <div class="tweak-select-container" style="--width: {width}">
@@ -69,7 +81,7 @@
           class="dropdown-item"
           class:active={opt.FeatureIds[0] === value}
           class:applied={isApplied}
-          on:click={() => selectOption(opt.FeatureIds[0])}
+          onclick={() => selectOption(opt.FeatureIds[0])}
         >
           {opt.Label}
         </button>

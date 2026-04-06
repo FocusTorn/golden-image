@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { run, createBubbler, stopPropagation } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { 
@@ -44,19 +47,19 @@
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
-  let hostStats: any = null;
-  let vmStats: any = null;
+  let hostStats: any = $state(null);
+  let vmStats: any = $state(null);
   let masterConfig: any = null;
-  let vmProfiles: string[] = [];
+  let vmProfiles: string[] = $state([]);
   let currentOsVhd: string = "";
-  let isProfileOpen = false;
-  let loading = true;
+  let isProfileOpen = $state(false);
+  let loading = $state(true);
   let error: string | null = null;
-  let executingActions = new Set<string>();
-  let vmStatuses: Record<string, string> = {};
-  let statusLoading = true;
+  let executingActions = $state(new Set<string>());
+  let vmStatuses: Record<string, string> = $state({});
+  let statusLoading = $state(true);
 
-  let envModeOpen = false;
+  let envModeOpen = $state(false);
   const envModes: (typeof $settings.environmentTarget)[] = ['Local Image', 'VHD & VM', 'Local'];
 
   function toggleEnvMode(e: any) {
@@ -212,7 +215,7 @@
     }
   }
 
-  let vhdState: import("./store").VhdState;
+  let vhdState: import("./store").VhdState = $state();
   vhdStore.subscribe(state => { vhdState = state; });
 
   async function handleVhdTransition(target: string) {
@@ -306,13 +309,17 @@
     await loadMasterConfig();
   });
 
-  $: if ($vhdStore.remoteActive !== undefined || $vhdStore.vhdAttached !== undefined || $vhdStore.selectedProfile !== undefined) {
-     loadStats();
-  }
+  run(() => {
+    if ($vhdStore.remoteActive !== undefined || $vhdStore.vhdAttached !== undefined || $vhdStore.selectedProfile !== undefined) {
+       loadStats();
+    }
+  });
 
-  $: if (!$vhdStore.vmName && $vhdStore.remoteActive) {
-    vhdStore.update(s => ({ ...s, remoteActive: false }));
-  }
+  run(() => {
+    if (!$vhdStore.vmName && $vhdStore.remoteActive) {
+      vhdStore.update(s => ({ ...s, remoteActive: false }));
+    }
+  });
 
   function selectEnvMode(mode: typeof $settings.environmentTarget) {
     settings.update(s => ({ ...s, environmentTarget: mode }));
@@ -320,7 +327,7 @@
   }
 </script>
 
-<svelte:window on:click={handleWindowClick} />
+<svelte:window onclick={handleWindowClick} />
 
 <div class="panel">
   <div class="toolbar">
@@ -333,8 +340,8 @@
     <div 
       class="env-mode-selector" 
       style="position: relative; width: 155px; z-index: 1000;" 
-      on:click|stopPropagation 
-      on:keydown={(e) => e.key === 'Enter' && toggleEnvMode(e)}
+      onclick={stopPropagation(bubble('click'))} 
+      onkeydown={(e) => e.key === 'Enter' && toggleEnvMode(e)}
       role="button"
       tabindex="0"
     >
@@ -356,7 +363,7 @@
             <button
               class="dropdown-item"
               class:active={$settings.environmentTarget === mode}
-              on:click|stopPropagation={() => selectEnvMode(mode)}
+              onclick={stopPropagation(() => selectEnvMode(mode))}
             >
               {mode}
             </button>
@@ -522,7 +529,7 @@
             <button 
               class="zap-btn" 
               class:executing={executingActions.has('ClearStart-Host')}
-              on:click={() => runAction('ClearStart')}
+              onclick={() => runAction('ClearStart')}
             >
               {#if executingActions.has('ClearStart-Host')}
                 <RefreshCw size={12} class="spin" />
@@ -538,7 +545,7 @@
             <button 
               class="zap-btn" 
               class:executing={executingActions.has('CreateRestorePoint-Host')}
-              on:click={() => runAction('CreateRestorePoint')}
+              onclick={() => runAction('CreateRestorePoint')}
             >
               {#if executingActions.has('CreateRestorePoint-Host')}
                 <RefreshCw size={12} class="spin" />
@@ -594,7 +601,7 @@
                     class:active={hostStats?.Connection?.LimitBlank}
                     class:inactive={!hostStats?.Connection?.LimitBlank}
                     class:executing={executingActions.has('LimitBlank-Host')}
-                    on:click={() => runAction('LimitBlank', null)}
+                    onclick={() => runAction('LimitBlank', null)}
                   >
                     {#if executingActions.has('LimitBlank-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
                   </button>
@@ -604,7 +611,7 @@
                     class:inactive={!vmStats?.Connection?.LimitBlank}
                     class:executing={executingActions.has('LimitBlank-VM')}
                     disabled={!$vhdStore.remoteActive}
-                    on:click={() => runAction('LimitBlank', $vhdStore.vmName)}
+                    onclick={() => runAction('LimitBlank', $vhdStore.vmName)}
                   >
                     {#if executingActions.has('LimitBlank-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
                   </button>
@@ -620,7 +627,7 @@
                     class:active={hostStats?.Connection?.Winrm}
                     class:inactive={!hostStats?.Connection?.Winrm}
                     class:executing={executingActions.has('WinRM-Host')}
-                    on:click={() => runAction('WinRM', null)}
+                    onclick={() => runAction('WinRM', null)}
                   >
                     {#if executingActions.has('WinRM-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
                   </button>
@@ -630,7 +637,7 @@
                     class:inactive={!vmStats?.Connection?.Winrm}
                     class:executing={executingActions.has('WinRM-VM')}
                     disabled={!$vhdStore.remoteActive}
-                    on:click={() => runAction('WinRM', $vhdStore.vmName)}
+                    onclick={() => runAction('WinRM', $vhdStore.vmName)}
                   >
                     {#if executingActions.has('WinRM-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
                   </button>
@@ -646,7 +653,7 @@
                     class:active={hostStats?.Connection?.AdminEnabled}
                     class:inactive={!hostStats?.Connection?.AdminEnabled}
                     class:executing={executingActions.has('AdminAccount-Host')}
-                    on:click={() => runAction('AdminAccount', null, 'AdminEnabled')}
+                    onclick={() => runAction('AdminAccount', null, 'AdminEnabled')}
                   >
                     {#if executingActions.has('AdminAccount-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
                   </button>
@@ -656,7 +663,7 @@
                     class:inactive={!vmStats?.Connection?.AdminEnabled}
                     class:executing={executingActions.has('AdminAccount-VM')}
                     disabled={!$vhdStore.remoteActive}
-                    on:click={() => runAction('AdminAccount', $vhdStore.vmName, 'AdminEnabled')}
+                    onclick={() => runAction('AdminAccount', $vhdStore.vmName, 'AdminEnabled')}
                   >
                     {#if executingActions.has('AdminAccount-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
                   </button>
@@ -672,7 +679,7 @@
                     class:active={hostStats?.Connection?.KeyIso}
                     class:inactive={!hostStats?.Connection?.KeyIso}
                     class:executing={executingActions.has('KeyIso-Host')}
-                    on:click={() => runAction('KeyIso', null)}
+                    onclick={() => runAction('KeyIso', null)}
                   >
                     {#if executingActions.has('KeyIso-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
                   </button>
@@ -682,7 +689,7 @@
                     class:inactive={!vmStats?.Connection?.KeyIso}
                     class:executing={executingActions.has('KeyIso-VM')}
                     disabled={!$vhdStore.remoteActive}
-                    on:click={() => runAction('KeyIso', $vhdStore.vmName)}
+                    onclick={() => runAction('KeyIso', $vhdStore.vmName)}
                   >
                     {#if executingActions.has('KeyIso-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
                   </button>
@@ -698,7 +705,7 @@
                     class:active={hostStats?.Connection?.Rdp}
                     class:inactive={!hostStats?.Connection?.Rdp}
                     class:executing={executingActions.has('RDP-Host')}
-                    on:click={() => runAction('RDP', null)}
+                    onclick={() => runAction('RDP', null)}
                   >
                     {#if executingActions.has('RDP-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
                   </button>
@@ -708,7 +715,7 @@
                     class:inactive={!vmStats?.Connection?.Rdp}
                     class:executing={executingActions.has('RDP-VM')}
                     disabled={!$vhdStore.remoteActive}
-                    on:click={() => runAction('RDP', $vhdStore.vmName)}
+                    onclick={() => runAction('RDP', $vhdStore.vmName)}
                   >
                     {#if executingActions.has('RDP-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
                   </button>
@@ -724,7 +731,7 @@
                     class:active={hostStats?.Connection?.NetDiscovery}
                     class:inactive={!hostStats?.Connection?.NetDiscovery}
                     class:executing={executingActions.has('NetDiscovery-Host')}
-                    on:click={() => runAction('NetDiscovery', null)}
+                    onclick={() => runAction('NetDiscovery', null)}
                   >
                     {#if executingActions.has('NetDiscovery-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
                   </button>
@@ -734,7 +741,7 @@
                     class:inactive={!vmStats?.Connection?.NetDiscovery}
                     class:executing={executingActions.has('NetDiscovery-VM')}
                     disabled={!$vhdStore.remoteActive}
-                    on:click={() => runAction('NetDiscovery', $vhdStore.vmName)}
+                    onclick={() => runAction('NetDiscovery', $vhdStore.vmName)}
                   >
                     {#if executingActions.has('NetDiscovery-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
                   </button>
@@ -795,7 +802,7 @@
                           class:active={vhdState.selectedProfile === p}
                           class:missing={vmStatuses[p] === 'Missing'}
                           disabled={vmStatuses[p] === 'Missing'}
-                          on:click|stopPropagation={() => selectProfile(p)}
+                          onclick={stopPropagation(() => selectProfile(p))}
                         >
                           <span class="item-status">
                             {#if vmStatuses[p] === 'Running'}
@@ -840,7 +847,7 @@
                   class:active={vhdState.remoteActive && !loading}
                   class:connecting={loading && vhdState.remoteActive}
                   disabled={!vhdState.vmName || loading || vmStatuses[vhdState.selectedProfile] !== 'Running'}
-                  on:click={toggleRemote}
+                  onclick={toggleRemote}
                 >
                   {#if loading && vhdState.remoteActive}
                     <Loader2 size={10} class="spin" />
@@ -855,7 +862,7 @@
                   class="vhd-action-btn host" 
                   class:active={vhdState.vhdMounted} 
                   disabled={vhdState.processing || !vhdState.vhdPath}
-                  on:click={() => handleVhdTransition('Host')}
+                  onclick={() => handleVhdTransition('Host')}
                 >
                   {#if vhdState.processing}
                     <Loader2 size={12} class="spin" />
@@ -869,7 +876,7 @@
                   class="vhd-action-btn vm" 
                   class:active={vhdState.vhdAttached} 
                   disabled={vhdState.processing || !vhdState.vhdPath || !vhdState.vmName}
-                  on:click={() => handleVhdTransition('VM')}
+                  onclick={() => handleVhdTransition('VM')}
                 >
                   {#if vhdState.processing}
                     <Loader2 size={12} class="spin" />
@@ -883,7 +890,7 @@
                   class="vhd-action-btn release full-width" 
                   class:active={vhdState.vhdMounted || vhdState.vhdAttached}
                   disabled={vhdState.processing || (!vhdState.vhdMounted && !vhdState.vhdAttached)}
-                  on:click={handleVhdRelease}
+                  onclick={handleVhdRelease}
                 >
                   <AlertCircle size={14} />
                   <span>RELEASE HANDLES</span>

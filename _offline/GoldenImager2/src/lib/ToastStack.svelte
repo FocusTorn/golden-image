@@ -20,6 +20,7 @@
 
 <div class="toast-stack">
   {#each $notificationStore as n (n.id)}
+    {@const SvelteComponent = typeIcons[n.type]}
     <div 
       class="toast {n.type}" 
       style="--type-rgb: {typeColors[n.type]}"
@@ -28,9 +29,9 @@
     >
       <div class="toast-edge"></div>
       <div class="toast-content">
-        <svelte:component this={typeIcons[n.type]} size={18} class="toast-icon" />
+        <SvelteComponent size={18} class="toast-icon" />
         <span class="toast-message">{n.message}</span>
-        <button class="toast-close" on:click={() => notificationStore.remove(n.id)}>
+        <button class="toast-close" onclick={() => notificationStore.remove(n.id)}>
           <X size={14} />
         </button>
       </div>

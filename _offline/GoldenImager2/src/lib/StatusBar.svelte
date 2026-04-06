@@ -1,10 +1,20 @@
 <script lang="ts">
   import { ShieldCheck, Info, Clock } from 'lucide-svelte';
-  export let status = "Ready";
-  export let activeTab = "apps";
-  export let appCount = 0;
-  export let tweakAppliedCount = 0;
-  export let tweakTotalCount = 0;
+  interface Props {
+    status?: string;
+    activeTab?: string;
+    appCount?: number;
+    tweakAppliedCount?: number;
+    tweakTotalCount?: number;
+  }
+
+  let {
+    status = "Ready",
+    activeTab = "apps",
+    appCount = 0,
+    tweakAppliedCount = 0,
+    tweakTotalCount = 0
+  }: Props = $props();
 </script>
 
 <footer class="status-bar">
