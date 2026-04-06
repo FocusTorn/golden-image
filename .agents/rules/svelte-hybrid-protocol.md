@@ -6,10 +6,6 @@ trigger: always_on
 
 This rule ensures adherence to universal Svelte/UI engineering standards while maintaining project-specific IPC and aesthetic synchronization.
 
-## 1. :: Universal Standards
-- **Mandatory Skill**: For all Svelte development, you MUST refer to and follow the instructions in the [Svelte Development skill](file:///C:/Users/slett/.gemini/antigravity/global_skills/svelte-expert/SKILL.md).
-- **Core Gates**: Zero-warning linting policy, build-before-write validation, and strict structural integrity checks are non-negotiable.
-
 ## 2. :: Engineering & Validation Standards
 
 ### 2.1. :: Structural Integrity Lock
