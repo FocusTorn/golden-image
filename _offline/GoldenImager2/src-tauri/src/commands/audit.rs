@@ -19,7 +19,11 @@ impl AppError {
 
 #[tauri::command]
 #[allow(non_snake_case)]
-pub async fn get_audit_results(state: State<'_, AppState>, featureIds: Option<Vec<String>>) -> Result<Vec<audit::AuditResult>, AppError> {
+pub async fn get_audit_results(
+    state: State<'_, AppState>, 
+    featureIds: Option<Vec<String>>,
+    _offlineHive: Option<String>
+) -> Result<Vec<audit::AuditResult>, AppError> {
     let features_to_audit = {
         let conf = state.config.read().await;
         if let Some(ids) = featureIds {
@@ -31,7 +35,7 @@ pub async fn get_audit_results(state: State<'_, AppState>, featureIds: Option<Ve
 
     let reg_path = state.reg_path.clone();
     let results = tokio::task::spawn_blocking(move || {
-        audit::run_audit(&features_to_audit, &reg_path)
+        audit::run_audit(&features_to_audit, &reg_path, _offlineHive.as_deref())
     })
     .await
     .map_err(|e| AppError::new("Audit Task", &e.to_string()))?;

@@ -180,8 +180,14 @@ fn main() {
             commands::orchestrator::show_payload_in_explorer,
             commands::orchestrator::install_packer,
             commands::orchestrator::install_osdbuilder,
+            commands::wim::mount_wim,
+            commands::wim::unmount_wim,
+            commands::wim::load_offline_hives,
+            commands::wim::unload_offline_hives,
+            commands::wim::get_wim_images,
             commands::window::set_window_size,
-            commands::window::set_window_position
+            commands::window::set_window_position,
+            commands::window::start_resize
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

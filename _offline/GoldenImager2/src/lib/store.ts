@@ -16,6 +16,9 @@ export interface SystemSettings {
   windowX: number;
   windowY: number;
   retainWindowState: boolean;
+  environmentTarget: 'Local Image' | 'VHD & VM' | 'Local';
+  mountPath: string;
+  offlineHive: string;
 }
 
 const DEFAULT_SETTINGS: SystemSettings = {
@@ -33,12 +36,17 @@ const DEFAULT_SETTINGS: SystemSettings = {
   windowHeight: 1195,
   windowX: 100,
   windowY: 100,
-  retainWindowState: false
+  retainWindowState: false,
+  environmentTarget: 'Local Image',
+  mountPath: "P:/Projects/golden-image/_offline_host/mount",
+  offlineHive: "OFFLINE_TEMP"
 };
 
 // Load initial settings from localStorage if available
 const storedSettings = localStorage.getItem('golden-imager-settings');
-const initialSettings = storedSettings ? JSON.parse(storedSettings) : DEFAULT_SETTINGS;
+const initialSettings = storedSettings 
+  ? { ...DEFAULT_SETTINGS, ...JSON.parse(storedSettings) } 
+  : DEFAULT_SETTINGS;
 
 export const settings = writable<SystemSettings>(initialSettings);
 

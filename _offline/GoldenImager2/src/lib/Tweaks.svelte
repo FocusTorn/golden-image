@@ -27,7 +27,7 @@
   import TacticalToolbar from "./TacticalToolbar.svelte";
   import TacticalContainer from "./TacticalContainer.svelte";
   import TweakSelect from "./TweakSelect.svelte";
-  import { vhdStore } from "./store";
+  import { vhdStore, settings } from "./store";
   import { notificationStore } from "./notifications";
 
   export let appliedCount = 0;
@@ -44,42 +44,50 @@
   let searchQuery = "";
   let stagedChanges = new Set<string>();
 
+  // Actions migrated to Dashboard Home
+  const DASHBOARD_ACTIONS = new Set([
+    "ClearStart",
+    "ClearStartAllUsers",
+    "CreateRestorePoint",
+    "RemoveApps",
+    "Apps",
+    "RemoveAppsCustom",
+    "RemoveCommApps",
+    "RemoveW11Outlook",
+    "RemoveGamingApps",
+    "RemoveHPApps",
+    "ReplaceStart",
+    "ReplaceStartAllUsers",
+    "ForceRemoveEdge",
+    "DeleteTemporaryFiles",
+    "RunDiskCleanup",
+    "SystemCorruptionScan",
+    "WinGetReinstall"
+  ]);
+
   async function loadData() {
     loading = true;
     error = null;
     try {
       if (isTauri) {
         featuresConfig = await invoke("get_features_config");
-        
-        // Pass only the non-dashboard items to the lazy audit engine
+        const isOffline = $settings.environmentTarget === "Local Image";
         const auditTargets = (featuresConfig?.Features || [])
           .filter((f: any) => !DASHBOARD_ACTIONS.has(f.FeatureId))
           .map((f: any) => f.FeatureId);
-          
-        auditResults = await invoke("get_audit_results", { featureIds: auditTargets });
+        auditResults = await invoke("get_audit_results", { 
+          featureIds: auditTargets,
+          _offlineHive: isOffline ? $settings.offlineHive : null 
+        });
         profiles = await invoke("list_tweak_profiles");
       } else {
-        // High-fidelity Mock Data
         featuresConfig = {
-          Categories: [
-            { Name: "Titus Essentials", Icon: "&#xE9E9;" },
-            { Name: "Titus Advanced", Icon: "&#xE7BA;" },
-            { Name: "Privacy & Suggested", Icon: "&#xE72E;" },
-            { Name: "System", Icon: "&#xe770;" },
-            { Name: "AI", Icon: "&#xe794;" }
-          ],
-          Features: [
-            { FeatureId: "DisableWPBT", Label: "Disable WPBT", Category: "Titus Essentials", ToolTip: "Prevents BIOS-injected software execution.", Action: "Disable" },
-            { FeatureId: "DisableTelemetry", Label: "Universal Telemetry", Category: "Privacy & Suggested", ToolTip: "Stops background tracking services.", Action: "Disable" },
-            { FeatureId: "EnableDarkMode", Label: "Force Dark Mode", Category: "System", ToolTip: "System-wide luminance override.", Action: "Enable" }
-          ]
+          Categories: [{ Name: "Titus Essentials", Icon: "&#xE9E9;" }],
+          Features: [{ FeatureId: "DisableWPBT", Label: "Disable WPBT", Category: "Titus Essentials", ToolTip: "Prevents BIOS-injected software execution.", Action: "Disable" }]
         };
-        auditResults = [
-          { FeatureId: "DisableWPBT", Status: "Applied" },
-          { FeatureId: "DisableTelemetry", Status: "Not Applied" }
-        ];
+        auditResults = [{ FeatureId: "DisableWPBT", Status: "Applied" }];
+        profiles = ["DefaultProfile.json"];
       }
-      
       if (featuresConfig?.Categories?.length > 0) {
         if (!activeCategory || !featuresConfig.Categories.find((c: any) => c.Name === activeCategory)) {
           activeCategory = featuresConfig.Categories[0].Name;
@@ -133,10 +141,15 @@
         ...Object.values(groupStagedChanges).filter(id => id && id !== "none")
       ];
       
+      const isVmTarget = $settings.environmentTarget === 'VHD & VM';
+      const isLocalImage = $settings.environmentTarget === 'Local Image';
+
+      // NOTE: 'Local Image' target currently uses a placeholder offlineHive. 
+      // In production, this would be the actual mounted registry hive name.
       await invoke("apply_features_batch", { 
         featureIds: allStagedIds, 
-        offlineHive: null,
-        targetVm: $vhdStore.remoteActive ? $vhdStore.vmName : null
+        offlineHive: isLocalImage ? "OFFLINE_TEMP" : null,
+        targetVm: (isVmTarget && $vhdStore.remoteActive) ? $vhdStore.vmName : null
       });
 
       stagedChanges.clear();
@@ -288,26 +301,6 @@
   let hoveredDescription: string | null = null;
   let hoveredFeatureId: string | null = null;
 
-  // Actions migrated to Dashboard Home
-  const DASHBOARD_ACTIONS = new Set([
-    "ClearStart",
-    "ClearStartAllUsers",
-    "CreateRestorePoint",
-    "RemoveApps",
-    "Apps",
-    "RemoveAppsCustom",
-    "RemoveCommApps",
-    "RemoveW11Outlook",
-    "RemoveGamingApps",
-    "RemoveHPApps",
-    "ReplaceStart",
-    "ReplaceStartAllUsers",
-    "ForceRemoveEdge",
-    "DeleteTemporaryFiles",
-    "RunDiskCleanup",
-    "SystemCorruptionScan",
-    "WinGetReinstall"
-  ]);
 
   // Mapping for categorical merging and renaming
   const CATEGORY_MAP: Record<string, string> = {

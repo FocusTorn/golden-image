@@ -52,7 +52,7 @@ pub fn load_apps_config<P: AsRef<Path>>(path: P) -> Result<AppConfig, Box<dyn st
     Ok(config)
 }
 
-pub async fn scan_installed_apps(config_apps: &Vec<AppEntry>) -> Vec<AppEntry> {
+pub async fn scan_installed_apps(config_apps: &Vec<AppEntry>, offline_path: Option<&str>, offline_hive: Option<&str>) -> Vec<AppEntry> {
     use windows::Win32::System::Registry::HKEY_CURRENT_USER;
     
     let mut system_apps = Vec::new();
@@ -64,23 +64,30 @@ pub async fn scan_installed_apps(config_apps: &Vec<AppEntry>) -> Vec<AppEntry> {
         (HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall"),
     ];
     for (hkey_root, subkey) in registry_paths {
-        if let Ok(mut discovered) = scan_registry_key(hkey_root, subkey) {
+        if let Ok(mut discovered) = scan_registry_key(hkey_root, subkey, offline_hive) {
             for app in &mut discovered { app.origin_type = "Registry".to_string(); }
             system_apps.append(&mut discovered);
         }
     }
     
     // Appx Scan (User)
-    if let Ok(mut appx_apps) = scan_appx_packages().await {
-        for app in &mut appx_apps { app.origin_type = "Appx".to_string(); }
-        system_apps.append(&mut appx_apps);
+    if offline_path.is_none() {
+        if let Ok(mut appx_apps) = scan_appx_packages().await {
+            for app in &mut appx_apps { app.origin_type = "Appx".to_string(); }
+            system_apps.append(&mut appx_apps);
+        }
     }
 
     // Provisioned Appx Scan
-    if let Ok(mut prov_apps) = scan_appx_provisioned_packages().await {
+    if let Ok(mut prov_apps) = scan_appx_provisioned_packages(offline_path).await {
         for app in &mut prov_apps { 
             app.origin_type = "Provisioned".to_string();
-            app.uninstall_string = Some(format!("Remove-AppxProvisionedPackage -Online -PackageName {}", app.app_id));
+            let uninstall_cmd = if let Some(path) = offline_path {
+                format!("Remove-AppxProvisionedPackage -Path '{}' -PackageName {}", path, app.app_id)
+            } else {
+                format!("Remove-AppxProvisionedPackage -Online -PackageName {}", app.app_id)
+            };
+            app.uninstall_string = Some(uninstall_cmd);
         }
         system_apps.append(&mut prov_apps);
     }
@@ -147,12 +154,18 @@ async fn scan_appx_packages() -> Result<Vec<AppEntry>, Box<dyn std::error::Error
     parse_appx_json(output.stdout)
 }
 
-async fn scan_appx_provisioned_packages() -> Result<Vec<AppEntry>, Box<dyn std::error::Error>> {
+async fn scan_appx_provisioned_packages(offline_path: Option<&str>) -> Result<Vec<AppEntry>, Box<dyn std::error::Error>> {
+    let target_arg = if let Some(path) = offline_path {
+        format!("-Path '{}'", path)
+    } else {
+        "-Online".to_string()
+    };
+
     let output = tokio::process::Command::new("powershell")
         .args([
             "-NoProfile",
             "-Command",
-            "Get-AppxProvisionedPackage -Online | Select-Object @{N='Name';E={$_.DisplayName}}, @{N='PackageFullName';E={$_.PackageName}}, Publisher, Version | ConvertTo-Json"
+            &format!("Get-AppxProvisionedPackage {} | Select-Object @{{N='Name';E={{$_.DisplayName}}}}, @{{N='PackageFullName';E={{$_.PackageName}}}}, Publisher, Version | ConvertTo-Json", target_arg)
         ])
         .output()
         .await
@@ -218,10 +231,23 @@ fn parse_appx_json(stdout: Vec<u8>) -> Result<Vec<AppEntry>, Box<dyn std::error:
     Ok(apps)
 }
 
-fn scan_registry_key(root: HKEY, subkey_path: &str) -> Result<Vec<AppEntry>, Box<dyn std::error::Error>> {
+fn scan_registry_key(root: HKEY, subkey_path: &str, offline_hive: Option<&str>) -> Result<Vec<AppEntry>, Box<dyn std::error::Error>> {
     let mut apps = Vec::new();
     let mut hkey = HKEY::default();
-    let subkey_wide: Vec<u16> = subkey_path.encode_utf16().chain(Some(0)).collect();
+    
+    // Divert path if offline hive is provided
+    let final_subkey = if let Some(hive) = offline_hive {
+        if subkey_path.to_lowercase().contains("software") {
+            let pos = subkey_path.to_lowercase().find("software").unwrap();
+            format!("{}_SOFTWARE\\{}", hive, &subkey_path[pos+9..])
+        } else {
+            subkey_path.to_string()
+        }
+    } else {
+        subkey_path.to_string()
+    };
+
+    let subkey_wide: Vec<u16> = final_subkey.encode_utf16().chain(Some(0)).collect();
 
     unsafe {
         if RegOpenKeyExW(root, PCWSTR(subkey_wide.as_ptr()), 0, KEY_READ, &mut hkey).is_ok() {

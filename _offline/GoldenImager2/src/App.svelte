@@ -103,6 +103,15 @@
   $: if (activeTab !== 'apps') {
     hasLoggedGeometry = false; // Reset for next time the tab is opened
   }
+
+  /* TAB SAFETY LOGIC: Ensure activeTab is available for selected environment */
+  $: if (activeTab === 'provisioning' && $settings.environmentTarget !== 'VHD & VM') {
+    activeTab = 'dashboard';
+  }
+  $: if (activeTab === 'orchestrator' && $settings.environmentTarget !== 'Local Image') {
+    activeTab = 'dashboard';
+  }
+
   let tweakAppliedCount = 0;
   let tweakTotalCount = 0;
   
@@ -114,6 +123,26 @@
   class:mock-window={!isTauri}
   style="--accent-color: {$settings.accentColor}; --accent-rgb: {$accentRgb}; --glass-opacity: {$settings.glassOpacity / 100};"
 >
+  {#if isTauri}
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="resize-handle top" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'Top' })}></div>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="resize-handle right" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'Right' })}></div>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="resize-handle bottom" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'Bottom' })}></div>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="resize-handle left" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'Left' })}></div>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="resize-handle top-left" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'TopLeft' })}></div>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="resize-handle top-right" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'TopRight' })}></div>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="resize-handle bottom-left" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'BottomLeft' })}></div>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="resize-handle bottom-right" role="separator" tabindex="-1" on:mousedown={() => invoke('start_resize', { edge: 'BottomRight' })}></div>
+  {/if}
+
   <div class="app-frame">
     <!-- Full-Width Title Bar -->
     <Header />
@@ -295,4 +324,15 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
+
+  /* CUSTOM WIDE RESIZE HANDLES */
+  .resize-handle { position: absolute; z-index: 9999; background: transparent; }
+  .resize-handle.top { top: 0; left: 8px; right: 8px; height: 8px; cursor: n-resize; }
+  .resize-handle.bottom { bottom: 0; left: 8px; right: 8px; height: 8px; cursor: s-resize; }
+  .resize-handle.left { left: 0; top: 8px; bottom: 8px; width: 8px; cursor: w-resize; }
+  .resize-handle.right { right: 0; top: 8px; bottom: 8px; width: 8px; cursor: e-resize; }
+  .resize-handle.top-left { top: 0; left: 0; width: 14px; height: 14px; cursor: nw-resize; }
+  .resize-handle.top-right { top: 0; right: 0; width: 14px; height: 14px; cursor: ne-resize; }
+  .resize-handle.bottom-left { bottom: 0; left: 0; width: 14px; height: 14px; cursor: sw-resize; }
+  .resize-handle.bottom-right { bottom: 0; right: 0; width: 14px; height: 14px; cursor: se-resize; }
 </style>

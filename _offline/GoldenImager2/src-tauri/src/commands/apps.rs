@@ -3,12 +3,17 @@ use crate::utils;
 use tauri::{AppHandle, command};
 
 #[command]
-pub async fn get_apps(app: AppHandle) -> Result<Vec<apps::AppEntry>, String> {
+#[allow(non_snake_case)]
+pub async fn get_apps(
+    app: AppHandle,
+    offlinePath: Option<String>,
+    offlineHive: Option<String>
+) -> Result<Vec<apps::AppEntry>, String> {
     let resource_path = utils::resolve_resource_path(&app, "config/Apps.json");
     let path = resource_path.ok_or_else(|| "Apps.json configuration not found in resources.".to_string())?;
 
     let config = apps::load_apps_config(&path).map_err(|e| format!("Failed to read/parse {:?}: {}", path, e))?;
-    Ok(apps::scan_installed_apps(&config.apps).await)
+    Ok(apps::scan_installed_apps(&config.apps, offlinePath.as_deref(), offlineHive.as_deref()).await)
 }
 
 #[command]

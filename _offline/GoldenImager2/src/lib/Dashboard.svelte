@@ -33,11 +33,13 @@
     ArrowRight,
     Lock,
     Unlock,
-    Save
+    Save,
+    LayoutDashboard
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import TweakSelect from "./TweakSelect.svelte";
-  import { vhdStore } from "./store";
+  import TacticalContainer from "./TacticalContainer.svelte";
+  import { vhdStore, settings } from "./store";
   import { notificationStore } from "./notifications";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
@@ -53,6 +55,20 @@
   let executingActions = new Set<string>();
   let vmStatuses: Record<string, string> = {};
   let statusLoading = true;
+
+  let envModeOpen = false;
+  const envModes = ['Local Image', 'VHD & VM', 'Local'];
+
+  function toggleEnvMode(e: any) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    envModeOpen = !envModeOpen;
+    if (envModeOpen) isProfileOpen = false;
+  }
+
+  function handleWindowClick() {
+    envModeOpen = false;
+    isProfileOpen = false;
+  }
 
   async function loadStats() {
     loading = true;
@@ -297,33 +313,80 @@
   $: if (!$vhdStore.vmName && $vhdStore.remoteActive) {
     vhdStore.update(s => ({ ...s, remoteActive: false }));
   }
+
+  function selectEnvMode(mode: string) {
+    settings.update(s => ({ ...s, environmentTarget: mode }));
+    envModeOpen = false;
+  }
 </script>
 
-<svelte:window on:click={() => isProfileOpen = false} />
+<svelte:window on:click={handleWindowClick} />
 
 <div class="panel">
-  <div class="dashboard-grid">
-    <!-- FULL WIDTH TOP CARD: ENVIRONMENT OVERVIEW -->
-    <div class="overview-header-card">
+  <div class="toolbar">
+    <div class="title-cluster">
+      <LayoutDashboard size={18} class="glow-icon" />
+      <h2>OVERVIEW & TARGETS</h2>
+    </div>
+    <div class="spacer"></div>
+    
+    <div class="env-mode-selector" style="position: relative; width: 155px; z-index: 1000;" on:click|stopPropagation>
+      <BloomControl
+        width="100%"
+        active={envModeOpen}
+        on:click={toggleEnvMode}
+        style="padding: 0 10px; justify-content: flex-start !important; height: 26px; border-radius: 4px; background: rgba(255,255,255,0.05);"
+      >
+        <span class="select-label" style="font-size: 10px; line-height: 1; color: var(--accent-color);">{$settings.environmentTarget || 'Local Image'}</span>
+        <div class="chevron-wrapper" class:open={envModeOpen} style="margin-left: auto;">
+          <ChevronDown size={14} color="var(--accent-color)" />
+        </div>
+      </BloomControl>
+
+      {#if envModeOpen}
+        <div class="dropdown-list" style="top: 32px;">
+          {#each envModes as mode}
+            <button
+              class="dropdown-item"
+              class:active={$settings.environmentTarget === mode}
+              on:click|stopPropagation={() => selectEnvMode(mode)}
+            >
+              {mode}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
+
+  <div style="display: contents;">
+    <TacticalContainer padding="0">
+      <div class="dashboard-grid">
+        <!-- FULL WIDTH TOP CARD: ENVIRONMENT OVERVIEW -->
+    <div class="overview-header-card" style="grid-column: 2 / span 2; grid-row: 1;">
       <div class="category-card full-width-card">
         <div class="card-header">
           <span class="header-icon">
             <ShieldCheck size={16} strokeWidth={3.5} />
           </span>
           <h3>ENVIRONMENT OVERVIEW HUB</h3>
-          {#if loading}
-            <div class="header-loader">
+          
+          <div class="spacer"></div>
+          
+          <div class="header-loader" style="margin-right: 12px; margin-left: 0;">
+            {#if loading}
               <Loader2 size={10} class="spin" />
-            </div>
-          {/if}
+            {/if}
+          </div>
         </div>
         
         <div class="card-body overview-body">
-          <!-- HOST SECTION (LEFT) -->
+          {#if $settings.environmentTarget === 'VHD & VM'}
+          <!-- VM-HOST DUAL VIEW -->
           <div class="env-section host-side">
             <div class="section-label">
               <HardDrive size={14} strokeWidth={2.5} />
-              <span>LOCAL HOST SYSTEM</span>
+              <span>LINKED HOST</span>
             </div>
             {#if hostStats}
               <div class="env-stats">
@@ -347,7 +410,6 @@
 
           <div class="env-divider"></div>
 
-          <!-- VM SECTION (RIGHT) -->
           <div class="env-section vm-side" class:disconnected={!$vhdStore.remoteActive}>
             <div class="section-label">
               <Monitor size={14} strokeWidth={2.5} />
@@ -377,12 +439,129 @@
               </div>
             {/if}
           </div>
+          {:else if $settings.environmentTarget === 'Local'}
+            <!-- LOCAL HOST PRIMARY VIEW -->
+            <div class="env-section host-side" style="flex: 2;">
+              <div class="section-label">
+                <HardDrive size={14} strokeWidth={2.5} />
+                <span>LOCAL HOST SYSTEM (PRIMARY TARGET)</span>
+              </div>
+              {#if hostStats}
+                <div class="env-stats" style="grid-template-columns: repeat(4, 1fr);">
+                  <div class="env-stat">
+                    <span class="label">OS BUILD</span>
+                    <span class="value">{hostStats.os_build || '---'}</span>
+                  </div>
+                  <div class="env-stat">
+                    <span class="label">UPTIME</span>
+                    <span class="value">{hostStats.uptime || '00:00:00'}</span>
+                  </div>
+                  <div class="env-stat">
+                    <span class="label">AUDIT MODE</span>
+                    <span class="status-pill" class:active={hostStats.audit_mode}>
+                      {hostStats.audit_mode ? 'ARMED' : 'OFF'}
+                    </span>
+                  </div>
+                  <div class="env-stat">
+                    <span class="label">PROVISIONING</span>
+                    <span class="value" style="color: var(--accent-color);">ONLINE</span>
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {:else}
+            <!-- LOCAL IMAGE / PACKER VIEW -->
+            <div class="env-section host-side disconnected">
+              <div class="section-label">
+                <HardDrive size={14} strokeWidth={2.5} />
+                <span>OFFLINE IMAGE BUILD (PACKER)</span>
+              </div>
+              <div class="disconnected-overlay">
+                <span class="dim-text">SOURCE: OSDBUILDER / PACKER PIPELINE</span>
+              </div>
+            </div>
+
+            <div class="env-divider"></div>
+
+            <div class="env-section vm-side disconnected">
+              <div class="section-label">
+                 <Monitor size={14} strokeWidth={2.5} />
+                 <span>DECOUPLED ENVIRONMENT</span>
+              </div>
+              <div class="disconnected-overlay">
+                <Monitor size={24} class="dim-icon" strokeWidth={1.5} />
+                <span class="dim-text" style="font-size: 9px;">NO ACTIVE VM PIPELINE</span>
+              </div>
+            </div>
+          {/if}
         </div>
       </div>
     </div>
 
-    <!-- COLUMN 1: CONNECTION POLICIES -->
-    <div class="tweak-column">
+    <!-- COLUMN 1: OPERATIONAL QUICK-ACTIONS (Commands Card) -->
+    <div class="tweak-column" style="grid-column: 1; grid-row: 1 / span 2; align-self: stretch; display: flex; flex-direction: column;">
+      <div class="category-card" style="flex: 1; height: 100%;">
+        <div class="card-header">
+          <span class="header-icon">
+            <Zap size={16} strokeWidth={3.5} />
+          </span>
+          <h3>OPERATIONAL QUICK-ACTIONS</h3>
+        </div>
+        
+        <div class="card-body">
+          <div class="action-item tweak-row">
+            <span class="tweak-name">Clear All Pinned Start Apps</span>
+            <div class="spacer"></div>
+            <button 
+              class="zap-btn" 
+              class:executing={executingActions.has('ClearStart-Host')}
+              on:click={() => runAction('ClearStart')}
+            >
+              {#if executingActions.has('ClearStart-Host')}
+                <RefreshCw size={12} class="spin" />
+              {:else}
+                <Trash2 size={11} strokeWidth={2.5} />
+              {/if}
+            </button>
+          </div>
+
+          <div class="action-item tweak-row">
+            <span class="tweak-name">Create System Restore Point</span>
+            <div class="spacer"></div>
+            <button 
+              class="zap-btn" 
+              class:executing={executingActions.has('CreateRestorePoint-Host')}
+              on:click={() => runAction('CreateRestorePoint')}
+            >
+              {#if executingActions.has('CreateRestorePoint-Host')}
+                <RefreshCw size={12} class="spin" />
+              {:else}
+                <History size={11} strokeWidth={2.5} />
+              {/if}
+            </button>
+          </div>
+
+          <div class="action-item tweak-row restricted" title="Ghost Mode (Pending Stage 4 Engine)">
+            <span class="tweak-name">Scrub Communication Apps</span>
+            <div class="spacer"></div>
+            <button class="zap-btn" disabled>
+                <Mail size={11} strokeWidth={2.5} />
+            </button>
+          </div>
+
+          <div class="action-item tweak-row restricted" title="Ghost Mode (Awaiting OEM Registry Map)">
+            <span class="tweak-name">Remove HP OEM Bloat</span>
+            <div class="spacer"></div>
+            <button class="zap-btn" disabled>
+                <Shield size={11} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMN 2: CONNECTION POLICIES -->
+    <div class="tweak-column" style="grid-column: 2; grid-row: 2; display: flex; flex-direction: column;">
       <div class="category-card">
         <div class="card-header">
           <span class="header-icon">
@@ -391,7 +570,7 @@
           <h3>CONNECTION POLICIES</h3>
         </div>
         
-        <div class="card-body vhd-hub-body">
+        <div class="card-body">
           {#if loading}
             <div class="card-loading-center">
               <RefreshCw size={36} class="spin dim-blue" />
@@ -558,70 +737,8 @@
       </div>
     </div>
 
-    <!-- COLUMN 2: OPERATIONAL QUICK-ACTIONS -->
-    <div class="tweak-column">
-      <div class="category-card">
-        <div class="card-header">
-          <span class="header-icon">
-            <Zap size={16} strokeWidth={3.5} />
-          </span>
-          <h3>OPERATIONAL QUICK-ACTIONS</h3>
-        </div>
-        
-        <div class="card-body">
-          <div class="action-item tweak-row">
-            <span class="tweak-name">Clear All Pinned Start Apps</span>
-            <div class="spacer"></div>
-            <button 
-              class="zap-btn" 
-              class:executing={executingActions.has('ClearStart-Host')}
-              on:click={() => runAction('ClearStart')}
-            >
-              {#if executingActions.has('ClearStart-Host')}
-                <RefreshCw size={12} class="spin" />
-              {:else}
-                <Trash2 size={11} strokeWidth={2.5} />
-              {/if}
-            </button>
-          </div>
-
-          <div class="action-item tweak-row">
-            <span class="tweak-name">Create System Restore Point</span>
-            <div class="spacer"></div>
-            <button 
-              class="zap-btn" 
-              class:executing={executingActions.has('CreateRestorePoint-Host')}
-              on:click={() => runAction('CreateRestorePoint')}
-            >
-              {#if executingActions.has('CreateRestorePoint-Host')}
-                <RefreshCw size={12} class="spin" />
-              {:else}
-                <History size={11} strokeWidth={2.5} />
-              {/if}
-            </button>
-          </div>
-
-          <div class="action-item tweak-row restricted" title="Ghost Mode (Pending Stage 4 Engine)">
-            <span class="tweak-name">Scrub Communication Apps</span>
-            <div class="spacer"></div>
-            <button class="zap-btn" disabled>
-                <Mail size={11} strokeWidth={2.5} />
-            </button>
-          </div>
-
-          <div class="action-item tweak-row restricted" title="Ghost Mode (Awaiting OEM Registry Map)">
-            <span class="tweak-name">Remove HP OEM Bloat</span>
-            <div class="spacer"></div>
-            <button class="zap-btn" disabled>
-                <Shield size={11} strokeWidth={2.5} />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- COLUMN 3: VHD & VM HUB -->
-    <div class="tweak-column">
+    <div class="tweak-column" style="grid-column: 3; grid-row: 2;">
       <div class="category-card">
         <div class="card-header">
           <span class="header-icon">
@@ -630,7 +747,7 @@
           <h3>VHD & VM HUB</h3>
         </div>
         
-        <div class="card-body vhd-hub-body">
+        <div class="card-body vhd-hub-body" style="flex: 1;">
           {#if statusLoading}
             <div class="card-loading-center">
               <RefreshCw size={42} class="spin dim-blue" />
@@ -697,6 +814,8 @@
                </div>
             </div>
 
+            <div class="divider"></div>
+
             <!-- REMOTE PROVISIONING MODE -->
             <div class="stat-row remote-toggle-row">
               <div class="stat-label">POWERSHELL DIRECT</div>
@@ -758,6 +877,8 @@
         </div>
       </div>
     </div>
+      </div>
+    </TacticalContainer>
   </div>
 </div>
 
@@ -766,63 +887,383 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 12px 12px 12px 12px;
-    gap: 8px;
+    padding: 12px 12px 0 12px; /* Flush bottom with status bar */
+    gap: 8px; /* Standard panel gap */
     overflow: hidden;
     background: transparent;
+  }
 
-    /* UNIFIED RISK PALETTE */
-    --risk-safe: #00e676;
-    --risk-unsafe: #ff3d60;
-    --risk-unknown: rgba(0, 0, 0, 0.35);
+  .toolbar {
+    height: 38px;
+    background: rgba(18, 24, 26, 0.82);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    padding: 0 4px; /* Reduced since parent has 12px padding */
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+
+  .title-cluster {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  h2 {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+  }
+
+  .glow-icon {
+    color: var(--accent-color);
+    filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.4));
   }
 
   .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(3, 353px);
-    padding: 16px;
-    grid-gap: 16px;
-    overflow-y: auto;
-    flex: 1;
-    scrollbar-gutter: stable;
-    align-items: flex-start;
-    align-content: start;
+    grid-template-columns: repeat(3, 1fr); /* Responsive fluid columns */
+    grid-template-rows: auto auto; 
+    padding: 8px 10px 16px 10px; 
+    grid-gap: 12px;
+    width: 100%; 
+    max-width: 1103px; /* 3 * 353px + 2 * 12px gap + 2 * 10px padding */
+    margin: 0 auto; /* Keep centered for symmetrical side gaps */
+    height: auto;
+    align-items: start;
     justify-content: start;
   }
 
-  .tweak-column {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  /* REPRODUCED TWEAK CARD STYLING */
   .category-card {
-    width: 100%;
-    background: rgba(26, 31, 34, var(--glass-opacity, 0.8)); 
+    background: #1a1f22; 
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     box-shadow: 
       0 12px 40px rgba(0, 0, 0, 0.7),
       inset 0 1px 1px rgba(255, 255, 255, 0.02); 
-    overflow: hidden;
-    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .card-header {
-    height: 26px;
+    height: 28px;
     display: flex;
     align-items: center;
     padding: 0 14px;
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 8px 8px 0 0;
   }
 
   .card-header h3 {
-    font-size: 10.5px;
+    font-size: 10px;
+    font-weight: 850;
+    color: #fff;
+    opacity: 0.85;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .header-icon {
+    margin-right: 12px;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+  }
+
+  .card-body {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  .tweak-row {
+    display: flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    background: #242a2d; 
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .tweak-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .tweak-name {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .overview-header-card {
+    grid-column: 2 / span 2;
+    grid-row: 1;
+  }
+
+  .overview-body {
+    display: flex;
+    flex-direction: row;
+    padding: 14px 18px;
+    gap: 24px;
+    height: 100px;
+  }
+
+  .env-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 9px;
+    font-weight: 900;
+    color: var(--accent-color);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+
+  .env-stats {
+    display: flex;
+    gap: 24px;
+  }
+
+  .env-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .env-stat .label {
+    font-size: 8px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+  }
+
+  .env-stat .value {
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .env-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .target-toggle-group {
+    display: flex;
+    gap: 4px;
+  }
+
+  .target-btn {
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .target-btn.active {
+    color: #4fb995;
+    border-color: rgba(79, 185, 149, 0.4);
+    background: rgba(79, 185, 149, 0.05) !important;
+  }
+
+  .target-btn.inactive {
+    color: #ff3d60;
+    border-color: rgba(255, 61, 96, 0.4);
+    background: rgba(255, 61, 96, 0.05) !important;
+  }
+
+  .zap-btn {
+    width: 22px;
+    height: 22px;
+    background: rgba(var(--accent-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    color: var(--accent-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .status-pill {
+    padding: 2px 6px;
+    font-size: 8px;
+    font-weight: 900;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .status-pill.active {
+    color: var(--accent-color);
+    background: rgba(var(--accent-rgb), 0.1);
+  }
+
+  .vhd-hub-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .vhd-control-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 8px;
+  }
+
+  .vhd-action-btn {
+    height: 30px;
+    background: #242a2d;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 9px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .vhd-action-btn.active {
+    background: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .vhd-action-btn.full-width {
+    grid-column: span 2;
+  }
+
+  .vhd-action-btn.release.active {
+    color: #ff3d60;
+    border-color: #ff3d60;
+    background: rgba(255, 61, 96, 0.1);
+  }
+
+  .stat-label {
+    font-size: 8px;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 0.1em;
+  }
+
+  .dropdown-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    width: 100%;
+    background: #1a1f22;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    z-index: 5000;
+    padding: 4px;
+  }
+
+  .dropdown-item {
+    width: 100%;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 9px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  .dropdown-item.active {
+    color: var(--accent-color);
+    background: rgba(var(--accent-rgb), 0.1);
+  }
+
+  .remote-btn {
+    height: 24px;
+    padding: 0 12px;
+    font-size: 9px;
+    font-weight: 900;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .remote-btn.active {
+    background: var(--accent-color);
+    color: #000;
+  }
+  
+  .spin { 
+    animation: spin 1s linear infinite; 
+  }
+  
+  @keyframes spin { 
+    from { transform: rotate(0deg); } 
+    to { transform: rotate(360deg); } 
+  }
+
+  /* REPRODUCED TWEAK CARD STYLING */
+  .category-card {
+    width: 100%;
+    background: #1a1f22; /* Calibrated slate charcoal from reference */
+    border: 1px solid rgba(255, 255, 255, 0.05); /* Stealth edge */
+    border-radius: 8px; /* Industrial curve */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-header {
+    height: 38px;
+    background: #252b2e;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+  }
+
+  .card-header h3 {
+    font-size: 11px;
     font-weight: 800;
     color: #fff;
     opacity: 0.9;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
   }
@@ -830,6 +1271,10 @@
   .header-icon {
     margin-right: 12px;
     color: var(--accent-color);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.5));
+    display: flex;
+    align-items: center;
   }
 
   .header-loader {
@@ -841,28 +1286,38 @@
   }
 
   .card-body {
-    padding: 6px 10px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    overflow: visible;
+    flex: 1;
   }
 
   .tweak-row {
     position: relative;
     display: flex;
     align-items: center;
-    height: 31px;
-    padding: 0 12px;
+    height: 24px;
+    padding: 0 8px;
+    padding-left: 10px;
     font-size: 11px;
     background: #242a2d; 
     border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    cursor: default;
+    flex-shrink: 0;
+    overflow: visible;
+    transition: all 0.15s ease;
+  }
+
+  .tweak-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+    z-index: 100 !important;
   }
 
   .tweak-name {
-    font-size: 10.5px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
   }
@@ -1045,11 +1500,8 @@
   }
 
   .target-btn {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     border: 1px solid rgba(255, 255, 255, 0.06);
     background: transparent !important; 
     color: rgba(255, 255, 255, 0.2);

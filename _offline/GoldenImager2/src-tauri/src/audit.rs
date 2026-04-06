@@ -15,13 +15,13 @@ pub struct AuditResult {
     pub message: String,
 }
 
-pub fn run_audit(features: &[Feature], reg_path: &Path) -> Vec<AuditResult> {
+pub fn run_audit(features: &[Feature], reg_path: &Path, offline_hive: Option<&str>) -> Vec<AuditResult> {
     let mut results = Vec::new();
 
     for feature in features {
         if let Some(reg_file) = &feature.registry_key {
             let full_path = reg_path.join(reg_file);
-            match audit_reg_file(&full_path) {
+            match audit_reg_file(&full_path, offline_hive) {
                 Ok(applied) => {
                     results.push(AuditResult {
                         feature_id: feature.feature_id.clone(),
@@ -49,7 +49,7 @@ pub fn run_audit(features: &[Feature], reg_path: &Path) -> Vec<AuditResult> {
     results
 }
 
-fn audit_reg_file(path: &Path) -> Result<bool, Box<dyn std::error::Error>> {
+fn audit_reg_file(path: &Path, offline_hive: Option<&str>) -> Result<bool, Box<dyn std::error::Error>> {
     let content = fs::read(path)?;
     let content_str = if content.starts_with(&[0xFF, 0xFE]) {
         let utf16_content: Vec<u16> = content[2..]
@@ -93,7 +93,7 @@ fn audit_reg_file(path: &Path) -> Result<bool, Box<dyn std::error::Error>> {
 
         if let Some(key_path) = &current_key {
             if let Some((name, value_str)) = parse_reg_line(&processing_line) {
-                match check_registry_value(key_path, &name, &value_str) {
+                match check_registry_value(key_path, &name, &value_str, offline_hive) {
                     Ok(m) => {
                         if !m {
                             all_match = false;
@@ -127,8 +127,8 @@ fn parse_reg_line(line: &str) -> Option<(String, String)> {
     }
 }
 
-fn check_registry_value(key_path: &str, name: &str, expected_value: &str) -> Result<bool, Box<dyn std::error::Error>> {
-    let (hkey_root, sub_key) = split_key_path(key_path)?;
+fn check_registry_value(key_path: &str, name: &str, expected_value: &str, offline_hive: Option<&str>) -> Result<bool, Box<dyn std::error::Error>> {
+    let (hkey_root, sub_key) = split_key_path(key_path, offline_hive)?;
     
     let sub_key_wide: Vec<u16> = sub_key.encode_utf16().chain(std::iter::once(0)).collect();
     let name_wide: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
@@ -211,15 +211,40 @@ fn parse_hex(s: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     Ok(bytes)
 }
 
-fn split_key_path(path: &str) -> Result<(HKEY, String), Box<dyn std::error::Error>> {
-    if path.starts_with("HKEY_CURRENT_USER\\") {
-        Ok((HKEY_CURRENT_USER, path[18..].to_string()))
-    } else if path.starts_with("HKCU\\") {
-        Ok((HKEY_CURRENT_USER, path[5..].to_string()))
-    } else if path.starts_with("HKEY_LOCAL_MACHINE\\") {
-        Ok((HKEY_LOCAL_MACHINE, path[19..].to_string()))
-    } else if path.starts_with("HKLM\\") {
-        Ok((HKEY_LOCAL_MACHINE, path[5..].to_string()))
+fn split_key_path(path: &str, offline_hive: Option<&str>) -> Result<(HKEY, String), Box<dyn std::error::Error>> {
+    if path.starts_with("HKEY_CURRENT_USER\\") || path.starts_with("HKCU\\") {
+        let sub = if path.starts_with("HKEY_CURRENT_USER\\") { &path[18..] } else { &path[5..] };
+        Ok((HKEY_CURRENT_USER, sub.to_string()))
+    } else if path.starts_with("HKEY_LOCAL_MACHINE\\") || path.starts_with("HKLM\\") {
+        let sub = if path.starts_with("HKEY_LOCAL_MACHINE\\") { &path[19..] } else { &path[5..] };
+        
+        if let Some(hive) = offline_hive {
+            // Divert to the specific offline mount point
+            let target_hive = if sub.to_lowercase().starts_with("software") {
+                format!("{}_SOFTWARE", hive)
+            } else if sub.to_lowercase().starts_with("system") {
+                format!("{}_SYSTEM", hive)
+            } else {
+                sub.to_string()
+            };
+            
+            // If we successfully derived a hive name like OFFLINE_TEMP_SOFTWARE, 
+            // the new sub_key is everything AFTER the first segment
+            if let Some(pos) = target_hive.find('\\') {
+                // This shouldn't happen with our derived format, but for safety:
+                Ok((HKEY_LOCAL_MACHINE, target_hive)) 
+            } else {
+                // Typical case: sub was "SOFTWARE\Microsoft", target_hive is "OFFLINE_TEMP_SOFTWARE"
+                // New sub_key needs to be "Microsoft"
+                if let Some(pos) = sub.find('\\') {
+                    Ok((HKEY_LOCAL_MACHINE, format!("{}\\{}", target_hive, &sub[pos+1..])))
+                } else {
+                    Ok((HKEY_LOCAL_MACHINE, target_hive))
+                }
+            }
+        } else {
+            Ok((HKEY_LOCAL_MACHINE, sub.to_string()))
+        }
     } else {
         Err(format!("Unsupported Hive: {}", path).into())
     }

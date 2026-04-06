@@ -25,7 +25,7 @@
   import BloomControl from "./BloomControl.svelte";
   import TacticalToolbar from "./TacticalToolbar.svelte";
   import TacticalContainer from "./TacticalContainer.svelte";
-  import { vhdStore } from "./store";
+  import { vhdStore, settings } from "./store";
   import { notificationStore } from "./notifications";
 
   function focus(node: HTMLElement) {
@@ -168,7 +168,11 @@
     error = null;
     try {
       if (isTauri) {
-        apps = await invoke("get_apps");
+        const isOffline = $settings.environmentTarget === 'Local Image';
+        apps = await invoke("get_apps", {
+          offlinePath: isOffline ? $settings.mountPath : null,
+          offlineHive: isOffline ? $settings.offlineHive : null
+        });
         profiles = await invoke("list_app_profiles");
       } else {
         apps = [
@@ -518,16 +522,22 @@
       return;
     }
 
+    const isVmTarget = $settings.environmentTarget === 'VHD & VM';
+    
     try {
       if (app.Status === 'installed') {
-        await invoke("uninstall_app", { appId });
+        await invoke("uninstall_app", { 
+          appId,
+          remote_active: isVmTarget && $vhdStore.remoteActive,
+          vm_name: (isVmTarget && $vhdStore.vmName) ? $vhdStore.vmName : null
+        });
       } else {
         await invoke("install_app", { 
           appId: app.AppId, 
           appName: app.FriendlyName,
           isSystem: app.IsProvisioned || app.IsUser,
-          remote_active: $vhdStore.remoteActive,
-          vm_name: $vhdStore.vmName || null
+          remote_active: isVmTarget && $vhdStore.remoteActive,
+          vm_name: (isVmTarget && $vhdStore.vmName) ? $vhdStore.vmName : null
         });
       }
       await loadData(); // Refresh list to update status

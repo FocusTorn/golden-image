@@ -6,3 +6,4 @@ pub mod theme;
 pub mod tweaks;
 pub mod vhd;
 pub mod orchestrator;
+pub mod wim;

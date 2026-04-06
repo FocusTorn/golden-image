@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Home, Cog, LayoutList, Settings, Zap, Hammer } from 'lucide-svelte';
+  import { settings } from './store';
   export let activeTab: string;
 </script>
 
@@ -9,24 +10,29 @@
       <Home size={18} color={activeTab === 'dashboard' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
+  <!-- DYNAMIC PIPELINE TAB -->
+  {#if $settings.environmentTarget === 'VHD & VM'}
+    <button class:active={activeTab === 'provisioning'} on:click={() => activeTab = 'provisioning'} title="Tactical Provisioning Engine">
+      <span class="icon-wrapper">
+        <Zap size={18} color={activeTab === 'provisioning' ? 'var(--accent-color)' : 'currentColor'} />
+      </span>
+    </button>
+  {:else if $settings.environmentTarget === 'Local Image'}
+    <button class:active={activeTab === 'orchestrator'} on:click={() => activeTab = 'orchestrator'} title="Image from Code">
+      <span class="icon-wrapper">
+        <Hammer size={18} color={activeTab === 'orchestrator' ? 'var(--accent-color)' : 'currentColor'} />
+      </span>
+    </button>
+  {/if}
+
   <button class:active={activeTab === 'apps'} on:click={() => activeTab = 'apps'} title="Apps">
     <span class="icon-wrapper">
       <LayoutList size={18} color={activeTab === 'apps' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
-  <button class:active={activeTab === 'provisioning'} on:click={() => activeTab = 'provisioning'} title="Provisioning">
-    <span class="icon-wrapper">
-      <Zap size={18} color={activeTab === 'provisioning' ? 'var(--accent-color)' : 'currentColor'} />
-    </span>
-  </button>
   <button class:active={activeTab === 'tweaks'} on:click={() => activeTab = 'tweaks'} title="Tweaks">
     <span class="icon-wrapper">
       <Cog size={18} color={activeTab === 'tweaks' ? 'var(--accent-color)' : 'currentColor'} />
-    </span>
-  </button>
-  <button class:active={activeTab === 'orchestrator'} on:click={() => activeTab = 'orchestrator'} title="Image from Code">
-    <span class="icon-wrapper">
-      <Hammer size={18} color={activeTab === 'orchestrator' ? 'var(--accent-color)' : 'currentColor'} />
     </span>
   </button>
   <div class="spacer"></div>
