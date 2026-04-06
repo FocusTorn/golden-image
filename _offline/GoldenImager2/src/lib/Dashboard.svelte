@@ -57,7 +57,7 @@
   let statusLoading = true;
 
   let envModeOpen = false;
-  const envModes = ['Local Image', 'VHD & VM', 'Local'];
+  const envModes: (typeof $settings.environmentTarget)[] = ['Local Image', 'VHD & VM', 'Local'];
 
   function toggleEnvMode(e: any) {
     if (e && e.stopPropagation) e.stopPropagation();
@@ -314,7 +314,7 @@
     vhdStore.update(s => ({ ...s, remoteActive: false }));
   }
 
-  function selectEnvMode(mode: string) {
+  function selectEnvMode(mode: typeof $settings.environmentTarget) {
     settings.update(s => ({ ...s, environmentTarget: mode }));
     envModeOpen = false;
   }
@@ -330,7 +330,14 @@
     </div>
     <div class="spacer"></div>
     
-    <div class="env-mode-selector" style="position: relative; width: 155px; z-index: 1000;" on:click|stopPropagation>
+    <div 
+      class="env-mode-selector" 
+      style="position: relative; width: 155px; z-index: 1000;" 
+      on:click|stopPropagation 
+      on:keydown={(e) => e.key === 'Enter' && toggleEnvMode(e)}
+      role="button"
+      tabindex="0"
+    >
       <BloomControl
         width="100%"
         active={envModeOpen}
@@ -560,8 +567,8 @@
       </div>
     </div>
 
-    <!-- COLUMN 2: CONNECTION POLICIES -->
-    <div class="tweak-column" style="grid-column: 2; grid-row: 2; display: flex; flex-direction: column;">
+    <!-- COLUMN 3: CONNECTION POLICIES -->
+    <div class="tweak-column" style="grid-column: 3; grid-row: 2; display: flex; flex-direction: column;">
       <div class="category-card">
         <div class="card-header">
           <span class="header-icon">
@@ -571,174 +578,182 @@
         </div>
         
         <div class="card-body">
-          {#if loading}
-            <div class="card-loading-center">
-              <RefreshCw size={36} class="spin dim-blue" />
-              <span class="loading-text">AUDITING POLICY...</span>
-            </div>
+          {#if $settings.environmentTarget === 'VHD & VM'}
+            {#if loading}
+              <div class="card-loading-center">
+                <RefreshCw size={36} class="spin dim-blue" />
+                <span class="loading-text">AUDITING POLICY...</span>
+              </div>
+            {:else}
+              <div class="tweak-row" title="Allows blank passwords for local admin accounts. Required for zero-touch deployments.">
+                <span class="tweak-name">LSA Admin Passwords</span>
+                <div class="spacer"></div>
+                <div class="target-toggle-group">
+                  <button 
+                    class="target-btn" 
+                    class:active={hostStats?.Connection?.LimitBlank}
+                    class:inactive={!hostStats?.Connection?.LimitBlank}
+                    class:executing={executingActions.has('LimitBlank-Host')}
+                    on:click={() => runAction('LimitBlank', null)}
+                  >
+                    {#if executingActions.has('LimitBlank-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
+                  </button>
+                  <button 
+                    class="target-btn" 
+                    class:active={vmStats?.Connection?.LimitBlank}
+                    class:inactive={!vmStats?.Connection?.LimitBlank}
+                    class:executing={executingActions.has('LimitBlank-VM')}
+                    disabled={!$vhdStore.remoteActive}
+                    on:click={() => runAction('LimitBlank', $vhdStore.vmName)}
+                  >
+                    {#if executingActions.has('LimitBlank-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
+                  </button>
+                </div>
+              </div>
+  
+              <div class="tweak-row" title="Windows Remote Management. Primary service for PowerShell remoting.">
+                <span class="tweak-name">WinRM Management Stack</span>
+                <div class="spacer"></div>
+                <div class="target-toggle-group">
+                  <button 
+                    class="target-btn" 
+                    class:active={hostStats?.Connection?.Winrm}
+                    class:inactive={!hostStats?.Connection?.Winrm}
+                    class:executing={executingActions.has('WinRM-Host')}
+                    on:click={() => runAction('WinRM', null)}
+                  >
+                    {#if executingActions.has('WinRM-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
+                  </button>
+                  <button 
+                    class="target-btn" 
+                    class:active={vmStats?.Connection?.Winrm}
+                    class:inactive={!vmStats?.Connection?.Winrm}
+                    class:executing={executingActions.has('WinRM-VM')}
+                    disabled={!$vhdStore.remoteActive}
+                    on:click={() => runAction('WinRM', $vhdStore.vmName)}
+                  >
+                    {#if executingActions.has('WinRM-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
+                  </button>
+                </div>
+              </div>
+  
+              <div class="tweak-row" title="State of the built-in 'Administrator' account. Required for initial logic injection.">
+                <span class="tweak-name">Local Admin Account State</span>
+                <div class="spacer"></div>
+                <div class="target-toggle-group">
+                  <button 
+                    class="target-btn" 
+                    class:active={hostStats?.Connection?.AdminEnabled}
+                    class:inactive={!hostStats?.Connection?.AdminEnabled}
+                    class:executing={executingActions.has('AdminAccount-Host')}
+                    on:click={() => runAction('AdminAccount', null, 'AdminEnabled')}
+                  >
+                    {#if executingActions.has('AdminAccount-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
+                  </button>
+                  <button 
+                    class="target-btn" 
+                    class:active={vmStats?.Connection?.AdminEnabled}
+                    class:inactive={!vmStats?.Connection?.AdminEnabled}
+                    class:executing={executingActions.has('AdminAccount-VM')}
+                    disabled={!$vhdStore.remoteActive}
+                    on:click={() => runAction('AdminAccount', $vhdStore.vmName, 'AdminEnabled')}
+                  >
+                    {#if executingActions.has('AdminAccount-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
+                  </button>
+                </div>
+              </div>
+  
+              <div class="tweak-row" title="CNG Key Isolation. Critical for modern LSA security and encrypted communication.">
+                 <span class="tweak-name">CNG Key Isolation</span>
+                 <div class="spacer"></div>
+                 <div class="target-toggle-group">
+                  <button 
+                    class="target-btn" 
+                    class:active={hostStats?.Connection?.KeyIso}
+                    class:inactive={!hostStats?.Connection?.KeyIso}
+                    class:executing={executingActions.has('KeyIso-Host')}
+                    on:click={() => runAction('KeyIso', null)}
+                  >
+                    {#if executingActions.has('KeyIso-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
+                  </button>
+                  <button 
+                    class="target-btn" 
+                    class:active={vmStats?.Connection?.KeyIso}
+                    class:inactive={!vmStats?.Connection?.KeyIso}
+                    class:executing={executingActions.has('KeyIso-VM')}
+                    disabled={!$vhdStore.remoteActive}
+                    on:click={() => runAction('KeyIso', $vhdStore.vmName)}
+                  >
+                    {#if executingActions.has('KeyIso-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
+                  </button>
+                </div>
+               </div>
+  
+               <div class="tweak-row" title="Enables the Terminal Services listener for full GUI remote management.">
+                 <span class="tweak-name">Remote Desktop (RDP)</span>
+                 <div class="spacer"></div>
+                 <div class="target-toggle-group">
+                  <button 
+                    class="target-btn" 
+                    class:active={hostStats?.Connection?.Rdp}
+                    class:inactive={!hostStats?.Connection?.Rdp}
+                    class:executing={executingActions.has('RDP-Host')}
+                    on:click={() => runAction('RDP', null)}
+                  >
+                    {#if executingActions.has('RDP-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
+                  </button>
+                  <button 
+                    class="target-btn" 
+                    class:active={vmStats?.Connection?.Rdp}
+                    class:inactive={!vmStats?.Connection?.Rdp}
+                    class:executing={executingActions.has('RDP-VM')}
+                    disabled={!$vhdStore.remoteActive}
+                    on:click={() => runAction('RDP', $vhdStore.vmName)}
+                  >
+                    {#if executingActions.has('RDP-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
+                  </button>
+                </div>
+               </div>
+  
+               <div class="tweak-row" title="Enables Function Discovery. Allows the VM to be accessible by name.">
+                 <span class="tweak-name">Network Discovery Stack</span>
+                 <div class="spacer"></div>
+                 <div class="target-toggle-group">
+                  <button 
+                    class="target-btn" 
+                    class:active={hostStats?.Connection?.NetDiscovery}
+                    class:inactive={!hostStats?.Connection?.NetDiscovery}
+                    class:executing={executingActions.has('NetDiscovery-Host')}
+                    on:click={() => runAction('NetDiscovery', null)}
+                  >
+                    {#if executingActions.has('NetDiscovery-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
+                  </button>
+                  <button 
+                    class="target-btn" 
+                    class:active={vmStats?.Connection?.NetDiscovery}
+                    class:inactive={!vmStats?.Connection?.NetDiscovery}
+                    class:executing={executingActions.has('NetDiscovery-VM')}
+                    disabled={!$vhdStore.remoteActive}
+                    on:click={() => runAction('NetDiscovery', $vhdStore.vmName)}
+                  >
+                    {#if executingActions.has('NetDiscovery-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
+                  </button>
+                </div>
+               </div>
+            {/if}
           {:else}
-            <div class="tweak-row" title="Allows blank passwords for local admin accounts. Required for zero-touch deployments.">
-              <span class="tweak-name">LSA Admin Passwords</span>
-              <div class="spacer"></div>
-              <div class="target-toggle-group">
-                <button 
-                  class="target-btn" 
-                  class:active={hostStats?.Connection?.LimitBlank}
-                  class:inactive={!hostStats?.Connection?.LimitBlank}
-                  class:executing={executingActions.has('LimitBlank-Host')}
-                  on:click={() => runAction('LimitBlank', null)}
-                >
-                  {#if executingActions.has('LimitBlank-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                </button>
-                <button 
-                  class="target-btn" 
-                  class:active={vmStats?.Connection?.LimitBlank}
-                  class:inactive={!vmStats?.Connection?.LimitBlank}
-                  class:executing={executingActions.has('LimitBlank-VM')}
-                  disabled={!$vhdStore.remoteActive}
-                  on:click={() => runAction('LimitBlank', $vhdStore.vmName)}
-                >
-                  {#if executingActions.has('LimitBlank-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                </button>
-              </div>
+            <div class="disconnected-overlay" style="min-height: 180px;">
+              <WifiOff size={24} class="dim-icon" strokeWidth={1.5} />
+              <span class="dim-text">POLICIES DECOUPLED</span>
+              <span class="dim-text" style="font-size: 8px; opacity: 0.5;">NO ACTIVE VM SESSION</span>
             </div>
-
-            <div class="tweak-row" title="Windows Remote Management. Primary service for PowerShell remoting.">
-              <span class="tweak-name">WinRM Management Stack</span>
-              <div class="spacer"></div>
-              <div class="target-toggle-group">
-                <button 
-                  class="target-btn" 
-                  class:active={hostStats?.Connection?.Winrm}
-                  class:inactive={!hostStats?.Connection?.Winrm}
-                  class:executing={executingActions.has('WinRM-Host')}
-                  on:click={() => runAction('WinRM', null)}
-                >
-                  {#if executingActions.has('WinRM-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                </button>
-                <button 
-                  class="target-btn" 
-                  class:active={vmStats?.Connection?.Winrm}
-                  class:inactive={!vmStats?.Connection?.Winrm}
-                  class:executing={executingActions.has('WinRM-VM')}
-                  disabled={!$vhdStore.remoteActive}
-                  on:click={() => runAction('WinRM', $vhdStore.vmName)}
-                >
-                  {#if executingActions.has('WinRM-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                </button>
-              </div>
-            </div>
-
-            <div class="tweak-row" title="State of the built-in 'Administrator' account. Required for initial logic injection.">
-              <span class="tweak-name">Local Admin Account State</span>
-              <div class="spacer"></div>
-              <div class="target-toggle-group">
-                <button 
-                  class="target-btn" 
-                  class:active={hostStats?.Connection?.AdminEnabled}
-                  class:inactive={!hostStats?.Connection?.AdminEnabled}
-                  class:executing={executingActions.has('AdminAccount-Host')}
-                  on:click={() => runAction('AdminAccount', null, 'AdminEnabled')}
-                >
-                  {#if executingActions.has('AdminAccount-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                </button>
-                <button 
-                  class="target-btn" 
-                  class:active={vmStats?.Connection?.AdminEnabled}
-                  class:inactive={!vmStats?.Connection?.AdminEnabled}
-                  class:executing={executingActions.has('AdminAccount-VM')}
-                  disabled={!$vhdStore.remoteActive}
-                  on:click={() => runAction('AdminAccount', $vhdStore.vmName, 'AdminEnabled')}
-                >
-                  {#if executingActions.has('AdminAccount-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                </button>
-              </div>
-            </div>
-
-            <div class="tweak-row" title="CNG Key Isolation. Critical for modern LSA security and encrypted communication.">
-               <span class="tweak-name">CNG Key Isolation</span>
-               <div class="spacer"></div>
-               <div class="target-toggle-group">
-                <button 
-                  class="target-btn" 
-                  class:active={hostStats?.Connection?.KeyIso}
-                  class:inactive={!hostStats?.Connection?.KeyIso}
-                  class:executing={executingActions.has('KeyIso-Host')}
-                  on:click={() => runAction('KeyIso', null)}
-                >
-                  {#if executingActions.has('KeyIso-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                </button>
-                <button 
-                  class="target-btn" 
-                  class:active={vmStats?.Connection?.KeyIso}
-                  class:inactive={!vmStats?.Connection?.KeyIso}
-                  class:executing={executingActions.has('KeyIso-VM')}
-                  disabled={!$vhdStore.remoteActive}
-                  on:click={() => runAction('KeyIso', $vhdStore.vmName)}
-                >
-                  {#if executingActions.has('KeyIso-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                </button>
-              </div>
-             </div>
-
-             <div class="tweak-row" title="Enables the Terminal Services listener for full GUI remote management.">
-               <span class="tweak-name">Remote Desktop (RDP)</span>
-               <div class="spacer"></div>
-               <div class="target-toggle-group">
-                <button 
-                  class="target-btn" 
-                  class:active={hostStats?.Connection?.Rdp}
-                  class:inactive={!hostStats?.Connection?.Rdp}
-                  class:executing={executingActions.has('RDP-Host')}
-                  on:click={() => runAction('RDP', null)}
-                >
-                  {#if executingActions.has('RDP-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                </button>
-                <button 
-                  class="target-btn" 
-                  class:active={vmStats?.Connection?.Rdp}
-                  class:inactive={!vmStats?.Connection?.Rdp}
-                  class:executing={executingActions.has('RDP-VM')}
-                  disabled={!$vhdStore.remoteActive}
-                  on:click={() => runAction('RDP', $vhdStore.vmName)}
-                >
-                  {#if executingActions.has('RDP-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                </button>
-              </div>
-             </div>
-
-             <div class="tweak-row" title="Enables Function Discovery. Allows the VM to be accessible by name.">
-               <span class="tweak-name">Network Discovery Stack</span>
-               <div class="spacer"></div>
-               <div class="target-toggle-group">
-                <button 
-                  class="target-btn" 
-                  class:active={hostStats?.Connection?.NetDiscovery}
-                  class:inactive={!hostStats?.Connection?.NetDiscovery}
-                  class:executing={executingActions.has('NetDiscovery-Host')}
-                  on:click={() => runAction('NetDiscovery', null)}
-                >
-                  {#if executingActions.has('NetDiscovery-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                </button>
-                <button 
-                  class="target-btn" 
-                  class:active={vmStats?.Connection?.NetDiscovery}
-                  class:inactive={!vmStats?.Connection?.NetDiscovery}
-                  class:executing={executingActions.has('NetDiscovery-VM')}
-                  disabled={!$vhdStore.remoteActive}
-                  on:click={() => runAction('NetDiscovery', $vhdStore.vmName)}
-                >
-                  {#if executingActions.has('NetDiscovery-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                </button>
-              </div>
-             </div>
           {/if}
         </div>
       </div>
     </div>
 
-    <!-- COLUMN 3: VHD & VM HUB -->
-    <div class="tweak-column" style="grid-column: 3; grid-row: 2;">
+    <!-- COLUMN 2: VHD & VM HUB -->
+    <div class="tweak-column" style="grid-column: 2; grid-row: 2;">
       <div class="category-card">
         <div class="card-header">
           <span class="header-icon">
@@ -748,130 +763,138 @@
         </div>
         
         <div class="card-body vhd-hub-body" style="flex: 1;">
-          {#if statusLoading}
-            <div class="card-loading-center">
-              <RefreshCw size={42} class="spin dim-blue" />
-              <span class="loading-text">SYNCING INVENTORY...</span>
-            </div>
-          {:else}
-            <div class="profile-selector-group">
-              <div class="stat-label">IMAGE BUILD PROFILE</div>
-              <div class="custom-select-container">
-                <BloomControl
-                  width="100%"
-                  active={isProfileOpen}
-                  on:click={toggleProfile}
-                  style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px; --bloom-rgb: {vmStatuses[vhdState.selectedProfile] === 'Running' ? '0, 230, 118' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? '255, 61, 96' : 'var(--accent-rgb)')};"
-                >
-                  <span class="select-label truncate" style="color: {vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? 'var(--risk-unsafe)' : 'var(--accent-color)')}">
-                    {vhdState.selectedProfile || 'SELECT PROFILE...'}
-                  </span>
-                  <div class="chevron-wrapper" class:open={isProfileOpen}>
-                    <ChevronDown size={14} />
-                  </div>
-                </BloomControl>
-
-                {#if isProfileOpen}
-                  <div class="dropdown-list">
-                    {#each vmProfiles as p}
-                      <button
-                        class="dropdown-item"
-                        class:active={vhdState.selectedProfile === p}
-                        class:missing={vmStatuses[p] === 'Missing'}
-                        disabled={vmStatuses[p] === 'Missing'}
-                        on:click|stopPropagation={() => selectProfile(p)}
-                      >
-                        <span class="item-status">
-                          {#if vmStatuses[p] === 'Running'}
-                            <CheckCircle2 size={11} color="var(--risk-safe)" strokeWidth={3.5} opacity={1} />
-                          {:else if vmStatuses[p] === 'Missing'}
-                            <XCircle size={11} color="var(--risk-unsafe)" strokeWidth={3.5} opacity={1} />
-                          {:else}
-                            <WifiOff size={11} color="#ffca28" strokeWidth={3.5} opacity={1} />
-                          {/if}
-                        </span>
-                        {p}
-                      </button>
-                    {/each}
-                  </div>
-                {/if}
+          {#if $settings.environmentTarget === 'VHD & VM'}
+            {#if statusLoading}
+              <div class="card-loading-center">
+                <RefreshCw size={42} class="spin dim-blue" />
+                <span class="loading-text">SYNCING INVENTORY...</span>
               </div>
-            </div>
-
-            <div class="divider"></div>
-
-            <!-- VM METRICS AREA -->
-            <div class="stats-hub" style="margin-bottom: 8px;">
-               <div class="stat-row">
-                  <div class="stat-label">VM STATE</div>
-                  <div class="stat-value" style="color: {vhdState.vmName && vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
-                    {vhdState.vmName ? vmStatuses[vhdState.selectedProfile] || 'Detecting...' : 'N/A'}
-                  </div>
-               </div>
-               <div class="stat-row">
-                  <div class="stat-label">REMOTE TARGET</div>
-                  <div class="stat-value truncate" title={vhdState.vmName || 'None'}>{vhdState.vmName || 'None'}</div>
-               </div>
-            </div>
-
-            <div class="divider"></div>
-
-            <!-- REMOTE PROVISIONING MODE -->
-            <div class="stat-row remote-toggle-row">
-              <div class="stat-label">POWERSHELL DIRECT</div>
-              <button 
-                class="bloom-select remote-btn" 
-                class:active={vhdState.remoteActive && !loading}
-                class:connecting={loading && vhdState.remoteActive}
-                disabled={!vhdState.vmName || loading || vmStatuses[vhdState.selectedProfile] !== 'Running'}
-                on:click={toggleRemote}
-              >
-                {#if loading && vhdState.remoteActive}
-                  <Loader2 size={10} class="spin" />
-                {:else}
-                  {vhdState.remoteActive ? 'ACTIVE' : 'OFF'}
-                {/if}
-              </button>
-            </div>
-
-            <div class="vhd-control-grid">
-              <button 
-                class="vhd-action-btn host" 
-                class:active={vhdState.vhdMounted} 
-                disabled={vhdState.processing || !vhdState.vhdPath}
-                on:click={() => handleVhdTransition('Host')}
-              >
-                {#if vhdState.processing}
-                  <Loader2 size={12} class="spin" />
-                {:else}
-                  <HardDrive size={14} />
-                  <span>{vhdState.vhdMounted ? 'RECONNECT HOST' : 'MOUNT HOST'}</span>
-                {/if}
-              </button>
-
-              <button 
-                class="vhd-action-btn vm" 
-                class:active={vhdState.vhdAttached} 
-                disabled={vhdState.processing || !vhdState.vhdPath || !vhdState.vmName}
-                on:click={() => handleVhdTransition('VM')}
-              >
-                {#if vhdState.processing}
-                  <Loader2 size={12} class="spin" />
-                {:else}
-                  <ShieldCheck size={14} />
-                  <span>{vhdState.vhdAttached ? 'RECONNECT VM' : 'ATTACH VM'}</span>
-                {/if}
-              </button>
-
-              <button 
-                class="vhd-action-btn release full-width" 
-                class:active={vhdState.vhdMounted || vhdState.vhdAttached}
-                disabled={vhdState.processing || (!vhdState.vhdMounted && !vhdState.vhdAttached)}
-                on:click={handleVhdRelease}
-              >
-                <AlertCircle size={14} />
-                <span>RELEASE HANDLES</span>
-              </button>
+            {:else}
+              <div class="profile-selector-group">
+                <div class="stat-label">IMAGE BUILD PROFILE</div>
+                <div class="custom-select-container">
+                  <BloomControl
+                    width="100%"
+                    active={isProfileOpen}
+                    on:click={toggleProfile}
+                    style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px; --bloom-rgb: {vmStatuses[vhdState.selectedProfile] === 'Running' ? '0, 230, 118' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? '255, 61, 96' : 'var(--accent-rgb)')};"
+                  >
+                    <span class="select-label truncate" style="color: {vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? 'var(--risk-unsafe)' : 'var(--accent-color)')}">
+                      {vhdState.selectedProfile || 'SELECT PROFILE...'}
+                    </span>
+                    <div class="chevron-wrapper" class:open={isProfileOpen}>
+                      <ChevronDown size={14} />
+                    </div>
+                  </BloomControl>
+  
+                  {#if isProfileOpen}
+                    <div class="dropdown-list">
+                      {#each vmProfiles as p}
+                        <button
+                          class="dropdown-item"
+                          class:active={vhdState.selectedProfile === p}
+                          class:missing={vmStatuses[p] === 'Missing'}
+                          disabled={vmStatuses[p] === 'Missing'}
+                          on:click|stopPropagation={() => selectProfile(p)}
+                        >
+                          <span class="item-status">
+                            {#if vmStatuses[p] === 'Running'}
+                              <CheckCircle2 size={11} color="var(--risk-safe)" strokeWidth={3.5} opacity={1} />
+                            {:else if vmStatuses[p] === 'Missing'}
+                              <XCircle size={11} color="var(--risk-unsafe)" strokeWidth={3.5} opacity={1} />
+                            {:else}
+                              <WifiOff size={11} color="#ffca28" strokeWidth={3.5} opacity={1} />
+                            {/if}
+                          </span>
+                          {p}
+                        </button>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              </div>
+  
+              <div class="divider"></div>
+  
+              <!-- VM METRICS AREA -->
+              <div class="stats-hub" style="margin-bottom: 8px;">
+                 <div class="stat-row">
+                    <div class="stat-label">VM STATE</div>
+                    <div class="stat-value" style="color: {vhdState.vmName && vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
+                      {vhdState.vmName ? vmStatuses[vhdState.selectedProfile] || 'Detecting...' : 'N/A'}
+                    </div>
+                 </div>
+                 <div class="stat-row">
+                    <div class="stat-label">REMOTE TARGET</div>
+                    <div class="stat-value truncate" title={vhdState.vmName || 'None'}>{vhdState.vmName || 'None'}</div>
+                 </div>
+              </div>
+  
+              <div class="divider"></div>
+  
+              <!-- REMOTE PROVISIONING MODE -->
+              <div class="stat-row remote-toggle-row">
+                <div class="stat-label">POWERSHELL DIRECT</div>
+                <button 
+                  class="bloom-select remote-btn" 
+                  class:active={vhdState.remoteActive && !loading}
+                  class:connecting={loading && vhdState.remoteActive}
+                  disabled={!vhdState.vmName || loading || vmStatuses[vhdState.selectedProfile] !== 'Running'}
+                  on:click={toggleRemote}
+                >
+                  {#if loading && vhdState.remoteActive}
+                    <Loader2 size={10} class="spin" />
+                  {:else}
+                    {vhdState.remoteActive ? 'ACTIVE' : 'OFF'}
+                  {/if}
+                </button>
+              </div>
+  
+              <div class="vhd-control-grid">
+                <button 
+                  class="vhd-action-btn host" 
+                  class:active={vhdState.vhdMounted} 
+                  disabled={vhdState.processing || !vhdState.vhdPath}
+                  on:click={() => handleVhdTransition('Host')}
+                >
+                  {#if vhdState.processing}
+                    <Loader2 size={12} class="spin" />
+                  {:else}
+                    <HardDrive size={14} />
+                    <span>{vhdState.vhdMounted ? 'RECONNECT HOST' : 'MOUNT HOST'}</span>
+                  {/if}
+                </button>
+  
+                <button 
+                  class="vhd-action-btn vm" 
+                  class:active={vhdState.vhdAttached} 
+                  disabled={vhdState.processing || !vhdState.vhdPath || !vhdState.vmName}
+                  on:click={() => handleVhdTransition('VM')}
+                >
+                  {#if vhdState.processing}
+                    <Loader2 size={12} class="spin" />
+                  {:else}
+                    <ShieldCheck size={14} />
+                    <span>{vhdState.vhdAttached ? 'RECONNECT VM' : 'ATTACH VM'}</span>
+                  {/if}
+                </button>
+  
+                <button 
+                  class="vhd-action-btn release full-width" 
+                  class:active={vhdState.vhdMounted || vhdState.vhdAttached}
+                  disabled={vhdState.processing || (!vhdState.vhdMounted && !vhdState.vhdAttached)}
+                  on:click={handleVhdRelease}
+                >
+                  <AlertCircle size={14} />
+                  <span>RELEASE HANDLES</span>
+                </button>
+              </div>
+            {/if}
+          {:else}
+            <div class="disconnected-overlay" style="min-height: 180px;">
+              <Database size={24} class="dim-icon" strokeWidth={1.5} />
+              <span class="dim-text">INVENTORY DECOUPLED</span>
+              <span class="dim-text" style="font-size: 8px; opacity: 0.5;">TARGET: {$settings.environmentTarget || 'Local Image'}</span>
             </div>
           {/if}
         </div>
