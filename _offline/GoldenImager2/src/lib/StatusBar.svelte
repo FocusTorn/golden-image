@@ -39,7 +39,7 @@
 <style>
   .status-bar {
     height: 22px;
-    background: #12181A; /* Synced with Sidebar/Content floor luminance */
+    background: #1a1f22; /* Flat match for side bar bottom */
     display: flex;
     align-items: center;
     justify-content: space-between;

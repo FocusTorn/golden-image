@@ -121,7 +121,7 @@
     ondeleteProfile={(p) => engine.deleteProfile(p)}
   />
 
-  <TacticalContainer padding="0">
+  <TacticalContainer padding="8px 12px">
     {#if engine.loading}
       <div class="state-view">
         <RefreshCw size={32} class="spin active-bloom" />
@@ -159,7 +159,7 @@
 </div>
 
 <style>
-  .panel { display: flex; flex-direction: column; height: 100%; padding: 12px; gap: 8px; overflow: hidden; --risk-safe: #00e676; }
+  .panel { display: flex; flex-direction: column; height: 100%; gap: 0; overflow: hidden; --risk-safe: #00e676; }
   .tweak-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-gap: 16px; padding: 16px; overflow-y: auto; flex: 1; align-items: flex-start; scrollbar-gutter: stable; }
   .tweak-column { display: flex; flex-direction: column; gap: 16px; }
   .tweak-grid::-webkit-scrollbar { width: 6px; }

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { settings, accentRgb } from './lib/store';
   import { invoke } from '@tauri-apps/api/tauri';
-  import { listen } from '@tauri-apps/api/event';
   import Sidebar from './lib/Sidebar.svelte';
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
@@ -13,89 +12,12 @@
   import StatusBar from './lib/StatusBar.svelte';
   import ToastStack from './lib/ToastStack.svelte';
 
-  import { onMount } from 'svelte';
+  let activeTab = $state<string>('dashboard');
+  let appCount = $state<number>(0);
+  let hasLoggedGeometry = $state<boolean>(false);
   
-  let activeTab = $state('dashboard');
-  let isDark = $state(true);
-  let appCount = $state(0);
-  let tweakAppliedCount = $state(0);
-  let tweakTotalCount = $state(0);
-  let hasLoggedGeometry = $state(false);
-  
-  let containerRef: HTMLElement | null = $state(null);
-  let listRef: HTMLElement | null = $state(null);
-  
-  const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
-
-  onMount(() => {
-    const setup = async () => {
-      try {
-        const config = await invoke("get_master_config");
-        if (config && (config as any).defaultInitialView) {
-          activeTab = (config as any).defaultInitialView.toLowerCase();
-        }
-      } catch (e) {
-        console.error("Failed to load startup view", e);
-      }
-
-      let isTransitioning = false;
-
-      // Initial Geometry Restore (Clamped)
-      if ($settings.retainWindowState) {
-        const finalW = Math.min($settings.windowWidth, window.screen.availWidth);
-        const finalH = Math.min($settings.windowHeight, window.screen.availHeight);
-        
-        invoke('set_window_size', { 
-          width: finalW - 47, 
-          height: finalH - 62 
-        });
-        invoke('set_window_position', { 
-          x: $settings.windowX, 
-          y: $settings.windowY 
-        });
-      }
-
-      const unlistenResize = await listen('window-resized', (event: any) => {
-        if (isTransitioning) return;
-        const [w, h] = event.payload;
-        if (!$settings.retainWindowState) {
-          settings.update(s => ({ ...s, retainWindowState: true }));
-        }
-        
-        // Dynamic Clamping to Work Area
-        const finalW = Math.min(w + 47, window.screen.availWidth);
-        const finalH = Math.min(h + 62, window.screen.availHeight);
-        
-        settings.update(s => ({ ...s, windowWidth: finalW, windowHeight: finalH }));
-      });
-
-      const unlistenMove = await listen('window-moved', (event: any) => {
-        if (isTransitioning) return;
-        const [x, y] = event.payload;
-        if (!$settings.retainWindowState) {
-          settings.update(s => ({ ...s, retainWindowState: true }));
-        }
-        settings.update(s => ({ ...s, windowX: x, windowY: y }));
-      });
-
-      const unlistenManual = await listen('manual-resize-start', () => {
-        isTransitioning = true;
-        setTimeout(() => isTransitioning = false, 1000);
-      });
-
-      return () => {
-        if (typeof unlistenResize === 'function') unlistenResize();
-        if (typeof unlistenMove === 'function') unlistenMove();
-        if (typeof unlistenManual === 'function') unlistenManual();
-      };
-    };
-
-    const cleanupPromise = setup();
-
-    return () => {
-      cleanupPromise.then(cleanup => cleanup && cleanup());
-    };
-  });
+  let containerRef = $state<HTMLElement | null>(null);
+  let listRef = $state<HTMLElement | null>(null);
 
   /* GEOMETRY PROBE LOGIC (Logs once per app pane load) */
   $effect(() => {
@@ -126,7 +48,10 @@
     }
   });
 
-
+  let tweakAppliedCount = $state<number>(0);
+  let tweakTotalCount = $state<number>(0);
+  
+  const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 </script>
 
 <main 
@@ -134,34 +59,65 @@
   class:isTauri
   style="--accent-rgb: {$accentRgb}; --accent-color: rgb({$accentRgb});"
 >
-  <Sidebar bind:activeTab />
-
-  <div class="content-area">
-    <Header {activeTab} />
+  <div class="app-frame">
+    <!-- Full-Width Title Bar -->
+    <Header activeTab={activeTab} />
     
-    <div class="view-wrapper">
-      {#if activeTab === 'dashboard'}
-        <Dashboard />
-      {:else if activeTab === 'provisioning'}
-        <Provisioning />
-      {:else if activeTab === 'orchestrator'}
-        <Orchestrator />
-      {:else if activeTab === 'apps'}
-        <Apps bind:appCount bind:containerRef bind:listRef />
-      {:else if activeTab === 'tweaks'}
-        <Tweaks 
-          bind:appliedCount={tweakAppliedCount} 
-          bind:totalCount={tweakTotalCount} 
-        />
-      {:else if activeTab === 'settings'}
-        <Settings />
-      {/if}
+    <!-- Top Global Divider (THE PIPE) -->
+    <div class="h-divider top">
+      <div class="h-edge"></div>
+      <div class="h-core"></div>
+      <div class="h-edge"></div>
     </div>
 
-    <StatusBar {activeTab} {appCount} {tweakAppliedCount} {tweakTotalCount} />
-  </div>
+    <!-- Middle Layout: Sidebar + Content -->
+    <div class="middle-body">
+      <Sidebar bind:activeTab />
+      
+      <!-- Vertical Divider (THE PIPE) -->
+      <div class="v-divider">
+        <div class="v-edge"></div>
+        <div class="v-core"></div>
+        <div class="v-edge"></div>
+      </div>
 
-  <ToastStack />
+      <div class="content-area">
+        {#if activeTab === 'dashboard'}
+          <Dashboard />
+        {:else if activeTab === 'provisioning'}
+          <Provisioning />
+        {:else if activeTab === 'orchestrator'}
+          <Orchestrator />
+        {:else if activeTab === 'apps'}
+          <Apps bind:appCount bind:containerRef bind:listRef />
+        {:else if activeTab === 'tweaks'}
+          <Tweaks 
+            bind:appliedCount={tweakAppliedCount} 
+            bind:totalCount={tweakTotalCount} 
+          />
+        {:else if activeTab === 'settings'}
+          <Settings />
+        {/if}
+      </div>
+    </div>
+
+    <!-- Bottom Global Divider (THE PIPE) -->
+    <div class="h-divider bottom">
+      <div class="h-edge"></div>
+      <div class="h-core"></div>
+      <div class="h-edge"></div>
+    </div>
+
+    <!-- Full-Width Status Bar -->
+    <StatusBar 
+      {activeTab} 
+      {appCount} 
+      {tweakAppliedCount} 
+      {tweakTotalCount} 
+    />
+
+    <ToastStack />
+  </div>
 </main>
 
 <style>
@@ -170,8 +126,8 @@
     --accent-color: rgb(var(--accent-rgb));
     --bg-main: #0b0f10;
     --bg-darker: #050708;
-    --grad-main: radial-gradient(circle at 50% 0%, #1a2225 0%, #0b0f10 100%);
-    --grad-panel: linear-gradient(180deg, #12181a 0%, #0b0f10 100%);
+    --grad-main: #0b0f10; /* Solid dark base to match original reference */
+    --grad-panel: linear-gradient(180deg, #1e2327 0%, #0b0f10 100%);
     --risk-safe: #4caf50;
     --risk-warn: #ffeb3b;
     --risk-unsafe: #ff1744;
@@ -182,6 +138,10 @@
     --slab-edge: #0E1113;    /* Bevel Shadow */
     --slab-rim: #3A3E42;     /* Milled Silver Catch */
     --slab-patina: #1A1D20;  /* Oxidation Cloud */
+
+    /* PIPE TOKENS */
+    --divider-core: #2a3133; 
+    --divider-edge: rgba(0, 0, 0, 0.15); /* Softened to remove "cut" effect */
   }
 
   :global(body) {
@@ -198,43 +158,86 @@
     width: 100vw;
     height: 100vh;
     display: flex;
-    background: var(--bg-main);
     overflow: hidden;
+  }
+
+  .app-frame {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-main);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .middle-body {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
   }
 
   .content-area {
     flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: transparent;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    position: relative;
+    padding: 10px 10px 0 10px;
   }
 
-  .view-wrapper {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-    background: rgba(0, 0, 0, 0.2);
-  }
-
-  /* High-Performance Transitions */
-  .view-wrapper > :global(*) {
-    width: 100%;
+  /* Vertical Divider (The Pipe) */
+  .v-divider {
+    width: 4px;
     height: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-shrink: 0;
+    z-index: 20;
   }
 
-  :global(.spin) {
-    animation: spin 1s linear infinite;
+  .v-edge {
+    width: 1px;
+    height: 100%;
+    background: var(--divider-edge);
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+  .v-core {
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--divider-core) 0%, var(--divider-edge) 100%);
   }
 
-  :global(.truncate) {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  /* Horizontal Divider (The Pipe) */
+  .h-divider {
+    height: 4px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    z-index: 50;
+  }
+
+  .h-edge { 
+    height: 1px; 
+    width: 100%; 
+    background: var(--divider-edge); 
+  }
+
+  .h-core { 
+    height: 2px; 
+    width: 100%; 
+  }
+
+  .h-divider.top .h-core {
+    background: var(--divider-core);
+  }
+
+  .h-divider.bottom .h-core {
+    background: var(--divider-core);
   }
 </style>

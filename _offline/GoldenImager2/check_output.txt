@@ -1,0 +1,260 @@
+Loading svelte-check in workspace: p:\Projects\golden-image\_offline\GoldenImager2
+Getting Svelte diagnostics...
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:764:3
+[33mWarn[39m: Unused CSS selector ".glow-icon"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.glow-icon[36m {
+    color: var(--accent-color);[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:975:3
+[33mWarn[39m: Unused CSS selector ".vhd-hub-body"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.vhd-hub-body[36m {
+    display: flex;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1012:3
+[33mWarn[39m: Unused CSS selector ".vhd-action-btn.release.active"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.vhd-action-btn.release.active[36m {
+    color: #ff3d60;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1057:3
+[33mWarn[39m: Unused CSS selector ".remote-btn"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.remote-btn[36m {
+    height: 24px;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1066:3
+[33mWarn[39m: Unused CSS selector ".remote-btn.active"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.remote-btn.active[36m {
+    background: var(--accent-color);[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1071:3
+[33mWarn[39m: Unused CSS selector ".spin"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  
+  [35m.spin[36m { 
+    animation: spin 1s linear infinite;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1308:3
+[33mWarn[39m: Unused CSS selector ".stats-hub"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  /* Stats Styling */
+  [35m.stats-hub[36m {
+    display: flex;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1453:3
+[33mWarn[39m: Unused CSS selector ".profile-selector-group"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.profile-selector-group[36m {
+    display: flex;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1461:3
+[33mWarn[39m: Unused CSS selector ".custom-select-container"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  /* DROPDOWN PARITY WITH TACTICAL TOOLBAR */
+  [35m.custom-select-container[36m {
+    position: relative;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1520:3
+[33mWarn[39m: Unused CSS selector ".item-status"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.item-status[36m {
+    width: 16px;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1530:3
+[33mWarn[39m: Unused CSS selector ".dropdown-item.missing"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.dropdown-item.missing[36m {
+    color: rgba(255, 255, 255, 0.4);[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1541:3
+[33mWarn[39m: Unused CSS selector ".vhd-hub-body"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.vhd-hub-body[36m {
+    position: relative;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1593:3
+[33mWarn[39m: Unused CSS selector ".remote-btn"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.remote-btn[36m {
+     width: 80px; /* REFINED WIDTH */[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1610:3
+[33mWarn[39m: Unused CSS selector ".remote-btn.active"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.remote-btn.active[36m {
+     background: #00bcd4;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1618:3
+[33mWarn[39m: Unused CSS selector ".remote-btn.connecting"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.remote-btn.connecting[36m {
+     background: rgba(0, 188, 212, 0.1);[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1626:3
+[33mWarn[39m: Unused CSS selector ".remote-btn:hover:not(:disabled):not(.active)"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.remote-btn:hover:not(:disabled):not(.active)[36m {
+    background: #2a3135;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1688:3
+[33mWarn[39m: Unused CSS selector ".vhd-action-btn.release.active:hover:not(:disabled)"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.vhd-action-btn.release.active:hover:not(:disabled)[36m {
+    border: 1.5px solid rgba(255, 0, 48, 1.0) !important; /* HIGH-SATURATION PRIMARY RED FRAME */[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1708:3
+[33mWarn[39m: Unused CSS selector ".vhd-action-btn.release.active"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.vhd-action-btn.release.active[36m {
+    background: rgba(255, 61, 96, 0.12);[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1728:3
+[33mWarn[39m: Unused CSS selector ".action-item.restricted"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.action-item.restricted[36m {
+    opacity: 0.35;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:90:3
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m{#if showSaveModal}
+  [35m<div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>
+  </div>[36m
+{/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:90:3
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m{#if showSaveModal}
+  [35m<div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>
+  </div>[36m
+{/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:91:5
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m  <div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    [35m<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>[36m
+  </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:91:5
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m  <div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    [35m<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>[36m
+  </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:239:3
+[33mWarn[39m: Unused CSS selector ".dim"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.dim[36m { opacity: 0.3; }[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Orchestrator.svelte[39m:584:3
+[33mWarn[39m: Unused CSS selector ".spin"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.spin[36m {
+    animation: spin 1.5s linear infinite;[39m
+
+====================================
+[33msvelte-check found 0 errors and 25 warnings in 3 files
+[39m

@@ -258,10 +258,35 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 4px;
+    height: 38px;
+    background: rgba(18, 24, 26, 0.82);
+    backdrop-filter: blur(12px);
+    padding: 0 16px;
     gap: 12px;
     position: relative;
     z-index: 2000;
+  }
+
+  .toolbar-reusable::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+    z-index: 2;
+  }
+
+  .toolbar-reusable::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1;
   }
 
   .tool-group {

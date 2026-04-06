@@ -452,22 +452,49 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 12px;
-    gap: 8px;
+    gap: 0;
     overflow: hidden;
-    background: transparent;
+    background: #1a1f22;
+    border: 1px solid #0d1214;
+    border-radius: 8px;
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .toolbar {
     height: 38px;
-    background: rgba(18, 24, 26, 0.8);
+    background: rgba(18, 24, 26, 0.82);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: none;
     display: flex;
     align-items: center;
     padding: 0 16px;
-    border-radius: 6px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1000;
+  }
+
+  .toolbar::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+    z-index: 2;
+  }
+
+  .toolbar::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1;
   }
 
   .title-cluster {

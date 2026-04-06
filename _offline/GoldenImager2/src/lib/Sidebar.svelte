@@ -103,12 +103,12 @@
     top: 0;
     bottom: 0;
     width: 100%; /* All the way to edge */
-    background: rgba(18, 24, 26, 0.95);
+    background: rgba(26, 31, 34, 0.95); /* Slab Base Grey */
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-left: none; /* No left border */
-    border-radius: 0 8px 8px 0;
+    border-radius: 0;
     box-shadow: 
-      inset 0 0 0 1px #12181a,
+      inset 0 2px 20px rgba(0, 0, 0, 0.6),
       inset 0 2px 20px rgba(0, 0, 0, 0.6);
     z-index: -1;
   }

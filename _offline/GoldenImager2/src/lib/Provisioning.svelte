@@ -8,6 +8,7 @@
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import TacticalToolbar from "./TacticalToolbar.svelte";
+  import TacticalContainer from "./TacticalContainer.svelte";
   import { notificationStore } from "./notifications";
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
@@ -207,141 +208,145 @@
   </div>
 
 
-  <!-- TACTICAL HEADER -->
-  <div class="provisioning-header">
-     <div class="title-group">
-       <div class="icon-hub">
-          <Zap size={18} fill="var(--accent-color)" />
-       </div>
-       <div class="text-stack">
-          <h1>Tactical Provisioning Engine</h1>
-          <p>Stage: {activeStage ? `0${activeStage}` : 'PENDING'} | Target: {$vhdStore.vhdAttached && $vhdStore.remoteActive ? `REMOTE (${$vhdStore.vmName})` : `LOCAL (${$vhdStore.vhdPath.split(/[\\/]/).pop() || 'NONE'})`}</p>
-       </div>
-     </div>
-     
-     <div class="spacer"></div>
-
-     <div class="status-indicator" class:active={$vhdStore.remoteActive}>
-        <div class="dot"></div>
-        <span>{$vhdStore.remoteActive ? 'REMOTING ACTIVE' : 'LOCAL HUB'}</span>
-     </div>
-  </div>
-
-  <div class="main-layout">
-    <!-- LEFT COLUMN: STAGES & CONFIG (Condensed) -->
-    <div class="stage-column">
-       <div class="deployment-card">
-          <div class="card-header highlight">
-             <Target size={14} />
-             <h3>ACTIVE MISSION LOADOUT</h3>
-          </div>
-          <div class="card-body">
-             <div class="mission-status">
-                <div class="mode-badge" class:remote={$vhdStore.remoteActive}>
-                   {$vhdStore.remoteActive ? 'REMOTE VM' : 'OFFLINE VHD'}
-                </div>
-                <div class="path-display">{$vhdStore.vhdPath ? $vhdStore.vhdPath.split(/[\\/]/).pop() : 'NO MISSION LOADED'}</div>
-             </div>
-             
-             <button 
-               class="deploy-btn" 
-               class:executing={running} 
-               disabled={running || !$vhdStore.vhdPath} 
-               onclick={startDeployment}
-             >
-               {#if running}
-                 <Loader2 size={16} class="spin" />
-                 <span>DEPLOYING...</span>
-               {:else}
-                 <Play size={14} fill="currentColor" />
-                 <span>INITIATE DEPLOYMENT</span>
-               {/if}
-             </button>
-          </div>
-       </div>
-
-       <div class="stage-list">
-        <div class="flow-header">
-          <Activity size={14} />
-          <span>Deployment Sequence</span>
-        </div>
-        
-        <div class="list-container">
-          <div class="table-header">
-            <div class="col-status">Status</div>
-            <div class="col-title">Provisioning Stage</div>
-            <div class="spacer"></div>
-            <div class="col-actions">Control</div>
-          </div>
-          
-          <div class="table-body">
-            {#each stages as stage}
-              <div 
-                class="stage-row" 
-                class:active={activeStage === stage.id}
-                class:complete={stage.status === 'complete'}
-                class:error={stage.status === 'error'}
-                title="{stage.desc}"
-              >
-                <div class="col-status">
-                  <div class="row-indicator" style="--indicator-color: {
-                    stage.status === 'complete' ? '#4caf50' : 
-                    stage.status === 'running' ? '#ffeb3b' : 
-                    stage.status === 'error' ? '#ff1744' : '#ff1744'
-                  }"></div>
-                </div>
-
-                <div class="col-title">
-                  <span class="text-main">{stage.title}</span>
-                </div>
-
-                <div class="spacer"></div>
-
-                <div class="col-actions">
-                  {#if stage.status === 'running'}
-                    <Loader2 size={12} class="spin" />
-                  {:else}
-                    <div class="row-actions">
-                      <button 
-                        class="row-action-btn" 
-                        onclick={() => runSingleStage(stage)}
-                        disabled={running}
-                      >
-                        <Play size={10} fill="currentColor" />
-                      </button>
-                      <div class="info-trigger" title="{stage.desc}">
-                        <Info size={12} />
-                      </div>
-                    </div>
-                  {/if}
-                </div>
+  <div style="display: contents;">
+    <TacticalContainer padding="12px 16px">
+      <!-- TACTICAL HEADER -->
+      <div class="provisioning-header">
+         <div class="title-group">
+           <div class="icon-hub">
+              <Zap size={18} fill="var(--accent-color)" />
+           </div>
+           <div class="text-stack">
+              <h1>Tactical Provisioning Engine</h1>
+              <p>Stage: {activeStage ? `0${activeStage}` : 'PENDING'} | Target: {$vhdStore.vhdAttached && $vhdStore.remoteActive ? `REMOTE (${$vhdStore.vmName})` : `LOCAL (${$vhdStore.vhdPath.split(/[\\/]/).pop() || 'NONE'})`}</p>
+           </div>
+         </div>
+         
+         <div class="spacer"></div>
+    
+         <div class="status-indicator" class:active={$vhdStore.remoteActive}>
+            <div class="dot"></div>
+            <span>{$vhdStore.remoteActive ? 'REMOTING ACTIVE' : 'LOCAL HUB'}</span>
+         </div>
+      </div>
+    
+      <div class="main-layout">
+        <!-- LEFT COLUMN: STAGES & CONFIG (Condensed) -->
+        <div class="stage-column">
+           <div class="deployment-card">
+              <div class="card-header highlight">
+                 <Target size={14} />
+                 <h3>ACTIVE MISSION LOADOUT</h3>
               </div>
+              <div class="card-body">
+                 <div class="mission-status">
+                    <div class="mode-badge" class:remote={$vhdStore.remoteActive}>
+                       {$vhdStore.remoteActive ? 'REMOTE VM' : 'OFFLINE VHD'}
+                    </div>
+                    <div class="path-display">{$vhdStore.vhdPath ? $vhdStore.vhdPath.split(/[\\/]/).pop() : 'NO MISSION LOADED'}</div>
+                 </div>
+                 
+                 <button 
+                   class="deploy-btn" 
+                   class:executing={running} 
+                   disabled={running || !$vhdStore.vhdPath} 
+                   onclick={startDeployment}
+                 >
+                   {#if running}
+                     <Loader2 size={16} class="spin" />
+                     <span>DEPLOYING...</span>
+                   {:else}
+                     <Play size={14} fill="currentColor" />
+                     <span>INITIATE DEPLOYMENT</span>
+                   {/if}
+                 </button>
+              </div>
+           </div>
+    
+           <div class="stage-list">
+            <div class="flow-header">
+              <Activity size={14} />
+              <span>Deployment Sequence</span>
+            </div>
+            
+            <div class="list-container">
+              <div class="table-header">
+                <div class="col-status">Status</div>
+                <div class="col-title">Provisioning Stage</div>
+                <div class="spacer"></div>
+                <div class="col-actions">Control</div>
+              </div>
+              
+              <div class="table-body">
+                {#each stages as stage}
+                  <div 
+                    class="stage-row" 
+                    class:active={activeStage === stage.id}
+                    class:complete={stage.status === 'complete'}
+                    class:error={stage.status === 'error'}
+                    title="{stage.desc}"
+                  >
+                    <div class="col-status">
+                      <div class="row-indicator" style="--indicator-color: {
+                        stage.status === 'complete' ? '#4caf50' : 
+                        stage.status === 'running' ? '#ffeb3b' : 
+                        stage.status === 'error' ? '#ff1744' : '#ff1744'
+                      }"></div>
+                    </div>
+    
+                    <div class="col-title">
+                      <span class="text-main">{stage.title}</span>
+                    </div>
+    
+                    <div class="spacer"></div>
+    
+                    <div class="col-actions">
+                      {#if stage.status === 'running'}
+                        <Loader2 size={12} class="spin" />
+                      {:else}
+                        <div class="row-actions">
+                          <button 
+                            class="row-action-btn" 
+                            onclick={() => runSingleStage(stage)}
+                            disabled={running}
+                          >
+                            <Play size={10} fill="currentColor" />
+                          </button>
+                          <div class="info-trigger" title="{stage.desc}">
+                            <Info size={12} />
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+    
+            <div class="system-health">
+              <div class="health-item">
+                <ShieldCheck size={14} style="color: var(--risk-safe);" />
+                <span>Security Policy Lock</span>
+                <div class="status-pill active">STABLE</div>
+              </div>
+            </div>
+          </div>
+        </div>
+    
+        <div class="log-viewer">
+          <div class="log-header">
+            <Terminal size={14} />
+            <span>Tactical Deployment Log</span>
+          </div>
+          <div class="log-content">
+            {#each logs as log}
+              <div class="log-line">{log}</div>
             {/each}
-          </div>
-        </div>
-
-        <div class="system-health">
-          <div class="health-item">
-            <ShieldCheck size={14} style="color: var(--risk-safe);" />
-            <span>Security Policy Lock</span>
-            <div class="status-pill active">STABLE</div>
+            <div bind:this={logEnd}></div>
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="log-viewer">
-      <div class="log-header">
-        <Terminal size={14} />
-        <span>Tactical Deployment Log</span>
-      </div>
-      <div class="log-content">
-        {#each logs as log}
-          <div class="log-line">{log}</div>
-        {/each}
-        <div bind:this={logEnd}></div>
-      </div>
-    </div>
+    </TacticalContainer>
   </div>
 </div>
 
@@ -350,7 +355,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--grad-main);
+    background: transparent;
   }
 
   /* NEW COMPACT STYLES */
@@ -360,8 +365,31 @@
     display: flex;
     align-items: center;
     background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: none;
+    position: relative;
     margin-bottom: 15px;
+  }
+
+  .provisioning-header::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.04) 50%, transparent);
+    z-index: 2;
+  }
+
+  .provisioning-header::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.4) 50%, transparent);
+    z-index: 1;
   }
 
   .title-group {
@@ -395,7 +423,30 @@
 
   .card-header.highlight {
     background: rgba(79, 185, 149, 0.05);
-    border-bottom: 1px solid rgba(79, 185, 149, 0.1);
+    border-bottom: none;
+    position: relative;
+  }
+
+  .card-header.highlight::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(79, 185, 149, 0.2) 50%, transparent);
+    z-index: 2;
+  }
+
+  .card-header.highlight::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.5) 50%, transparent);
+    z-index: 1;
   }
 
   .card-header.highlight h3 {
@@ -457,26 +508,53 @@
     color: #888;
   }
 
+  .panel-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    gap: 0;
+    background: #1a1f22;
+    border: 1px solid #0d1214;
+    border-radius: 8px;
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
   .toolbar {
-    height: 48px;
-    background: rgba(18, 24, 26, 0.8);
+    height: 38px;
+    background: rgba(18, 24, 26, 0.82);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: none;
     display: flex;
     align-items: center;
     padding: 0 16px;
     flex-shrink: 0;
+    z-index: 1000;
+    position: relative;
   }
 
-  .title-cluster {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .toolbar::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+    z-index: 2;
   }
 
-  :global(.glow-icon) {
-    color: var(--accent-color);
-    filter: drop-shadow(0 0 8px var(--accent-color));
+  .toolbar::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1;
   }
 
   h2 {
@@ -484,7 +562,7 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.75);
     margin: 0;
   }
 
@@ -493,9 +571,10 @@
   .main-layout {
     flex: 1;
     display: grid;
-    grid-template-columns: 360px 1fr; /* Slimmed from 400px to match high-density */
-    gap: 1px;
-    background: rgba(255, 255, 255, 0.05);
+    grid-template-columns: 360px 1fr;
+    gap: 16px;
+    padding: 16px;
+    background: transparent;
     overflow: hidden;
   }
 

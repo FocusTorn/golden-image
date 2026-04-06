@@ -33,8 +33,8 @@
 
 <style>
   .header {
-    height: 36px; /* Slightly taller for premium air */
-    background: #1C2427; /* Solid background to prevent gradient-based shadow bleed */
+    height: 36px;
+    background: #1e2327; /* Matched to sidebar top */
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
@@ -45,7 +45,6 @@
     cursor: default;
     width: 100%;
     flex-shrink: 0;
-    box-shadow: none !important;
   }
 
   .title {

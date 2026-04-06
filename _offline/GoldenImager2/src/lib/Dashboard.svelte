@@ -4,13 +4,16 @@
   import { 
     Monitor, Zap, Play, StopCircle, RefreshCw, Trash2, History, Mail, AlertCircle, UserCheck, ShieldAlert,
     Wifi, Key, HardDrive, ShieldCheck, Loader2, Database, ChevronDown, Shield, CheckCircle2, WifiOff,
-    XCircle, Globe, Search, Download, LayoutGrid, Cpu, MemoryStick, ArrowRight, Lock, Unlock, Save, LayoutDashboard
+    XCircle, Globe, Search, Download, LayoutGrid, Cpu, MemoryStick, ArrowRight, Lock, Unlock, Save, LayoutDashboard, Layers, Box
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import TweakSelect from "./TweakSelect.svelte";
   import TacticalContainer from "./TacticalContainer.svelte";
   import { vhdStore, settings } from "./store";
   import { notificationStore } from "./notifications";
+  import { OrchestratorEngine } from "./orchestrator-engine.svelte";
+
+  const engine = new OrchestratorEngine();
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
@@ -307,7 +310,7 @@
   </div>
 
   <div style="display: contents;">
-    <TacticalContainer padding="0">
+    <TacticalContainer padding="12px 16px">
       <div class="dashboard-grid">
         <!-- FULL WIDTH TOP CARD: ENVIRONMENT OVERVIEW -->
     <div class="overview-header-card" style="grid-column: 2 / span 2; grid-row: 1;">
@@ -452,57 +455,65 @@
           <span class="header-icon">
             <Zap size={16} strokeWidth={3.5} />
           </span>
-          <h3>OPERATIONAL QUICK-ACTIONS</h3>
+          <h3>
+            {#if $settings.environmentTarget === 'VHD & VM'}
+              PROVISIONING TOOLSET
+            {:else}
+              MASTERING TOOLSET
+            {/if}
+          </h3>
         </div>
         
         <div class="card-body">
-          <div class="action-item tweak-row">
-            <span class="tweak-name">Clear All Pinned Start Apps</span>
-            <div class="spacer"></div>
-            <button 
-              class="zap-btn" 
-              class:executing={executingActions.has('ClearStart-Host')}
-              onclick={() => runAction('ClearStart')}
-            >
-              {#if executingActions.has('ClearStart-Host')}
-                <RefreshCw size={12} class="spin" />
-              {:else}
+          {#if $settings.environmentTarget === 'VHD & VM'}
+            <!-- PROVISIONING ACTIONS -->
+            <div class="action-item tweak-row">
+              <span class="tweak-name">Clear All Pinned Start Apps</span>
+              <div class="spacer"></div>
+              <button class="zap-btn" onclick={() => runAction('ClearStart')}>
                 <Trash2 size={11} strokeWidth={2.5} />
-              {/if}
-            </button>
-          </div>
-
-          <div class="action-item tweak-row">
-            <span class="tweak-name">Create System Restore Point</span>
-            <div class="spacer"></div>
-            <button 
-              class="zap-btn" 
-              class:executing={executingActions.has('CreateRestorePoint-Host')}
-              onclick={() => runAction('CreateRestorePoint')}
-            >
-              {#if executingActions.has('CreateRestorePoint-Host')}
-                <RefreshCw size={12} class="spin" />
-              {:else}
+              </button>
+            </div>
+            <div class="action-item tweak-row">
+              <span class="tweak-name">Create System Restore Point</span>
+              <div class="spacer"></div>
+              <button class="zap-btn" onclick={() => runAction('CreateRestorePoint')}>
                 <History size={11} strokeWidth={2.5} />
-              {/if}
-            </button>
-          </div>
-
-          <div class="action-item tweak-row restricted" title="Ghost Mode (Pending Stage 4 Engine)">
-            <span class="tweak-name">Scrub Communication Apps</span>
-            <div class="spacer"></div>
-            <button class="zap-btn" disabled>
-                <Mail size={11} strokeWidth={2.5} />
-            </button>
-          </div>
-
-          <div class="action-item tweak-row restricted" title="Ghost Mode (Awaiting OEM Registry Map)">
-            <span class="tweak-name">Remove HP OEM Bloat</span>
-            <div class="spacer"></div>
-            <button class="zap-btn" disabled>
-                <Shield size={11} strokeWidth={2.5} />
-            </button>
-          </div>
+              </button>
+            </div>
+          {:else if $settings.environmentTarget === 'Local Image'}
+            <!-- MASTERING ACTIONS -->
+            <div class="action-item tweak-row">
+              <span class="tweak-name">Scrub Mount Points (Cleanup)</span>
+              <div class="spacer"></div>
+              <button class="zap-btn" onclick={() => engine.handleCleanup()}>
+                <Trash2 size={11} strokeWidth={2.5} />
+              </button>
+            </div>
+            <div class="action-item tweak-row">
+              <span class="tweak-name">Compact WIM Image (LZX)</span>
+              <div class="spacer"></div>
+              <button class="zap-btn" onclick={() => engine.handleCompaction()}>
+                <Cpu size={11} strokeWidth={2.5} />
+              </button>
+            </div>
+            <div class="action-item tweak-row">
+              <span class="tweak-name">Master Production ISO</span>
+              <div class="spacer"></div>
+              <button class="zap-btn active-accent" onclick={() => engine.handleMastering()}>
+                <Layers size={11} strokeWidth={2.5} />
+              </button>
+            </div>
+          {:else}
+            <!-- LOCAL TUNING -->
+            <div class="action-item tweak-row">
+              <span class="tweak-name">Local System Audit</span>
+              <div class="spacer"></div>
+              <button class="zap-btn" onclick={() => loadStats()}>
+                <RefreshCw size={11} strokeWidth={2.5} />
+              </button>
+            </div>
+          {/if}
         </div>
       </div>
     </div>
@@ -550,7 +561,6 @@
                   </button>
                 </div>
               </div>
-  
               <div class="tweak-row" title="Windows Remote Management. Primary service for PowerShell remoting.">
                 <span class="tweak-name">WinRM Management Stack</span>
                 <div class="spacer"></div>
@@ -576,113 +586,9 @@
                   </button>
                 </div>
               </div>
-  
-              <div class="tweak-row" title="State of the built-in 'Administrator' account. Required for initial logic injection.">
-                <span class="tweak-name">Local Admin Account State</span>
-                <div class="spacer"></div>
-                <div class="target-toggle-group">
-                  <button 
-                    class="target-btn" 
-                    class:active={hostStats?.Connection?.AdminEnabled}
-                    class:inactive={!hostStats?.Connection?.AdminEnabled}
-                    class:executing={executingActions.has('AdminAccount-Host')}
-                    onclick={() => runAction('AdminAccount', null, 'AdminEnabled')}
-                  >
-                    {#if executingActions.has('AdminAccount-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                  </button>
-                  <button 
-                    class="target-btn" 
-                    class:active={vmStats?.Connection?.AdminEnabled}
-                    class:inactive={!vmStats?.Connection?.AdminEnabled}
-                    class:executing={executingActions.has('AdminAccount-VM')}
-                    disabled={!$vhdStore.remoteActive}
-                    onclick={() => runAction('AdminAccount', $vhdStore.vmName, 'AdminEnabled')}
-                  >
-                    {#if executingActions.has('AdminAccount-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                  </button>
-                </div>
-              </div>
-  
-              <div class="tweak-row" title="CNG Key Isolation. Critical for modern LSA security and encrypted communication.">
-                 <span class="tweak-name">CNG Key Isolation</span>
-                 <div class="spacer"></div>
-                 <div class="target-toggle-group">
-                  <button 
-                    class="target-btn" 
-                    class:active={hostStats?.Connection?.KeyIso}
-                    class:inactive={!hostStats?.Connection?.KeyIso}
-                    class:executing={executingActions.has('KeyIso-Host')}
-                    onclick={() => runAction('KeyIso', null)}
-                  >
-                    {#if executingActions.has('KeyIso-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                  </button>
-                  <button 
-                    class="target-btn" 
-                    class:active={vmStats?.Connection?.KeyIso}
-                    class:inactive={!vmStats?.Connection?.KeyIso}
-                    class:executing={executingActions.has('KeyIso-VM')}
-                    disabled={!$vhdStore.remoteActive}
-                    onclick={() => runAction('KeyIso', $vhdStore.vmName)}
-                  >
-                    {#if executingActions.has('KeyIso-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                  </button>
-                </div>
-               </div>
-  
-               <div class="tweak-row" title="Enables the Terminal Services listener for full GUI remote management.">
-                 <span class="tweak-name">Remote Desktop (RDP)</span>
-                 <div class="spacer"></div>
-                 <div class="target-toggle-group">
-                  <button 
-                    class="target-btn" 
-                    class:active={hostStats?.Connection?.Rdp}
-                    class:inactive={!hostStats?.Connection?.Rdp}
-                    class:executing={executingActions.has('RDP-Host')}
-                    onclick={() => runAction('RDP', null)}
-                  >
-                    {#if executingActions.has('RDP-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                  </button>
-                  <button 
-                    class="target-btn" 
-                    class:active={vmStats?.Connection?.Rdp}
-                    class:inactive={!vmStats?.Connection?.Rdp}
-                    class:executing={executingActions.has('RDP-VM')}
-                    disabled={!$vhdStore.remoteActive}
-                    onclick={() => runAction('RDP', $vhdStore.vmName)}
-                  >
-                    {#if executingActions.has('RDP-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                  </button>
-                </div>
-               </div>
-  
-               <div class="tweak-row" title="Enables Function Discovery. Allows the VM to be accessible by name.">
-                 <span class="tweak-name">Network Discovery Stack</span>
-                 <div class="spacer"></div>
-                 <div class="target-toggle-group">
-                  <button 
-                    class="target-btn" 
-                    class:active={hostStats?.Connection?.NetDiscovery}
-                    class:inactive={!hostStats?.Connection?.NetDiscovery}
-                    class:executing={executingActions.has('NetDiscovery-Host')}
-                    onclick={() => runAction('NetDiscovery', null)}
-                  >
-                    {#if executingActions.has('NetDiscovery-Host')}<RefreshCw size={10} class="spin" />{:else}H{/if}
-                  </button>
-                  <button 
-                    class="target-btn" 
-                    class:active={vmStats?.Connection?.NetDiscovery}
-                    class:inactive={!vmStats?.Connection?.NetDiscovery}
-                    class:executing={executingActions.has('NetDiscovery-VM')}
-                    disabled={!$vhdStore.remoteActive}
-                    onclick={() => runAction('NetDiscovery', $vhdStore.vmName)}
-                  >
-                    {#if executingActions.has('NetDiscovery-VM')}<RefreshCw size={10} class="spin" />{:else}V{/if}
-                  </button>
-                </div>
-               </div>
             {/if}
           {:else}
-            <div class="disconnected-overlay" style="min-height: 180px;">
+            <div class="disconnected-overlay" style="min-height: 120px;">
               <WifiOff size={24} class="dim-icon" strokeWidth={1.5} />
               <span class="dim-text">POLICIES DECOUPLED</span>
               <span class="dim-text" style="font-size: 8px; opacity: 0.5;">NO ACTIVE VM SESSION</span>
@@ -692,158 +598,129 @@
       </div>
     </div>
 
-    <!-- COLUMN 2: VHD & VM HUB -->
+    <!-- COLUMN 2: HUB (Switches between VHD & VM Hub and Image Control) -->
     <div class="tweak-column" style="grid-column: 2; grid-row: 2;">
-      <div class="category-card">
-        <div class="card-header">
-          <span class="header-icon">
-            <Database size={16} strokeWidth={3.5} />
-          </span>
-          <h3>VHD & VM HUB</h3>
-        </div>
-        
-        <div class="card-body vhd-hub-body" style="flex: 1;">
-          {#if $settings.environmentTarget === 'VHD & VM'}
-            {#if statusLoading}
-              <div class="card-loading-center">
-                <RefreshCw size={42} class="spin dim-blue" />
-                <span class="loading-text">SYNCING INVENTORY...</span>
+      <div class="category-card" style="height: 100%;">
+        {#if $settings.environmentTarget === 'VHD & VM'}
+          <div class="card-header">
+            <span class="header-icon">
+              <Zap size={16} strokeWidth={2.5} />
+            </span>
+            <h3>VHD & VM HUB</h3>
+          </div>
+          <div class="card-body" style="flex: 1; gap: 8px;">
+            <div class="stat-row">
+              <div class="stat-label">ACTIVE VM NAME</div>
+              <div class="stat-value truncate" style="max-width: 140px;" title={$vhdStore.vmName || 'No Session'}>
+                {$vhdStore.vmName || 'No Session'}
               </div>
-            {:else}
-              <div class="profile-selector-group">
-                <div class="stat-label">IMAGE BUILD PROFILE</div>
-                <div class="custom-select-container">
-                  <BloomControl
-                    width="100%"
-                    active={isProfileOpen}
-                    onclick={toggleProfile}
-                    style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px; --bloom-rgb: {vmStatuses[$vhdStore.selectedProfile] === 'Running' ? '0, 230, 118' : (vmStatuses[$vhdStore.selectedProfile] === 'Missing' ? '255, 61, 96' : 'var(--accent-rgb)')};"
-                  >
-                    <span class="select-label truncate" style="color: {vmStatuses[$vhdStore.selectedProfile] === 'Running' ? 'var(--risk-safe)' : (vmStatuses[$vhdStore.selectedProfile] === 'Missing' ? 'var(--risk-unsafe)' : 'var(--accent-color)')}">
-                      {$vhdStore.selectedProfile || 'SELECT PROFILE...'}
-                    </span>
-                    <div class="chevron-wrapper" class:open={isProfileOpen}>
-                      <ChevronDown size={14} />
-                    </div>
-                  </BloomControl>
-  
-                  {#if isProfileOpen}
-                    <div class="dropdown-list">
-                      {#each vmProfiles as p}
-                        <button
-                          class="dropdown-item"
-                          class:active={$vhdStore.selectedProfile === p}
-                          class:missing={vmStatuses[p] === 'Missing'}
-                          disabled={vmStatuses[p] === 'Missing'}
-                          onclick={(e) => { e.stopPropagation(); selectProfile(p); }}
-                        >
-                          <span class="item-status">
-                            {#if vmStatuses[p] === 'Running'}
-                              <CheckCircle2 size={11} color="var(--risk-safe)" strokeWidth={3.5} opacity={1} />
-                            {:else if vmStatuses[p] === 'Missing'}
-                              <XCircle size={11} color="var(--risk-unsafe)" strokeWidth={3.5} opacity={1} />
-                            {:else}
-                              <WifiOff size={11} color="#ffca28" strokeWidth={3.5} opacity={1} />
-                            {/if}
-                          </span>
-                          {p}
-                        </button>
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-              </div>
-  
-              <div class="divider"></div>
-  
-              <!-- VM METRICS AREA -->
-              <div class="stats-hub" style="margin-bottom: 8px;">
-                 <div class="stat-row">
-                    <div class="stat-label">VM STATE</div>
-                    <div class="stat-value" style="color: {$vhdStore.vmName && vmStatuses[$vhdStore.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
-                      {$vhdStore.vmName ? vmStatuses[$vhdStore.selectedProfile] || 'Detecting...' : 'N/A'}
-                    </div>
-                 </div>
-                 <div class="stat-row">
-                    <div class="stat-label">REMOTE TARGET</div>
-                    <div class="stat-value truncate" title={$vhdStore.vmName || 'None'}>{$vhdStore.vmName || 'None'}</div>
-                 </div>
-              </div>
-  
-              <div class="divider"></div>
-  
-              <!-- REMOTE PROVISIONING MODE -->
-              <div class="stat-row remote-toggle-row">
-                <div class="stat-label">POWERSHELL DIRECT</div>
-                <button 
-                  class="bloom-select remote-btn" 
-                  class:active={$vhdStore.remoteActive && !loading}
-                  class:connecting={loading && $vhdStore.remoteActive}
-                  disabled={!$vhdStore.vmName || loading || vmStatuses[$vhdStore.selectedProfile] !== 'Running'}
-                  onclick={toggleRemote}
-                >
-                  {#if loading && $vhdStore.remoteActive}
-                    <Loader2 size={10} class="spin" />
-                  {:else}
-                    {$vhdStore.remoteActive ? 'ACTIVE' : 'OFF'}
-                  {/if}
-                </button>
-              </div>
-  
-              <div class="vhd-control-grid">
-                <button 
-                  class="vhd-action-btn host" 
-                  class:active={$vhdStore.vhdMounted} 
-                  disabled={$vhdStore.processing || !$vhdStore.vhdPath}
-                  onclick={() => handleVhdTransition('Host')}
-                >
-                  {#if $vhdStore.processing}
-                    <Loader2 size={12} class="spin" />
-                  {:else}
-                    <HardDrive size={14} />
-                    <span>{$vhdStore.vhdMounted ? 'RECONNECT HOST' : 'MOUNT HOST'}</span>
-                  {/if}
-                </button>
-  
-                <button 
-                  class="vhd-action-btn vm" 
-                  class:active={$vhdStore.vhdAttached} 
-                  disabled={$vhdStore.processing || !$vhdStore.vhdPath || !$vhdStore.vmName}
-                  onclick={() => handleVhdTransition('VM')}
-                >
-                  {#if $vhdStore.processing}
-                    <Loader2 size={12} class="spin" />
-                  {:else}
-                    <ShieldCheck size={14} />
-                    <span>{$vhdStore.vhdAttached ? 'RECONNECT VM' : 'ATTACH VM'}</span>
-                  {/if}
-                </button>
-  
-                <button 
-                  class="vhd-action-btn release full-width" 
-                  class:active={$vhdStore.vhdMounted || $vhdStore.vhdAttached}
-                  disabled={$vhdStore.processing || (!$vhdStore.vhdMounted && !$vhdStore.vhdAttached)}
-                  onclick={handleVhdRelease}
-                >
-                  <AlertCircle size={14} />
-                  <span>RELEASE HANDLES</span>
-                </button>
-              </div>
-            {/if}
-          {:else}
-            <div class="disconnected-overlay" style="min-height: 180px;">
-              <Database size={24} class="dim-icon" strokeWidth={1.5} />
-              <span class="dim-text">INVENTORY DECOUPLED</span>
-              <span class="dim-text" style="font-size: 8px; opacity: 0.5;">TARGET: {$settings.environmentTarget || 'Local Image'}</span>
+              <button class="zap-btn" onclick={() => invoke('select_vm')}>
+                <LayoutGrid size={11} strokeWidth={2.5} />
+              </button>
             </div>
-          {/if}
-        </div>
+            
+            <div class="divider"></div>
 
+            <div class="stat-row">
+              <div class="stat-label">MASTER VHD PATH</div>
+              <div class="stat-value truncate" style="max-width: 140px;" title={$vhdStore.vhdPath || 'Unmounted'}>
+                {$vhdStore.vhdPath.split('\\').pop() || 'Unmounted'}
+              </div>
+              <button class="zap-btn" onclick={() => $vhdStore.vhdPath ? null : invoke('select_vhd')}>
+                <HardDrive size={11} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="stat-row remote-toggle-row">
+              <div class="stat-label">REMOTE ORCHESTRATION</div>
+              <div class="status-pill" class:active={$vhdStore.remoteActive}>
+                {$vhdStore.remoteActive ? 'ESTABLISHED' : 'DETACHED'}
+              </div>
+            </div>
+
+            <div class="vhd-control-grid" style="margin-top: auto;">
+               <button class="vhd-action-btn host" class:active={!$vhdStore.remoteActive} onclick={() => invoke('vhd_host_mode')} disabled={$vhdStore.remoteActive}>
+                  <Shield size={14} />
+                  <span>HOST</span>
+               </button>
+               <button class="vhd-action-btn vm" class:active={$vhdStore.remoteActive} onclick={() => invoke('vhd_vm_mode')} disabled={!$vhdStore.remoteActive}>
+                  <Monitor size={14} />
+                  <span>VM</span>
+               </button>
+               <button class="vhd-action-btn release" onclick={() => invoke('vhd_release')}>
+                  <Trash2 size={14} />
+                  <span>RELEASE</span>
+               </button>
+            </div>
+          </div>
+        {:else}
+          <div class="card-header">
+            <span class="header-icon">
+              <HardDrive size={16} strokeWidth={2.5} />
+            </span>
+            <h3>IMAGE SOURCE & CONTROL</h3>
+          </div>
+          <div class="card-body" style="flex: 1; gap: 8px;">
+            <div class="stat-row">
+              <div class="stat-label">SOURCE IMAGE ARCHIVE</div>
+              <div class="stat-value truncate" style="max-width: 140px;" title={engine.config.iso_url || 'None'}>
+                {engine.config.iso_url.split('\\').pop() || 'None'}
+              </div>
+              <button class="zap-btn" onclick={() => engine.selectFile('iso_url', 'Select Source Image', ['iso', 'wim', 'esd'])}>
+                <LayoutGrid size={11} strokeWidth={2.5} />
+              </button>
+            </div>
+            
+            <div class="divider"></div>
+
+            <div class="stat-row">
+              <div class="stat-label">TARGET EDITION</div>
+              <select bind:value={engine.config.wim_index} class="orchestrator-select">
+                {#if engine.availableImages.length === 0}
+                  <option value={1}>Index 1 (Generic)</option>
+                {:else}
+                  {#each engine.availableImages as img}
+                    <option value={img.ImageIndex}>[{img.ImageIndex}] {img.ImageName}</option>
+                  {/each}
+                {/if}
+              </select>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="stat-row remote-toggle-row">
+              <div class="stat-label">ORCHESTRATION ENGINE</div>
+              <div class="status-pill" class:active={engine.status.isMounted}>
+                {engine.status.isMounted ? 'MOUNT ARMED' : 'READY'}
+              </div>
+            </div>
+
+            <div class="vhd-control-grid" style="margin-top: auto;">
+               {#if !engine.status.isMounted}
+                 <button class="vhd-action-btn host full-width" onclick={() => engine.handleMount()} disabled={engine.processing}>
+                    <Layers size={14} />
+                    <span>MOUNT OFFLINE IMAGE</span>
+                 </button>
+               {:else}
+                 <button class="vhd-action-btn vm" onclick={() => engine.handleUnmount(false)} disabled={engine.processing}>
+                    <Save size={14} />
+                    <span>COMMIT CHANGES</span>
+                 </button>
+                 <button class="vhd-action-btn release" onclick={() => engine.handleUnmount(true)} disabled={engine.processing}>
+                    <Trash2 size={14} />
+                    <span>DISCARD SESSION</span>
+                 </button>
+               {/if}
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
-      </div>
-    </TacticalContainer>
   </div>
+</TacticalContainer>
+</div>
 </div>
 
 <style>
@@ -851,22 +728,49 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 12px 12px 0 12px; /* Flush bottom with status bar */
-    gap: 8px; /* Standard panel gap */
+    gap: 0;
     overflow: hidden;
-    background: transparent;
+    background: #1a1f22;
+    border: 1px solid #0d1214;
+    border-radius: 8px;
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .toolbar {
     height: 38px;
     background: rgba(18, 24, 26, 0.82);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: none;
     display: flex;
     align-items: center;
-    padding: 0 4px; /* Reduced since parent has 12px padding */
+    padding: 0 16px;
     flex-shrink: 0;
     z-index: 1000;
+    position: relative;
+  }
+
+  .toolbar::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+    z-index: 2;
+  }
+
+  .toolbar::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1;
   }
 
   .title-cluster {
@@ -894,11 +798,9 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr); /* Responsive fluid columns */
     grid-template-rows: auto auto; 
-    padding: 8px 10px 16px 10px; 
-    grid-gap: 12px;
+    padding: 16px; 
+    grid-gap: 16px;
     width: 100%; 
-    max-width: 1103px; /* 3 * 353px + 2 * 12px gap + 2 * 10px padding */
-    margin: 0 auto; /* Keep centered for symmetrical side gaps */
     height: auto;
     align-items: start;
     justify-content: start;
@@ -906,23 +808,47 @@
 
   .category-card {
     background: #1a1f22; 
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid #0d1214;
     border-radius: 8px;
     box-shadow: 
       0 12px 40px rgba(0, 0, 0, 0.7),
-      inset 0 1px 1px rgba(255, 255, 255, 0.02); 
+      inset 0 1px 0 rgba(255, 255, 255, 0.08); 
     display: flex;
     flex-direction: column;
   }
 
   .card-header {
-    height: 28px;
+    height: 32px;
     display: flex;
     align-items: center;
     padding: 0 14px;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    background: #181E20; /* Requested base color */
+    background-image: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+    border-bottom: none;
+    position: relative;
     border-radius: 8px 8px 0 0;
+  }
+
+  .card-header::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.04) 50%, transparent);
+    z-index: 2;
+  }
+
+  .card-header::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.4) 50%, transparent);
+    z-index: 1;
   }
 
   .card-header h3 {
@@ -1031,8 +957,15 @@
   }
 
   .env-divider {
-    width: 1px;
-    background: rgba(255, 255, 255, 0.06);
+    width: 2px;
+    height: 60%;
+    align-self: center;
+    background: 
+      linear-gradient(to bottom, transparent, rgba(0,0,0,0.5) 50%, transparent),
+      linear-gradient(to bottom, transparent, rgba(255,255,255,0.05) 50%, transparent);
+    background-size: 1px 100%;
+    background-repeat: no-repeat;
+    background-position: left, right;
   }
 
   .target-toggle-group {
@@ -1396,8 +1329,12 @@
   }
 
   .env-divider {
-    width: 1px;
-    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.18), transparent);
+    width: 2px;
+    background: linear-gradient(to bottom, 
+      var(--divider-edge) 0%, 
+      var(--divider-core) 50%, 
+      var(--divider-edge) 100%
+    );
   }
 
   .disconnected-overlay {
@@ -1452,9 +1389,13 @@
   }
 
   .divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.05);
-    margin: 8px 0;
+    height: 2px;
+    background: linear-gradient(to right, 
+      var(--divider-edge) 0%, 
+      var(--divider-core) 50%, 
+      var(--divider-edge) 100%
+    );
+    margin: 12px 0;
   }
 
   .target-toggle-group {
@@ -1576,6 +1517,7 @@
     position: relative;
     display: flex;
     align-items: center;
+    padding-right: 12px; /* Increased right padding as requested */
   }
 
   .select-label {

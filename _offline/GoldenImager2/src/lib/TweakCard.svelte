@@ -116,14 +116,44 @@
 <style>
   .category-card {
     background: #1a1f22;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid #0d1214;
     border-radius: 8px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
-    overflow: visible;
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08); 
+    overflow: hidden;
   }
-  .card-header { height: 26px; display: flex; align-items: center; padding: 0 14px; }
-  .card-header h3 { font-size: 11px; font-weight: 800; color: #fff; letter-spacing: 0.18em; text-transform: uppercase; }
-  .header-icon { margin-right: 12px; color: var(--accent-color); display: flex; }
+
+  .card-header {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    background: #181E20; 
+    background-image: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+    border-bottom: 1px solid #080a0b; 
+    box-shadow: 
+      0 1px 0 rgba(255, 255, 255, 0.04),
+      inset 0 -4px 0 -3px #050708; 
+    border-radius: 8px 8px 0 0;
+  }
+
+  .card-header h3 {
+    font-size: 10px;
+    font-weight: 850;
+    color: #fff;
+    opacity: 0.85;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .header-icon {
+    margin-right: 12px;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+  }
   .card-body { padding: 4px 6px; display: flex; flex-direction: column; gap: 4px; overflow: visible; }
   .tweak-row { position: relative; display: flex; align-items: center; height: 24px; padding: 0 8px; padding-left: 10px; font-size: 11px; cursor: pointer; background: #242a2d; border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 5px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
   .tweak-row:hover { filter: brightness(1.2); z-index: 100; }

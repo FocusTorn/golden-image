@@ -159,7 +159,7 @@
   </div>
 
   <div bind:this={containerRef} style="display: contents;">
-    <TacticalContainer padding="0 6px">
+    <TacticalContainer padding="12px 16px">
       <div class="table-body" bind:this={listRef}>
         {#if engine.loading}
           <div class="state-view">
@@ -196,20 +196,51 @@
     height: 100%;
     overflow: hidden;
     position: relative;
+    background: #1a1f22;
+    border: 1px solid #0d1214;
+    border-radius: 8px;
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .table-header {
     display: flex;
     align-items: center;
     background: rgba(0, 0, 0, 0.4);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: none;
+    position: relative;
     height: 32px;
-    padding: 0 4px;
+    padding: 0 16px;
+    margin: 16px 16px 0 16px;
+    border-radius: 4px 4px 0 0;
     font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.4);
     letter-spacing: 0.05em;
+  }
+
+  .table-header::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 4%;
+    right: 4%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.04) 50%, transparent);
+    z-index: 2;
+  }
+
+  .table-header::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 4%;
+    right: 4%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.4) 50%, transparent);
+    z-index: 1;
   }
 
   .col-check { width: 40px; display: flex; justify-content: center; }
@@ -222,6 +253,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    padding: 0 16px 16px 16px;
   }
 
   .state-view {
