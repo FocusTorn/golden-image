@@ -1,0 +1,452 @@
+Loading svelte-check in workspace: p:\Projects\golden-image\_offline\GoldenImager2
+Getting Svelte diagnostics...
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\App.svelte[39m:139:14
+[31mError[39m: Type 'string' is not assignable to type 'never'. (ts)
+[36m  <div class="content-area">
+    <Header {[35mactiveTab[36m} />[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\AppRow.svelte[39m:65:76
+[31mError[39m: Object literal may only specify known properties, and '"title"' does not exist in type 'Properties<IconProps, { default: {}; }>'. (ts)
+[36m    <div class="origin-badges">
+      {#if app.IsCurated}<ShieldCheck size={10} class="badge-icon curated" [35mtitle[36m="Curated Policy" />{/if}
+      {#if app.IsProvisioned}<Terminal size={10} class="badge-icon system" title="Provisioned Package" />{/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\AppRow.svelte[39m:66:76
+[31mError[39m: Object literal may only specify known properties, and '"title"' does not exist in type 'Properties<IconProps, { default: {}; }>'. (ts)
+[36m      {#if app.IsCurated}<ShieldCheck size={10} class="badge-icon curated" title="Curated Policy" />{/if}
+      {#if app.IsProvisioned}<Terminal size={10} class="badge-icon system" [35mtitle[36m="Provisioned Package" />{/if}
+      {#if app.IsUser}<Settings size={10} class="badge-icon user" title="User Registered" />{/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\AppRow.svelte[39m:67:67
+[31mError[39m: Object literal may only specify known properties, and '"title"' does not exist in type 'Properties<IconProps, { default: {}; }>'. (ts)
+[36m      {#if app.IsProvisioned}<Terminal size={10} class="badge-icon system" title="Provisioned Package" />{/if}
+      {#if app.IsUser}<Settings size={10} class="badge-icon user" [35mtitle[36m="User Registered" />{/if}
+    </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:90:3
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m{#if showSaveModal}
+  [35m<div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>
+  </div>[36m
+{/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:90:3
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m{#if showSaveModal}
+  [35m<div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>
+  </div>[36m
+{/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:91:5
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m  <div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    [35m<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>[36m
+  </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:91:5
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m  <div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    [35m<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>[36m
+  </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:239:3
+[33mWarn[39m: Unused CSS selector ".dim"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.dim[36m { opacity: 0.3; }[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:17:12
+[31mError[39m: Module '"./apps.svelte"' has no exported member 'AppsEngine'. Did you mean to use 'import AppsEngine from "./apps.svelte"' instead? (ts)
+[36m  import AppRow from "./AppRow.svelte";
+  import { [35mAppsEngine[36m } from "./apps.svelte";
+  import type { AppInfo } from "./types";[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:17:30
+[31mError[39m: File name 'p:/Projects/golden-image/_offline/GoldenImager2/src/lib/apps.svelte' differs from already included file name 'p:/Projects/golden-image/_offline/GoldenImager2/src/lib/Apps.svelte' only in casing.
+  The file is in the program because:
+    Imported via './lib/Apps.svelte' from file 'p:/Projects/golden-image/_offline/GoldenImager2/src/App.svelte'
+    Imported via "./apps.svelte" from file 'p:/Projects/golden-image/_offline/GoldenImager2/src/lib/Apps.svelte'
+    Root file specified for compilation (ts)
+[36m  import AppRow from "./AppRow.svelte";
+  import { AppsEngine } from [35m"./apps.svelte"[36m;
+  import type { AppInfo } from "./types";[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:887:3
+[33mWarn[39m: Unused CSS selector ".glow-icon"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.glow-icon[36m {
+    color: var(--accent-color);[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1192:3
+[33mWarn[39m: Unused CSS selector ".spin"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  
+  [35m.spin[36m { 
+    animation: spin 1s linear infinite;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:277:60
+[31mError[39m: Argument of type 'KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement; }' is not assignable to parameter of type 'MouseEvent'.
+  Type 'KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement; }' is missing the following properties from type 'MouseEvent': button, buttons, clientX, clientY, and 14 more. (ts)
+[36m      onclick={(e) => e.stopPropagation()} 
+      onkeydown={(e) => e.key === 'Enter' && toggleEnvMode([35me[36m)}
+      role="button"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:720:144
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    on:click={toggleProfile}
+                    style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px; --bloom-rgb: {vmStatuses[[35mvhdState[36m.selectedProfile] === 'Running' ? '0, 230, 118' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? '255, 61, 96' : 'var(--accent-rgb)')};"
+                  >[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:720:214
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    on:click={toggleProfile}
+                    style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px; --bloom-rgb: {vmStatuses[vhdState.selectedProfile] === 'Running' ? '0, 230, 118' : (vmStatuses[[35mvhdState[36m.selectedProfile] === 'Missing' ? '255, 61, 96' : 'var(--accent-rgb)')};"
+                  >[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:719:24
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m                    active={isProfileOpen}
+                    on:[35mclick[36m={toggleProfile}
+                    style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px; --bloom-rgb: {vmStatuses[vhdState.selectedProfile] === 'Running' ? '0, 230, 118' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? '255, 61, 96' : 'var(--accent-rgb)')};"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:722:83
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  >
+                    <span class="select-label truncate" style="color: {vmStatuses[[35mvhdState[36m.selectedProfile] === 'Running' ? 'var(--risk-safe)' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? 'var(--risk-unsafe)' : 'var(--accent-color)')}">
+                      {vhdState.selectedProfile || 'SELECT PROFILE...'}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:722:158
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  >
+                    <span class="select-label truncate" style="color: {vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : (vmStatuses[[35mvhdState[36m.selectedProfile] === 'Missing' ? 'var(--risk-unsafe)' : 'var(--accent-color)')}">
+                      {vhdState.selectedProfile || 'SELECT PROFILE...'}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:723:24
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <span class="select-label truncate" style="color: {vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? 'var(--risk-unsafe)' : 'var(--accent-color)')}">
+                      {[35mvhdState[36m.selectedProfile || 'SELECT PROFILE...'}
+                    </span>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:738:36
+[31mError[39m: Cannot find name 'stopPropagation'. (ts)
+[36m                          disabled={vmStatuses[p] === 'Missing'}
+                          onclick={[35mstopPropagation[36m(() => selectProfile(p))}
+                        >[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:735:41
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                          class="dropdown-item"
+                          class:active={[35mvhdState[36m.selectedProfile === p}
+                          class:missing={vmStatuses[p] === 'Missing'}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:763:60
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <div class="stat-label">VM STATE</div>
+                    <div class="stat-value" style="color: {[35mvhdState[36m.vmName && vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
+                      {vhdState.vmName ? vmStatuses[vhdState.selectedProfile] || 'Detecting...' : 'N/A'}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:763:90
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <div class="stat-label">VM STATE</div>
+                    <div class="stat-value" style="color: {vhdState.vmName && vmStatuses[[35mvhdState[36m.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
+                      {vhdState.vmName ? vmStatuses[vhdState.selectedProfile] || 'Detecting...' : 'N/A'}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:764:24
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <div class="stat-value" style="color: {vhdState.vmName && vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
+                      {[35mvhdState[36m.vmName ? vmStatuses[vhdState.selectedProfile] || 'Detecting...' : 'N/A'}
+                    </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:764:53
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <div class="stat-value" style="color: {vhdState.vmName && vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
+                      {vhdState.vmName ? vmStatuses[[35mvhdState[36m.selectedProfile] || 'Detecting...' : 'N/A'}
+                    </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:769:61
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <div class="stat-label">REMOTE TARGET</div>
+                    <div class="stat-value truncate" title={[35mvhdState[36m.vmName || 'None'}>{vhdState.vmName || 'None'}</div>
+                 </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:769:89
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <div class="stat-label">REMOTE TARGET</div>
+                    <div class="stat-value truncate" title={vhdState.vmName || 'None'}>{[35mvhdState[36m.vmName || 'None'}</div>
+                 </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:782:30
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:connecting={loading && vhdState.remoteActive}
+                  disabled={![35mvhdState[36m.vmName || loading || vmStatuses[vhdState.selectedProfile] !== 'Running'}
+                  onclick={toggleRemote}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:782:71
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:connecting={loading && vhdState.remoteActive}
+                  disabled={!vhdState.vmName || loading || vmStatuses[[35mvhdState[36m.selectedProfile] !== 'Running'}
+                  onclick={toggleRemote}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:780:33
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class="bloom-select remote-btn" 
+                  class:active={[35mvhdState[36m.remoteActive && !loading}
+                  class:connecting={loading && vhdState.remoteActive}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:781:48
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.remoteActive && !loading}
+                  class:connecting={loading && [35mvhdState[36m.remoteActive}
+                  disabled={!vhdState.vmName || loading || vmStatuses[vhdState.selectedProfile] !== 'Running'}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:785:35
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                >
+                  {#if loading && [35mvhdState[36m.remoteActive}
+                    <Loader2 size={10} class="spin" />[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:788:22
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  {:else}
+                    {[35mvhdState[36m.remoteActive ? 'ACTIVE' : 'OFF'}
+                  {/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:797:29
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.vhdMounted} 
+                  disabled={[35mvhdState[36m.processing || !vhdState.vhdPath}
+                  onclick={() => handleVhdTransition('Host')}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:797:53
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.vhdMounted} 
+                  disabled={vhdState.processing || ![35mvhdState[36m.vhdPath}
+                  onclick={() => handleVhdTransition('Host')}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:796:33
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class="vhd-action-btn host" 
+                  class:active={[35mvhdState[36m.vhdMounted} 
+                  disabled={vhdState.processing || !vhdState.vhdPath}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:800:24
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                >
+                  {#if [35mvhdState[36m.processing}
+                    <Loader2 size={12} class="spin" />[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:804:28
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <HardDrive size={14} />
+                    <span>{[35mvhdState[36m.vhdMounted ? 'RECONNECT HOST' : 'MOUNT HOST'}</span>
+                  {/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:811:29
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.vhdAttached} 
+                  disabled={[35mvhdState[36m.processing || !vhdState.vhdPath || !vhdState.vmName}
+                  onclick={() => handleVhdTransition('VM')}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:811:53
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.vhdAttached} 
+                  disabled={vhdState.processing || ![35mvhdState[36m.vhdPath || !vhdState.vmName}
+                  onclick={() => handleVhdTransition('VM')}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:811:74
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.vhdAttached} 
+                  disabled={vhdState.processing || !vhdState.vhdPath || ![35mvhdState[36m.vmName}
+                  onclick={() => handleVhdTransition('VM')}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:810:33
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class="vhd-action-btn vm" 
+                  class:active={[35mvhdState[36m.vhdAttached} 
+                  disabled={vhdState.processing || !vhdState.vhdPath || !vhdState.vmName}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:814:24
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                >
+                  {#if [35mvhdState[36m.processing}
+                    <Loader2 size={12} class="spin" />[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:818:28
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                    <ShieldCheck size={14} />
+                    <span>{[35mvhdState[36m.vhdAttached ? 'RECONNECT VM' : 'ATTACH VM'}</span>
+                  {/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:825:29
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.vhdMounted || vhdState.vhdAttached}
+                  disabled={[35mvhdState[36m.processing || (!vhdState.vhdMounted && !vhdState.vhdAttached)}
+                  onclick={handleVhdRelease}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:825:54
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.vhdMounted || vhdState.vhdAttached}
+                  disabled={vhdState.processing || (![35mvhdState[36m.vhdMounted && !vhdState.vhdAttached)}
+                  onclick={handleVhdRelease}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:825:78
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class:active={vhdState.vhdMounted || vhdState.vhdAttached}
+                  disabled={vhdState.processing || (!vhdState.vhdMounted && ![35mvhdState[36m.vhdAttached)}
+                  onclick={handleVhdRelease}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:824:33
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class="vhd-action-btn release full-width" 
+                  class:active={[35mvhdState[36m.vhdMounted || vhdState.vhdAttached}
+                  disabled={vhdState.processing || (!vhdState.vhdMounted && !vhdState.vhdAttached)}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:824:56
+[31mError[39m: Cannot find name 'vhdState'. (ts)
+[36m                  class="vhd-action-btn release full-width" 
+                  class:active={vhdState.vhdMounted || [35mvhdState[36m.vhdAttached}
+                  disabled={vhdState.processing || (!vhdState.vhdMounted && !vhdState.vhdAttached)}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Provisioning.svelte[39m:198:22
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m    <div class="spacer"></div>
+    <BloomControl on:[35mclick[36m={startDeployment} disabled={running}>
+      {#if running}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:108:14
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m          active={isPolicyOpen}
+          on:[35mclick[36m={togglePolicy}
+          style="padding: 0 8px; justify-content: flex-start !important; border-radius: 4px !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:142:16
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m            active={isProfileOpen}
+            on:[35mclick[36m={toggleProfile}
+            style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative; justify-content: flex-start !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:186:14
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m          width="34px"
+          on:[35mclick[36m={() => onloadProfile?.()}
+          style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:195:14
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m          width="34px"
+          on:[35mclick[36m={() => onsaveAsProfile?.()}
+          style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:204:14
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m          width="34px"
+          on:[35mclick[36m={() => onsaveProfile?.()}
+          style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:235:16
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m            width="34px"
+            on:[35mclick[36m={() => onrefresh?.()}
+            title="Refresh List"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Tweaks.svelte[39m:6:12
+[31mError[39m: Module '"./tweaks.svelte"' has no exported member 'TweaksEngine'. Did you mean to use 'import TweaksEngine from "./tweaks.svelte"' instead? (ts)
+[36m  import TweakCard from "./TweakCard.svelte";
+  import { [35mTweaksEngine[36m } from "./tweaks.svelte";[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Tweaks.svelte[39m:6:32
+[31mError[39m: File name 'p:/Projects/golden-image/_offline/GoldenImager2/src/lib/tweaks.svelte' differs from already included file name 'p:/Projects/golden-image/_offline/GoldenImager2/src/lib/Tweaks.svelte' only in casing.
+  The file is in the program because:
+    Imported via './lib/Tweaks.svelte' from file 'p:/Projects/golden-image/_offline/GoldenImager2/src/App.svelte'
+    Imported via "./tweaks.svelte" from file 'p:/Projects/golden-image/_offline/GoldenImager2/src/lib/Tweaks.svelte'
+    Root file specified for compilation (ts)
+[36m  import TweakCard from "./TweakCard.svelte";
+  import { TweaksEngine } from [35m"./tweaks.svelte"[36m;[39m
+
+====================================
+[31msvelte-check found 52 errors and 7 warnings in 7 files
+[39m

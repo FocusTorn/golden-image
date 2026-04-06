@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { ChevronDown } from 'lucide-svelte';
   import BloomControl from './BloomControl.svelte';
 
@@ -11,6 +11,7 @@
     width?: string;
     height?: string;
     noDiff?: boolean;
+    onchange?: (value: string) => void;
   }
 
   let {
@@ -20,10 +21,10 @@
     options = [],
     width = "auto",
     height = "22px",
-    noDiff = false
+    noDiff = false,
+    onchange
   }: Props = $props();
 
-  const dispatch = createEventDispatcher();
   let isOpen = $state(false);
 
   function toggle() {
@@ -33,7 +34,7 @@
   function selectOption(id: string) {
     value = id;
     isOpen = false;
-    dispatch('change', { value: id });
+    onchange?.(id);
   }
 
   function handleOutsideClick(e: MouseEvent) {
@@ -59,7 +60,7 @@
     {width}
     {height}
     active={isOpen}
-    on:click={toggle}
+    onclick={toggle}
     style="padding: 0 8px; justify-content: flex-start !important; border-radius: 4px !important;"
   >
     <span 
@@ -95,88 +96,16 @@
     position: relative;
     width: fit-content;
     min-width: 100px;
-    z-index: 50; /* Ensure this stacks above adjacent rows */
+    z-index: 50;
   }
-
-  .select-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: #fff;
-    opacity: 0.9;
-    flex: 1;
-    text-align: left;
-    transition: color 0.2s;
-  }
-
-  .staged-diff {
-    color: var(--risk-unsafe);
-    text-shadow: 0 0 8px rgba(var(--risk-unsafe-rgb), 0.3);
-  }
-
-  .chevron-wrapper {
-    margin-left: 4px;
-    opacity: 0.4;
-    transition: transform 0.2s;
-    display: flex;
-    align-items: center;
-  }
-
-  .chevron-wrapper.open {
-    transform: rotate(180deg);
-  }
-
-  .dropdown-list {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    min-width: 140px;
-    background: #1a1f21;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    z-index: 5000;
-    display: flex;
-    flex-direction: column;
-    padding: 4px;
-    overflow: hidden;
-  }
-
-  .dropdown-item {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
-    padding: 6px 12px;
-    text-align: left;
-    font-size: 10px;
-    border-radius: 2px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .dropdown-item.active {
-    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.05));
-    border: 1px solid rgba(var(--accent-rgb), 0.4) !important;
-    color: #fff;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-  }
-
-  .dropdown-item.applied {
-    color: #00bcd4; /* Applied Bloom Color */
-    font-weight: 800;
-  }
-
-  .dropdown-item:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-  }
-
-  .truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .select-label { font-size: 10px; font-weight: 700; color: #fff; opacity: 0.9; flex: 1; text-align: left; transition: color 0.2s; }
+  .staged-diff { color: var(--risk-unsafe); }
+  .chevron-wrapper { margin-left: 4px; opacity: 0.4; transition: transform 0.2s; display: flex; align-items: center; }
+  .chevron-wrapper.open { transform: rotate(180deg); }
+  .dropdown-list { position: absolute; top: calc(100% + 4px); right: 0; min-width: 140px; background: #1a1f21; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); z-index: 5000; display: flex; flex-direction: column; padding: 4px; overflow: hidden; }
+  .dropdown-item { background: transparent; border: none; color: rgba(255, 255, 255, 0.6); padding: 6px 12px; text-align: left; font-size: 10px; border-radius: 2px; cursor: pointer; white-space: nowrap; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+  .dropdown-item.active { background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.05)); border: 1px solid rgba(var(--accent-rgb), 0.4) !important; color: #fff; }
+  .dropdown-item.applied { color: #00bcd4; font-weight: 800; }
+  .dropdown-item:hover:not(.active) { background: rgba(255, 255, 255, 0.05); color: #fff; }
+  .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

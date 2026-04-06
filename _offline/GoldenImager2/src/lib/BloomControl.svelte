@@ -3,7 +3,7 @@
 
 
   // Forwarding Click
-  import { createEventDispatcher } from 'svelte';
+
   interface Props {
     active?: boolean;
     width?: string;
@@ -14,6 +14,7 @@
     small?: boolean;
     class?: string;
     children?: import('svelte').Snippet;
+    onclick?: (e: MouseEvent) => void;
   }
 
   let {
@@ -25,12 +26,13 @@
     disabled = false,
     small = false,
     class: className = "",
-    children
+    children,
+    onclick
   }: Props = $props();
-  const dispatch = createEventDispatcher();
+
 
   function handleClick(e: MouseEvent) {
-    if (!disabled) dispatch('click', e);
+    if (!disabled) onclick?.(e);
   }
   let finalHeight = $derived(small ? "22px" : height);
 </script>

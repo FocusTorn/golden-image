@@ -1,25 +1,9 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import { 
-    ChevronDown, 
-    Download, 
-    Plus, 
-    Save, 
-    Search, 
-    RefreshCw, 
-    Trash2 
+    ChevronDown, Download, Plus, Save, Search, RefreshCw, Trash2 
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
 
-  const dispatch = createEventDispatcher();
-
-  // Props for Visibility
-
-  // Labels & Data
-
-  // State (Binding recommended)
-
-  // Calculation Widths (Replicated from Apps.svelte)
   interface Props {
     showPolicy?: boolean;
     showProfile?: boolean;
@@ -30,15 +14,24 @@
     profileLabel?: string;
     searchPlaceholder?: string;
     applyLabel?: string;
-    policyOptions?: any;
+    policyOptions?: any[];
     selectedPolicy?: string;
-    profiles?: any;
+    profiles?: any[];
     selectedProfile?: string;
     searchTerm?: string;
     selectionCount?: number;
     loading?: boolean;
     policyCalcWidth?: string;
     profileCalcWidth?: string;
+    // Callback Props
+    onpolicyChange?: (id: string) => void;
+    onprofileChange?: (p: string) => void;
+    ondeleteProfile?: (p: string) => void;
+    onloadProfile?: () => void;
+    onsaveAsProfile?: () => void;
+    onsaveProfile?: () => void;
+    onrefresh?: () => void;
+    onapply?: () => void;
   }
 
   let {
@@ -59,35 +52,42 @@
     selectionCount = 0,
     loading = false,
     policyCalcWidth = "140px",
-    profileCalcWidth = "160px"
+    profileCalcWidth = "160px",
+    onpolicyChange,
+    onprofileChange,
+    ondeleteProfile,
+    onloadProfile,
+    onsaveAsProfile,
+    onsaveProfile,
+    onrefresh,
+    onapply
   }: Props = $props();
 
-  // Dropdown States
   let isPolicyOpen = $state(false);
   let isProfileOpen = $state(false);
 
-  function togglePolicy(e) {
-    if (e && e.detail && e.detail.stopPropagation) e.detail.stopPropagation();
+  function togglePolicy(e: any) {
+    if (e && e.stopPropagation) e.stopPropagation();
     isPolicyOpen = !isPolicyOpen;
     isProfileOpen = false;
   }
 
-  function toggleProfile(e) {
-    if (e && e.detail && e.detail.stopPropagation) e.detail.stopPropagation();
+  function toggleProfile(e: any) {
+    if (e && e.stopPropagation) e.stopPropagation();
     isProfileOpen = !isProfileOpen;
     isPolicyOpen = false;
   }
 
-  function selectPolicy(id) {
+  function selectPolicy(id: string) {
     selectedPolicy = id;
     isPolicyOpen = false;
-    dispatch('policyChange', id);
+    onpolicyChange?.(id);
   }
 
-  function selectProfile(p) {
+  function selectProfile(p: string) {
     selectedProfile = p;
     isProfileOpen = false;
-    dispatch('profileChange', p);
+    onprofileChange?.(p);
   }
 
   function closeAll() {
@@ -105,7 +105,7 @@
         <BloomControl
           width={policyCalcWidth}
           active={isPolicyOpen}
-          on:click={togglePolicy}
+          onclick={togglePolicy}
           style="padding: 0 8px; justify-content: flex-start !important; border-radius: 4px !important;"
         >
           <span class="select-label truncate">
@@ -139,7 +139,7 @@
           <BloomControl
             width={profileCalcWidth}
             active={isProfileOpen}
-            on:click={toggleProfile}
+            onclick={toggleProfile}
             style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative; justify-content: flex-start !important;"
           >
             <span class="select-label truncate">
@@ -170,7 +170,7 @@
                   </button>
                   <button
                     class="delete-profile-btn"
-                    onclick={(e) => { e.stopPropagation(); dispatch('deleteProfile', p); }}
+                    onclick={(e) => { e.stopPropagation(); ondeleteProfile?.(p); }}
                     title="Delete Profile"
                   >
                     <Trash2 size={10} />
@@ -183,7 +183,7 @@
 
         <BloomControl
           width="34px"
-          on:click={() => dispatch('loadProfile')}
+          onclick={() => onloadProfile?.()}
           style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
           title="Load Profile Selection"
         >
@@ -192,7 +192,7 @@
 
         <BloomControl
           width="34px"
-          on:click={() => dispatch('saveAsProfile')}
+          onclick={() => onsaveAsProfile?.()}
           style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
           title="Save As New Profile"
         >
@@ -201,7 +201,7 @@
 
         <BloomControl
           width="34px"
-          on:click={() => dispatch('saveProfile')}
+          onclick={() => onsaveProfile?.()}
           style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"
           title="Save Current Profile"
         >
@@ -232,7 +232,7 @@
         {#if showRefresh}
           <BloomControl
             width="34px"
-            on:click={() => dispatch('refresh')}
+            onclick={() => onrefresh?.()}
             title="Refresh List"
             style="border-radius: {showSearch ? '0 4px 4px 0' : '4px'} !important; margin-left: {showSearch ? '-1px' : '0'} !important; flex-shrink: 0 !important;"
             class="refresh-btn"
@@ -246,7 +246,7 @@
 
   {#if showApply}
     <div class="tool-group right">
-      <button class="action-btn" class:active={selectionCount > 0} onclick={() => dispatch('apply')}>
+      <button class="action-btn" class:active={selectionCount > 0} onclick={() => onapply?.()}>
         {applyLabel} ({selectionCount})
       </button>
     </div>

@@ -46,7 +46,7 @@
   let logs: string[] = $state([]);
   let isBuilding = false;
   let processing = $state(false);
-  let logEnd: HTMLElement = $state();
+  let logEnd = $state<HTMLElement | null>(null);
 
   async function handleQueryImages() {
     if (!config.iso_url) return;
@@ -194,9 +194,9 @@
   onMount(() => {
     const unlistenFn = listen('orchestrator-log', (event) => {
       logs = [...logs, event.payload as string];
-      if (logEnd) {
-        setTimeout(() => logEnd.scrollIntoView({ behavior: 'smooth' }), 50);
-      }
+      setTimeout(() => {
+        logEnd?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     });
 
     return () => {

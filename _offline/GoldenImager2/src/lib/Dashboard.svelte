@@ -1,43 +1,10 @@
 <script lang="ts">
-  import { run, createBubbler, stopPropagation } from 'svelte/legacy';
-
-  const bubble = createBubbler();
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { 
-    Monitor,
-    Zap,
-    Play,
-    StopCircle,
-    RefreshCw,
-    Trash2,
-    History,
-    Mail,
-    AlertCircle,
-    UserCheck,
-    ShieldAlert,
-    Wifi,
-    Key,
-    HardDrive,
-    ShieldCheck,
-    Loader2,
-    Database,
-    ChevronDown,
-    Shield,
-    CheckCircle2,
-    WifiOff,
-    XCircle,
-    Globe,
-    Search,
-    Download,
-    LayoutGrid,
-    Cpu,
-    MemoryStick,
-    ArrowRight,
-    Lock,
-    Unlock,
-    Save,
-    LayoutDashboard
+    Monitor, Zap, Play, StopCircle, RefreshCw, Trash2, History, Mail, AlertCircle, UserCheck, ShieldAlert,
+    Wifi, Key, HardDrive, ShieldCheck, Loader2, Database, ChevronDown, Shield, CheckCircle2, WifiOff,
+    XCircle, Globe, Search, Download, LayoutGrid, Cpu, MemoryStick, ArrowRight, Lock, Unlock, Save, LayoutDashboard
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import TweakSelect from "./TweakSelect.svelte";
@@ -47,23 +14,23 @@
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
-  let hostStats: any = $state(null);
-  let vmStats: any = $state(null);
-  let masterConfig: any = null;
-  let vmProfiles: string[] = $state([]);
-  let currentOsVhd: string = "";
+  let hostStats = $state<any>(null);
+  let vmStats = $state<any>(null);
+  let masterConfig = $state<any>(null);
+  let vmProfiles = $state<string[]>([]);
+  let currentOsVhd = $state("");
   let isProfileOpen = $state(false);
   let loading = $state(true);
-  let error: string | null = null;
+  let error = $state<string | null>(null);
   let executingActions = $state(new Set<string>());
-  let vmStatuses: Record<string, string> = $state({});
+  let vmStatuses = $state<Record<string, string>>({});
   let statusLoading = $state(true);
 
   let envModeOpen = $state(false);
   const envModes: (typeof $settings.environmentTarget)[] = ['Local Image', 'VHD & VM', 'Local'];
 
-  function toggleEnvMode(e: any) {
-    if (e && e.stopPropagation) e.stopPropagation();
+  function toggleEnvMode(e?: Event) {
+    if (e) e.stopPropagation();
     envModeOpen = !envModeOpen;
     if (envModeOpen) isProfileOpen = false;
   }
@@ -79,7 +46,6 @@
     
     try {
       if (isTauri) {
-        // Fetch Host Stats independently
         try {
           hostStats = await invoke("get_dashboard_stats", { target_vm: null });
         } catch (e) {
@@ -87,19 +53,16 @@
           error = `Host Sync Error: ${e}`;
         }
 
-        // Fetch VM Stats independently
         if ($vhdStore.remoteActive && $vhdStore.vmName) {
           try {
             vmStats = await invoke("get_dashboard_stats", { target_vm: $vhdStore.vmName });
           } catch (e) {
             console.error("VM Stats Audit Failed:", e);
-            // We don't block the UI if only VM fails, but we log the sync issue
             notificationStore.add(`Remote Target Unreachable: ${e}`, "error");
             vhdStore.update(s => ({ ...s, remoteActive: false }));
           }
         }
       } else {
-        // Mock fallback logic...
         hostStats = { 
           os_build: "22631.PRO", 
           uptime: "04:12:15", 
@@ -125,9 +88,7 @@
       if (isTauri) {
         masterConfig = await invoke("get_master_config");
         vmProfiles = Object.keys(masterConfig.VMProfiles);
-        
         await loadVmStatuses();
-
         if (!$vhdStore.selectedProfile && masterConfig.defaultVMProfile) {
           handleProfileChange(masterConfig.defaultVMProfile);
         }
@@ -145,7 +106,6 @@
     try {
       const names = vmProfiles.map(p => masterConfig?.VMProfiles[p]?.VMDetails?.VMName).filter(Boolean);
       const statuses: any = await invoke("get_vhd_hub_statuses", { vmNames: names });
-      
       const mapped: Record<string, string> = {};
       for (const p of vmProfiles) {
         const vmName = masterConfig?.VMProfiles[p]?.VMDetails?.VMName;
@@ -172,8 +132,8 @@
     }
   }
 
-  function toggleProfile(e: any) {
-    if (e && e.detail && e.detail.stopPropagation) e.detail.stopPropagation();
+  function toggleProfile(e?: MouseEvent) {
+    if (e) e.stopPropagation();
     isProfileOpen = !isProfileOpen;
   }
 
@@ -186,51 +146,37 @@
     const key = actionId + (targetVm ? '-VM' : '-Host');
     if (executingActions.has(key)) return;
 
-    // Determine current state for toggling
     const stats = targetVm ? vmStats : hostStats;
     const currentVal = stats?.Connection?.[stateKey || actionId];
     const cmd = currentVal ? "undo_feature" : "apply_feature";
 
     executingActions.add(key);
-    executingActions = executingActions;
+    executingActions = new Set(executingActions);
 
     try {
       if (isTauri) {
-        await invoke(cmd, { 
-          featureId: actionId, 
-          targetVm: targetVm
-        });
+        await invoke(cmd, { featureId: actionId, targetVm: targetVm });
         await loadStats();
       } else {
         await new Promise(r => setTimeout(r, 1000));
       }
     } catch (e) {
-      const errorMsg = typeof e === 'object' 
-        ? (e.message || e.Message || JSON.stringify(e)) 
-        : String(e);
+      const errorMsg = typeof e === 'object' ? (e as any).message || JSON.stringify(e) : String(e);
       notificationStore.add(`Policy Update Failed: ${errorMsg}`, "error");
     } finally {
       executingActions.delete(key);
-      executingActions = executingActions;
+      executingActions = new Set(executingActions);
     }
   }
 
-  let vhdState: import("./store").VhdState = $state();
-  vhdStore.subscribe(state => { vhdState = state; });
-
   async function handleVhdTransition(target: string) {
-    if (!vhdState.vhdPath || vhdState.processing) return;
-    if (target === "VM" && !vhdState.vmName) return;
+    if (!$vhdStore.vhdPath || $vhdStore.processing) return;
+    if (target === "VM" && !$vhdStore.vmName) return;
 
     vhdStore.update(s => ({ ...s, processing: true }));
     try {
       if (isTauri) {
-        const info: any = await invoke("transition_vhd", { 
-          target, 
-          vhdPath: vhdState.vhdPath, 
-          vmName: vhdState.vmName || null 
-        });
-        
+        const info: any = await invoke("transition_vhd", { target, vhdPath: $vhdStore.vhdPath, vmName: $vhdStore.vmName || null });
         if (target === "Host") {
           vhdStore.update(s => ({ ...s, vhdMounted: info.Attached, vhdDiskNumber: info.DiskNumber, vhdAttached: false }));
         } else {
@@ -238,29 +184,23 @@
         }
       } else {
         await new Promise(r => setTimeout(r, 1000));
-        vhdStore.update(s => ({ 
-          ...s, 
-          vhdMounted: target === "Host", 
-          vhdAttached: target === "VM",
-          vhdDiskNumber: target === "Host" ? 3 : null
-        }));
+        vhdStore.update(s => ({ ...s, vhdMounted: target === "Host", vhdAttached: target === "VM", vhdDiskNumber: target === "Host" ? 3 : null }));
       }
       notificationStore.add(`VHD active on ${target}.`, "success");
     } catch (e: any) {
-      const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
-      notificationStore.add(`VHD Error: ${msg}`, "error");
+      notificationStore.add(`VHD Error: ${e.message || JSON.stringify(e)}`, "error");
     } finally {
       vhdStore.update(s => ({ ...s, processing: false }));
     }
   }
 
   async function handleVhdRelease() {
-    if (!vhdState.vhdPath || vhdState.processing) return;
+    if (!$vhdStore.vhdPath || $vhdStore.processing) return;
     vhdStore.update(s => ({ ...s, processing: true }));
     try {
       if (isTauri) {
-        await invoke("unmount_vhd", { vhdPath: vhdState.vhdPath });
-        if (vhdState.vmName) await invoke("detach_vhd_from_vm", { vhdPath: vhdState.vhdPath, vmName: vhdState.vmName });
+        await invoke("unmount_vhd", { vhdPath: $vhdStore.vhdPath });
+        if ($vhdStore.vmName) await invoke("detach_vhd_from_vm", { vhdPath: $vhdStore.vhdPath, vmName: $vhdStore.vmName });
         vhdStore.update(s => ({ ...s, vhdMounted: false, vhdAttached: false, vhdDiskNumber: null }));
       } else {
         await new Promise(r => setTimeout(r, 500));
@@ -268,8 +208,7 @@
       }
       notificationStore.add("VHD released.", "info");
     } catch (e: any) {
-      const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
-      notificationStore.add(`Release failed: ${msg}`, "error");
+      notificationStore.add(`Release failed: ${e.message || JSON.stringify(e)}`, "error");
     } finally {
       vhdStore.update(s => ({ ...s, processing: false }));
     }
@@ -278,29 +217,22 @@
   async function toggleRemote() {
     if (loading) return;
     const targetState = !$vhdStore.remoteActive;
-    
     if (targetState && !$vhdStore.vmName) {
       notificationStore.add("Activation Failed: No VM profile selected.", "error");
       return;
     }
-
     if (targetState) {
-      loading = true;
       try {
         const state = await invoke("check_vm_status", { vmName: $vhdStore.vmName });
         if (state !== "Running") {
           notificationStore.add(`Activation Blocked: VM ['${$vhdStore.vmName}'] is currently ${state}.`, "error");
-          loading = false;
           return;
         }
       } catch (e) {
         notificationStore.add(`Activation Error: ${e}`, "error");
-        loading = false;
         return;
       }
-      loading = false;
     }
-
     vhdStore.update(s => ({ ...s, remoteActive: targetState }));
   }
 
@@ -309,13 +241,14 @@
     await loadMasterConfig();
   });
 
-  run(() => {
+  $effect(() => {
+    // Reactive synchronization
     if ($vhdStore.remoteActive !== undefined || $vhdStore.vhdAttached !== undefined || $vhdStore.selectedProfile !== undefined) {
-       loadStats();
+      loadStats();
     }
   });
 
-  run(() => {
+  $effect(() => {
     if (!$vhdStore.vmName && $vhdStore.remoteActive) {
       vhdStore.update(s => ({ ...s, remoteActive: false }));
     }
@@ -340,7 +273,7 @@
     <div 
       class="env-mode-selector" 
       style="position: relative; width: 155px; z-index: 1000;" 
-      onclick={stopPropagation(bubble('click'))} 
+      onclick={(e) => e.stopPropagation()} 
       onkeydown={(e) => e.key === 'Enter' && toggleEnvMode(e)}
       role="button"
       tabindex="0"
@@ -348,7 +281,7 @@
       <BloomControl
         width="100%"
         active={envModeOpen}
-        on:click={toggleEnvMode}
+        onclick={toggleEnvMode}
         style="padding: 0 10px; justify-content: flex-start !important; height: 26px; border-radius: 4px; background: rgba(255,255,255,0.05);"
       >
         <span class="select-label" style="font-size: 10px; line-height: 1; color: var(--accent-color);">{$settings.environmentTarget || 'Local Image'}</span>
@@ -363,7 +296,7 @@
             <button
               class="dropdown-item"
               class:active={$settings.environmentTarget === mode}
-              onclick={stopPropagation(() => selectEnvMode(mode))}
+              onclick={(e) => { e.stopPropagation(); selectEnvMode(mode); }}
             >
               {mode}
             </button>
@@ -783,11 +716,11 @@
                   <BloomControl
                     width="100%"
                     active={isProfileOpen}
-                    on:click={toggleProfile}
-                    style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px; --bloom-rgb: {vmStatuses[vhdState.selectedProfile] === 'Running' ? '0, 230, 118' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? '255, 61, 96' : 'var(--accent-rgb)')};"
+                    onclick={toggleProfile}
+                    style="padding: 0 10px; justify-content: flex-start !important; height: 32px; border-radius: 4px; --bloom-rgb: {vmStatuses[$vhdStore.selectedProfile] === 'Running' ? '0, 230, 118' : (vmStatuses[$vhdStore.selectedProfile] === 'Missing' ? '255, 61, 96' : 'var(--accent-rgb)')};"
                   >
-                    <span class="select-label truncate" style="color: {vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : (vmStatuses[vhdState.selectedProfile] === 'Missing' ? 'var(--risk-unsafe)' : 'var(--accent-color)')}">
-                      {vhdState.selectedProfile || 'SELECT PROFILE...'}
+                    <span class="select-label truncate" style="color: {vmStatuses[$vhdStore.selectedProfile] === 'Running' ? 'var(--risk-safe)' : (vmStatuses[$vhdStore.selectedProfile] === 'Missing' ? 'var(--risk-unsafe)' : 'var(--accent-color)')}">
+                      {$vhdStore.selectedProfile || 'SELECT PROFILE...'}
                     </span>
                     <div class="chevron-wrapper" class:open={isProfileOpen}>
                       <ChevronDown size={14} />
@@ -799,10 +732,10 @@
                       {#each vmProfiles as p}
                         <button
                           class="dropdown-item"
-                          class:active={vhdState.selectedProfile === p}
+                          class:active={$vhdStore.selectedProfile === p}
                           class:missing={vmStatuses[p] === 'Missing'}
                           disabled={vmStatuses[p] === 'Missing'}
-                          onclick={stopPropagation(() => selectProfile(p))}
+                          onclick={(e) => { e.stopPropagation(); selectProfile(p); }}
                         >
                           <span class="item-status">
                             {#if vmStatuses[p] === 'Running'}
@@ -827,13 +760,13 @@
               <div class="stats-hub" style="margin-bottom: 8px;">
                  <div class="stat-row">
                     <div class="stat-label">VM STATE</div>
-                    <div class="stat-value" style="color: {vhdState.vmName && vmStatuses[vhdState.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
-                      {vhdState.vmName ? vmStatuses[vhdState.selectedProfile] || 'Detecting...' : 'N/A'}
+                    <div class="stat-value" style="color: {$vhdStore.vmName && vmStatuses[$vhdStore.selectedProfile] === 'Running' ? 'var(--risk-safe)' : 'rgba(255,255,255,0.4)'}">
+                      {$vhdStore.vmName ? vmStatuses[$vhdStore.selectedProfile] || 'Detecting...' : 'N/A'}
                     </div>
                  </div>
                  <div class="stat-row">
                     <div class="stat-label">REMOTE TARGET</div>
-                    <div class="stat-value truncate" title={vhdState.vmName || 'None'}>{vhdState.vmName || 'None'}</div>
+                    <div class="stat-value truncate" title={$vhdStore.vmName || 'None'}>{$vhdStore.vmName || 'None'}</div>
                  </div>
               </div>
   
@@ -844,15 +777,15 @@
                 <div class="stat-label">POWERSHELL DIRECT</div>
                 <button 
                   class="bloom-select remote-btn" 
-                  class:active={vhdState.remoteActive && !loading}
-                  class:connecting={loading && vhdState.remoteActive}
-                  disabled={!vhdState.vmName || loading || vmStatuses[vhdState.selectedProfile] !== 'Running'}
+                  class:active={$vhdStore.remoteActive && !loading}
+                  class:connecting={loading && $vhdStore.remoteActive}
+                  disabled={!$vhdStore.vmName || loading || vmStatuses[$vhdStore.selectedProfile] !== 'Running'}
                   onclick={toggleRemote}
                 >
-                  {#if loading && vhdState.remoteActive}
+                  {#if loading && $vhdStore.remoteActive}
                     <Loader2 size={10} class="spin" />
                   {:else}
-                    {vhdState.remoteActive ? 'ACTIVE' : 'OFF'}
+                    {$vhdStore.remoteActive ? 'ACTIVE' : 'OFF'}
                   {/if}
                 </button>
               </div>
@@ -860,36 +793,36 @@
               <div class="vhd-control-grid">
                 <button 
                   class="vhd-action-btn host" 
-                  class:active={vhdState.vhdMounted} 
-                  disabled={vhdState.processing || !vhdState.vhdPath}
+                  class:active={$vhdStore.vhdMounted} 
+                  disabled={$vhdStore.processing || !$vhdStore.vhdPath}
                   onclick={() => handleVhdTransition('Host')}
                 >
-                  {#if vhdState.processing}
+                  {#if $vhdStore.processing}
                     <Loader2 size={12} class="spin" />
                   {:else}
                     <HardDrive size={14} />
-                    <span>{vhdState.vhdMounted ? 'RECONNECT HOST' : 'MOUNT HOST'}</span>
+                    <span>{$vhdStore.vhdMounted ? 'RECONNECT HOST' : 'MOUNT HOST'}</span>
                   {/if}
                 </button>
   
                 <button 
                   class="vhd-action-btn vm" 
-                  class:active={vhdState.vhdAttached} 
-                  disabled={vhdState.processing || !vhdState.vhdPath || !vhdState.vmName}
+                  class:active={$vhdStore.vhdAttached} 
+                  disabled={$vhdStore.processing || !$vhdStore.vhdPath || !$vhdStore.vmName}
                   onclick={() => handleVhdTransition('VM')}
                 >
-                  {#if vhdState.processing}
+                  {#if $vhdStore.processing}
                     <Loader2 size={12} class="spin" />
                   {:else}
                     <ShieldCheck size={14} />
-                    <span>{vhdState.vhdAttached ? 'RECONNECT VM' : 'ATTACH VM'}</span>
+                    <span>{$vhdStore.vhdAttached ? 'RECONNECT VM' : 'ATTACH VM'}</span>
                   {/if}
                 </button>
   
                 <button 
                   class="vhd-action-btn release full-width" 
-                  class:active={vhdState.vhdMounted || vhdState.vhdAttached}
-                  disabled={vhdState.processing || (!vhdState.vhdMounted && !vhdState.vhdAttached)}
+                  class:active={$vhdStore.vhdMounted || $vhdStore.vhdAttached}
+                  disabled={$vhdStore.processing || (!$vhdStore.vhdMounted && !$vhdStore.vhdAttached)}
                   onclick={handleVhdRelease}
                 >
                   <AlertCircle size={14} />
@@ -905,6 +838,7 @@
             </div>
           {/if}
         </div>
+
       </div>
     </div>
       </div>

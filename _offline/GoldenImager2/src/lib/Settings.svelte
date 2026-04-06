@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { run, createBubbler, stopPropagation } from 'svelte/legacy';
-
-  const bubble = createBubbler();
   import { Settings, Shield, LayoutGrid, Palette, Save, RefreshCw, Cpu, Database, Bell, Check, Terminal, Play, Trash2, Loader2, Globe, History, Monitor, Maximize, AlertTriangle } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import { settings, vhdStore } from "./store";
@@ -24,8 +21,8 @@
       script: `Write-Host ">>> AUDITING WINRM CONNECTIVITY..." -ForegroundColor Cyan\ntry {\n    Test-WSMan -ErrorAction Stop\n    Write-Host "SUCCESS: WinRM Service is active and responding." -ForegroundColor Green\n    Get-Service WinRM | Select-Object Name, Status, StartType | Format-Table\n} catch {\n    Write-Host "WINRM FAILED: $($_.Exception.Message)" -ForegroundColor Red\n    Write-Host "ACTION: Run 'winrm quickconfig' in an elevated shell." -ForegroundColor Yellow\n}`
     },
     {
-        label: "Master Config Access",
-        script: `Write-Host ">>> VERIFYING MASTER CONFIG ACCESSIBILITY..." -ForegroundColor Cyan\n$p = "p:/Projects/golden-image/_master_config.json"\nif (Test-Path $p) {\n    Write-Host "SUCCESS: Config found at $p" -ForegroundColor Green\n    $c = Get-Content $p\n    Write-Host "Size: $($c.Length) characters." -ForegroundColor White\n} else {\n    Write-Host "ERROR: File missing at $p" -ForegroundColor Red\n}`
+      label: "Master Config Access",
+      script: `Write-Host ">>> VERIFYING MASTER CONFIG ACCESSIBILITY..." -ForegroundColor Cyan\n$p = "p:/Projects/golden-image/_master_config.json"\nif (Test-Path $p) {\n    Write-Host "SUCCESS: Config found at $p" -ForegroundColor Green\n    $c = Get-Content $p\n    Write-Host "Size: $($c.Length) characters." -ForegroundColor White\n} else {\n    Write-Host "ERROR: File missing at $p" -ForegroundColor Red\n}`
     }
   ];
 
@@ -50,8 +47,7 @@
     }
   });
 
-  async function updateDefaultProfile(e: any) {
-    const val = e.detail?.value || e.target?.value;
+  async function updateDefaultProfile(val: string) {
     defaultProfile = val === 'None (Force Manual)' ? '' : val;
     
     // Broadcast to global store for dashboard sync
@@ -66,8 +62,7 @@
     }
   }
 
-  async function updateInitialView(e: any) {
-    const val = e.detail?.value || e.target?.value;
+  async function updateInitialView(val: string) {
     initialView = val;
     
     try {
@@ -79,8 +74,7 @@
     }
   }
 
-  function setDiagnostic(e: any) {
-    const label = e.detail?.value || e.target?.value;
+  function setDiagnostic(label: string) {
     const d = diagnostics.find(x => x.label === label);
     if (d) debugScript = d.script;
   }
@@ -116,7 +110,7 @@
     warningTimeout = setTimeout(() => clampedWarning = false, 3000);
   }
 
-  run(() => {
+  $effect(() => {
     if (!isFocused) {
       localW = $settings.windowWidth;
       localH = $settings.windowHeight;
@@ -178,7 +172,7 @@
     </div>
     <div class="spacer"></div>
     <div class="footer-actions">
-        <BloomControl on:click={saveSettings}>
+        <BloomControl onclick={saveSettings}>
           {#if saved}
             <Check size={14} /> Saved Successfully
           {:else}
@@ -204,7 +198,7 @@
               options={["Dashboard", "Provisioning", "Apps", "Tweaks", "Settings"].map(v => ({ Label: v, FeatureIds: [v] }))} 
               value={initialView} 
               appliedValue={initialView} 
-              on:change={updateInitialView}
+              onchange={updateInitialView}
               height="30px"
               noDiff={true}
             />
@@ -217,7 +211,7 @@
               options={['None (Force Manual)', ...vmProfiles].map(p => ({ Label: p, FeatureIds: [p] }))} 
               value={defaultProfile || 'None (Force Manual)'} 
               appliedValue={defaultProfile || 'None (Force Manual)'} 
-              on:change={updateDefaultProfile}
+              onchange={updateDefaultProfile}
               height="30px"
             />
           </div>
@@ -401,7 +395,7 @@
               <input 
                 type="checkbox" 
                 checked={$settings.retainWindowState} 
-                onclick={stopPropagation(bubble('click'))}
+                onclick={(e) => e.stopPropagation()}
                 onchange={(e) => settings.update(s => ({ ...s, retainWindowState: e.currentTarget.checked }))}
               />
             </div>
@@ -420,7 +414,7 @@
                   options={diagnostics.map(d => ({ Label: d.label, FeatureIds: [d.label] }))} 
                   value={diagnostics.find(d => d.script === debugScript)?.label || ""} 
                   appliedValue={diagnostics.find(d => d.script === debugScript)?.label || ""} 
-                  on:change={setDiagnostic}
+                  onchange={setDiagnostic}
                   height="30px"
                   noDiff={true}
                 />

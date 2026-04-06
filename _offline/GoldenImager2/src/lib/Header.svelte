@@ -2,6 +2,12 @@
   import { invoke } from '@tauri-apps/api/tauri';
   import { Minus, X } from 'lucide-svelte';
 
+  interface Props {
+    activeTab: string;
+  }
+
+  let { activeTab }: Props = $props();
+
   const minimize = () => invoke('minimize_window');
   const close = () => invoke('close_window');
 </script>

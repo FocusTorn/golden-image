@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
-
   import { settings, accentRgb } from './lib/store';
   import { invoke } from '@tauri-apps/api/tauri';
   import { listen } from '@tauri-apps/api/event';
@@ -18,12 +16,16 @@
   import { onMount } from 'svelte';
   
   let activeTab = $state('dashboard');
-  let isDark = true;
+  let isDark = $state(true);
   let appCount = $state(0);
+  let tweakAppliedCount = $state(0);
+  let tweakTotalCount = $state(0);
   let hasLoggedGeometry = $state(false);
   
-  let containerRef: HTMLElement = $state();
-  let listRef: HTMLElement = $state();
+  let containerRef: HTMLElement | null = $state(null);
+  let listRef: HTMLElement | null = $state(null);
+  
+  const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
   onMount(() => {
     const setup = async () => {
@@ -82,21 +84,21 @@
       });
 
       return () => {
-        unlistenResize();
-        unlistenMove();
-        unlistenManual();
+        if (typeof unlistenResize === 'function') unlistenResize();
+        if (typeof unlistenMove === 'function') unlistenMove();
+        if (typeof unlistenManual === 'function') unlistenManual();
       };
     };
 
     const cleanupPromise = setup();
 
     return () => {
-      cleanupPromise.then(cleanup => cleanup());
+      cleanupPromise.then(cleanup => cleanup && cleanup());
     };
   });
 
   /* GEOMETRY PROBE LOGIC (Logs once per app pane load) */
-  run(() => {
+  $effect(() => {
     if (activeTab === 'apps' && containerRef && listRef && !hasLoggedGeometry) {
       const cTop = containerRef.getBoundingClientRect().top;
       const lTop = listRef.getBoundingClientRect().top;
@@ -104,226 +106,121 @@
       hasLoggedGeometry = true;
     }
   });
-  run(() => {
+
+  $effect(() => {
     if (activeTab !== 'apps') {
       hasLoggedGeometry = false; // Reset for next time the tab is opened
     }
   });
 
   /* TAB SAFETY LOGIC: Ensure activeTab is available for selected environment */
-  run(() => {
+  $effect(() => {
     if (activeTab === 'provisioning' && $settings.environmentTarget !== 'VHD & VM') {
       activeTab = 'dashboard';
     }
   });
-  run(() => {
+
+  $effect(() => {
     if (activeTab === 'orchestrator' && $settings.environmentTarget !== 'Local Image') {
       activeTab = 'dashboard';
     }
   });
 
-  let tweakAppliedCount = $state(0);
-  let tweakTotalCount = $state(0);
-  
-  const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
+
 </script>
 
 <main 
   class="app-container" 
-  class:mock-window={!isTauri}
-  style="--accent-color: {$settings.accentColor}; --accent-rgb: {$accentRgb}; --glass-opacity: {$settings.glassOpacity / 100};"
+  class:isTauri
+  style="--accent-rgb: {$accentRgb}; --accent-color: rgb({$accentRgb});"
 >
-  {#if isTauri}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle top" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'Top' })}></div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle right" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'Right' })}></div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle bottom" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'Bottom' })}></div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle left" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'Left' })}></div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle top-left" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'TopLeft' })}></div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle top-right" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'TopRight' })}></div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle bottom-left" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'BottomLeft' })}></div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle bottom-right" role="separator" tabindex="-1" onmousedown={() => invoke('start_resize', { edge: 'BottomRight' })}></div>
-  {/if}
+  <Sidebar bind:activeTab />
 
-  <div class="app-frame">
-    <!-- Full-Width Title Bar -->
-    <Header />
+  <div class="content-area">
+    <Header {activeTab} />
     
-    <!-- Top Global Divider -->
-    <div class="h-divider top">
-      <div class="h-edge"></div>
-      <div class="h-core"></div>
-      <div class="h-edge"></div>
+    <div class="view-wrapper">
+      {#if activeTab === 'dashboard'}
+        <Dashboard />
+      {:else if activeTab === 'provisioning'}
+        <Provisioning />
+      {:else if activeTab === 'orchestrator'}
+        <Orchestrator />
+      {:else if activeTab === 'apps'}
+        <Apps bind:appCount bind:containerRef bind:listRef />
+      {:else if activeTab === 'tweaks'}
+        <Tweaks 
+          bind:appliedCount={tweakAppliedCount} 
+          bind:totalCount={tweakTotalCount} 
+        />
+      {:else if activeTab === 'settings'}
+        <Settings />
+      {/if}
     </div>
 
-    <!-- Middle Layout: Sidebar + Content -->
-    <div class="middle-body">
-      <Sidebar bind:activeTab />
-      
-      <!-- Vertical Divider -->
-      <div class="v-divider">
-        <div class="v-edge"></div>
-        <div class="v-core"></div>
-        <div class="v-edge"></div>
-      </div>
-
-    <div class="content-area">
-        {#if activeTab === 'dashboard'}
-          <Dashboard />
-        {:else if activeTab === 'apps'}
-          <Apps bind:appCount bind:containerRef bind:listRef />
-        {:else if activeTab === 'tweaks'}
-          <Tweaks bind:appliedCount={tweakAppliedCount} bind:totalCount={tweakTotalCount} />
-        {:else if activeTab === 'provisioning'}
-          <Provisioning />
-        {:else if activeTab === 'settings'}
-          <Settings />
-        {:else if activeTab === 'orchestrator'}
-          <Orchestrator />
-        {:else}
-          <div class="placeholder">
-            <h1>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
-            <p>Coming soon...</p>
-          </div>
-        {/if}
-      </div>
-    </div>
-
-    <!-- Bottom Global Divider -->
-    <div class="h-divider bottom">
-      <div class="h-edge"></div>
-      <div class="h-core"></div>
-      <div class="h-edge"></div>
-    </div>
-
-    <!-- Full-Width Status Bar -->
-    <StatusBar 
-      {activeTab}
-      {appCount} 
-      {tweakAppliedCount} 
-      {tweakTotalCount} 
-    />
-    
-    <!-- Global Notifications -->
-    <ToastStack />
+    <StatusBar {activeTab} {appCount} {tweakAppliedCount} {tweakTotalCount} />
   </div>
+
+  <ToastStack />
 </main>
 
 <style>
-  :global(*) { box-sizing: border-box; }
+  :global(:root) {
+    --accent-rgb: 0, 188, 212;
+    --accent-color: rgb(var(--accent-rgb));
+    --bg-main: #0b0f10;
+    --bg-darker: #050708;
+    --grad-main: radial-gradient(circle at 50% 0%, #1a2225 0%, #0b0f10 100%);
+    --grad-panel: linear-gradient(180deg, #12181a 0%, #0b0f10 100%);
+    --risk-safe: #4caf50;
+    --risk-warn: #ffeb3b;
+    --risk-unsafe: #ff1744;
+    --risk-user: #00bcd4;
+    
+    /* MODULAR SLAB SYSTEM (v7) */
+    --slab-base: #14181B;    /* Deep Machine Grey */
+    --slab-edge: #0E1113;    /* Bevel Shadow */
+    --slab-rim: #3A3E42;     /* Milled Silver Catch */
+    --slab-patina: #1A1D20;  /* Oxidation Cloud */
+  }
+
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-main);
+    color: #fff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
 
   .app-container {
     width: 100vw;
     height: 100vh;
+    display: flex;
     background: var(--bg-main);
-    color: var(--text-main);
-    display: flex;
     overflow: hidden;
-  }
-
-  .app-container.mock-window {
-    background: #050708;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Main frame using column layout to place Sidebar BELOW Title/Status */
-  .app-frame {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    background: var(--bg-main);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .mock-window .app-frame {
-    width: 1175px;
-    height: 750px;
-    border: 1px solid rgba(255, 255, 255, 0.08); 
-    border-radius: 8px;
-    box-shadow: 
-      0 32px 64px rgba(0, 0, 0, 0.8),
-      0 0 0 1px rgba(var(--accent-rgb), 0.15);
-  }
-
-  /* Middle Body using row layout for Sidebar/Content */
-  .middle-body {
-    flex: 1;
-    display: flex;
-    flex-direction: row;
-    overflow: hidden;
-    position: relative;
-    z-index: 10; /* Sidebar sits below header/divider */
   }
 
   .content-area {
     flex: 1;
-    overflow: hidden;
-    position: relative;
-    background: var(--grad-main);
-  }
-
-  /* Vertical Divider Styling */
-  .v-divider {
-    width: 4px;
-    height: 100%;
-    display: flex;
-    flex-direction: row;
-    flex-shrink: 0;
-  }
-
-  .v-edge {
-    width: 1px;
-    height: 100%;
-    background: #0d1214;
-  }
-
-  .v-core {
-    width: 2px;
-    height: 100%;
-    /* Offset colors (2c3233 -> 1d2325) to prevent meshing with #12181a panels */
-    background: linear-gradient(180deg, #2c3233 0%, #1d2325 100%);
-  }
-
-  /* Horizontal Divider Styling */
-  .h-divider {
-    height: 4px;
-    width: 100%;
     display: flex;
     flex-direction: column;
-    flex-shrink: 0;
-    z-index: 50;
+    overflow: hidden;
+    position: relative;
   }
 
-  .h-edge { height: 1px; width: 100%; background: #0d1214; }
-  .h-core { 
-    height: 2px; 
-    width: 100%; 
+  .view-wrapper {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: rgba(0, 0, 0, 0.2);
   }
 
-  .h-divider.top .h-core {
-    background: #2c3233; /* Matches top of vertical divider */
-  }
-
-  .h-divider.bottom .h-core {
-    background: #1d2325; /* Matches bottom of vertical divider */
-  }
-
-  .placeholder {
-    padding: 60px;
-    text-align: center;
-    opacity: 0.3;
+  /* High-Performance Transitions */
+  .view-wrapper > :global(*) {
+    width: 100%;
+    height: 100%;
   }
 
   :global(.spin) {
@@ -335,14 +232,9 @@
     to { transform: rotate(360deg); }
   }
 
-  /* CUSTOM WIDE RESIZE HANDLES */
-  .resize-handle { position: absolute; z-index: 9999; background: transparent; }
-  .resize-handle.top { top: 0; left: 8px; right: 8px; height: 8px; cursor: n-resize; }
-  .resize-handle.bottom { bottom: 0; left: 8px; right: 8px; height: 8px; cursor: s-resize; }
-  .resize-handle.left { left: 0; top: 8px; bottom: 8px; width: 8px; cursor: w-resize; }
-  .resize-handle.right { right: 0; top: 8px; bottom: 8px; width: 8px; cursor: e-resize; }
-  .resize-handle.top-left { top: 0; left: 0; width: 14px; height: 14px; cursor: nw-resize; }
-  .resize-handle.top-right { top: 0; right: 0; width: 14px; height: 14px; cursor: ne-resize; }
-  .resize-handle.bottom-left { bottom: 0; left: 0; width: 14px; height: 14px; cursor: sw-resize; }
-  .resize-handle.bottom-right { bottom: 0; right: 0; width: 14px; height: 14px; cursor: se-resize; }
+  :global(.truncate) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 </style>

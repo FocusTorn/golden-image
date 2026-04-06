@@ -1,0 +1,194 @@
+Loading svelte-check in workspace: p:\Projects\golden-image\_offline\GoldenImager2
+Getting Svelte diagnostics...
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\App.svelte[39m:139:14
+[31mError[39m: Type 'string' is not assignable to type 'never'. (ts)
+[36m  <div class="content-area">
+    <Header {[35mactiveTab[36m} />[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:90:3
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m{#if showSaveModal}
+  [35m<div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>
+  </div>[36m
+{/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:90:3
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m{#if showSaveModal}
+  [35m<div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>
+  </div>[36m
+{/if}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:91:5
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m  <div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    [35m<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>[36m
+  </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:91:5
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m  <div class="modal-overlay" onclick={() => (showSaveModal = false)}>
+    [35m<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Save Profile</h3>
+        <button class="close-lite" onclick={() => (showSaveModal = false)}><X size={16} /></button>
+      </div>
+      <div class="modal-body">
+        <p>Enter a unique name to store the current selection.</p>
+        <input
+          type="text"
+          bind:value={saveName}
+          placeholder="e.g. Minimalist-Build"
+          class="modal-input"
+          onkeydown={(e) => e.key === "Enter" && engine.saveProfile(saveName).then(() => showSaveModal = false)}
+        />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick={() => (showSaveModal = false)}>Cancel</button>
+        <button class="modal-btn confirm" onclick={() => engine.saveProfile(saveName).then(() => showSaveModal = false)}>Save Profile</button>
+      </div>
+    </div>[36m
+  </div>[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Apps.svelte[39m:239:3
+[33mWarn[39m: Unused CSS selector ".dim"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.dim[36m { opacity: 0.3; }[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:888:3
+[33mWarn[39m: Unused CSS selector ".glow-icon"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.glow-icon[36m {
+    color: var(--accent-color);[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:1193:3
+[33mWarn[39m: Unused CSS selector ".spin"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  
+  [35m.spin[36m { 
+    animation: spin 1s linear infinite;[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Dashboard.svelte[39m:277:60
+[31mError[39m: Argument of type 'KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement; }' is not assignable to parameter of type 'MouseEvent'.
+  Type 'KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement; }' is missing the following properties from type 'MouseEvent': button, buttons, clientX, clientY, and 14 more. (ts)
+[36m      onclick={(e) => e.stopPropagation()} 
+      onkeydown={(e) => e.key === 'Enter' && toggleEnvMode([35me[36m)}
+      role="button"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Provisioning.svelte[39m:198:22
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m    <div class="spacer"></div>
+    <BloomControl on:[35mclick[36m={startDeployment} disabled={running}>
+      {#if running}[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:108:14
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m          active={isPolicyOpen}
+          on:[35mclick[36m={togglePolicy}
+          style="padding: 0 8px; justify-content: flex-start !important; border-radius: 4px !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:142:16
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m            active={isProfileOpen}
+            on:[35mclick[36m={toggleProfile}
+            style="padding: 0 8px; border-radius: 4px 0 0 4px !important; position: relative; justify-content: flex-start !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:186:14
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m          width="34px"
+          on:[35mclick[36m={() => onloadProfile?.()}
+          style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:195:14
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m          width="34px"
+          on:[35mclick[36m={() => onsaveAsProfile?.()}
+          style="border-radius: 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:204:14
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m          width="34px"
+          on:[35mclick[36m={() => onsaveProfile?.()}
+          style="border-radius: 0 4px 4px 0 !important; margin-left: -1px !important; flex-shrink: 0 !important;"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\TacticalToolbar.svelte[39m:235:16
+[31mError[39m: Argument of type '"click"' is not assignable to parameter of type 'never'. (ts)
+[36m            width="34px"
+            on:[35mclick[36m={() => onrefresh?.()}
+            title="Refresh List"[39m
+
+p:\Projects\golden-image\_offline\GoldenImager2\[32msrc\lib\Tweaks.svelte[39m:121:36
+[31mError[39m: Property 'deleteProfile' does not exist on type 'TweaksEngine'. Did you mean 'selectedProfile'? (ts)
+[36m    onsaveAsProfile={() => { const n = prompt("Name:"); if(n) engine.saveProfile(n); }}
+    ondeleteProfile={(p) => engine.[35mdeleteProfile[36m(p)}
+  />[39m
+
+====================================
+[31msvelte-check found 10 errors and 7 warnings in 6 files
+[39m

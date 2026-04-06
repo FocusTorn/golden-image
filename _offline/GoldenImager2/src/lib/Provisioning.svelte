@@ -1,24 +1,10 @@
 <script lang="ts">
-  import { run, stopPropagation } from 'svelte/legacy';
-
   import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
   import { vhdStore } from "./store";
   import { 
-    Zap, 
-    Activity, 
-    CheckCircle2, 
-    Loader2, 
-    Terminal, 
-    AlertCircle,
-    Play,
-    ShieldCheck,
-    Box,
-    Info,
-    Monitor,
-    Target,
-    HardDrive
+    Zap, Activity, CheckCircle2, Loader2, Terminal, AlertCircle, Play, ShieldCheck, Box, Info, Monitor, Target, HardDrive
   } from "lucide-svelte";
   import BloomControl from "./BloomControl.svelte";
   import TacticalToolbar from "./TacticalToolbar.svelte";
@@ -26,34 +12,10 @@
 
   const isTauri = (window as any).__TAURI_METADATA__ !== undefined;
 
-  let activeStage = $state(1);
+  let activeStage = $state(0);
   let running = $state(false);
-  let logs: string[] = $state(["--- Tactical Provisioning Engine v2.0 ---", "Awaiting deployment signal..."]);
-  let logEnd: HTMLElement = $state();
-
-  // VHD & VM STATE (Now synced with Global Store)
-  let vhdPath = $state("");
-  let vm_name = $state("");
-  let vhdMounted = false;
-  let vhdAttached = false;
-  let vhdDiskNumber: number | null = null;
-  let vhdProcessing = false;
-  let selectedVmProfile = "";
-
-  // Subscribe to global vhdStore
-  vhdStore.subscribe(state => {
-    vhdPath = state.vhdPath;
-    vm_name = state.vmName;
-    vhdMounted = state.vhdMounted;
-    vhdAttached = state.vhdAttached;
-    vhdDiskNumber = state.vhdDiskNumber;
-    vhdProcessing = state.processing;
-    selectedVmProfile = state.selectedProfile;
-  });
-
-  function updateStore(updates: Partial<any>) {
-    vhdStore.update(s => ({ ...s, ...updates }));
-  }
+  let logs = $state<string[]>(["--- Tactical Provisioning Engine v2.0 ---", "Awaiting deployment signal..."]);
+  let logEnd = $state<HTMLElement | null>(null);
 
   let stages = $state([
     { id: 1, title: "Stage 01: Scoop", desc: "Initializing package manager and tactical CLI tools.", status: "idle" },
@@ -64,19 +26,19 @@
     { id: 6, title: "Stage 06: Customize", desc: "Applying final industrial aesthetic and shell customizations.", status: "idle" }
   ]);
 
-  let masterConfig: any = null;
-  let vmProfiles: string[] = [];
-
-  let unlisten: any;
+  let masterConfig = $state<any>(null);
+  let vmProfiles = $state<string[]>([]);
+  let unlisten: (() => void) | undefined;
 
   onMount(async () => {
     if (isTauri) {
-      unlisten = await listen("provisioning-log", (event) => {
+      const listener = await listen("provisioning-log", (event) => {
         logs = [...logs, event.payload as string];
         setTimeout(() => {
-          if (logEnd) logEnd.scrollIntoView({ behavior: "smooth" });
+          logEnd?.scrollIntoView({ behavior: "smooth" });
         }, 10);
       });
+      unlisten = () => listener();
       loadMasterConfig();
     }
   });
@@ -87,39 +49,25 @@
       vmProfiles = Object.keys(masterConfig.VMProfiles);
       logs = [...logs, `>>> MASTER CONFIG LOADED: ${vmProfiles.length} profiles identified.`];
     } catch (e: any) {
-      const msg = typeof e === "string" ? e : e.Message || JSON.stringify(e);
-      logs = [...logs, `>>> ERROR LOADING MASTER CONFIG: ${msg}`];
+      logs = [...logs, `>>> ERROR LOADING MASTER CONFIG: ${e.message || JSON.stringify(e)}`];
     }
   }
 
-  function handleProfileChange() {
-    const profile = masterConfig?.VMProfiles[selectedVmProfile];
+  function handleProfileChange(selectedProfile: string) {
+    const profile = masterConfig?.VMProfiles[selectedProfile];
     if (profile) {
-      const newVmName = profile.VMDetails?.VMName || "";
-      const newVhdPath = profile.VMDetails?.OsVhdPath || masterConfig.VMFileSystem.HostVhdPath;
-      
-      updateStore({ 
-        vmName: newVmName, 
-        vhdPath: newVhdPath,
-        selectedProfile: selectedVmProfile 
-      });
-
-      logs = [...logs, `\n>>> VM PROFILE SELECTED: ${selectedVmProfile}`];
-      logs = [...logs, `    -> Target VM: ${newVmName}`];
-      logs = [...logs, `    -> Target VHD: ${newVhdPath}`];
+      vhdStore.update(s => ({ 
+        ...s,
+        vmName: profile.VMDetails?.VMName || "", 
+        vhdPath: profile.VMDetails?.OsVhdPath || masterConfig.VMFileSystem.HostVhdPath,
+        selectedProfile 
+      }));
+      logs = [...logs, `\n>>> VM PROFILE SELECTED: ${selectedProfile}`];
     }
   }
-
-  // Handle manual input updates
-  run(() => {
-    if (vm_name !== undefined) updateStore({ vmName: vm_name });
-  });
-  run(() => {
-    if (vhdPath !== undefined) updateStore({ vhdPath: vhdPath });
-  });
 
   onDestroy(() => {
-    if (unlisten) unlisten();
+    unlisten?.();
   });
 
   async function startDeployment() {
@@ -131,20 +79,18 @@
     try {
       if (isTauri) {
         for (let i = 0; i < stages.length; i++) {
-          const currentStage = stages[i];
-          activeStage = currentStage.id;
-          currentStage.status = "running";
+          activeStage = stages[i].id;
+          stages[i].status = "running";
           stages = [...stages];
-
-          logs = [...logs, `\n>>> EXECUTING ${currentStage.title.toUpperCase()}...`];
+          logs = [...logs, `\n>>> EXECUTING ${stages[i].title.toUpperCase()}...`];
           
           await invoke("run_provisioning_stage", { 
-            stage: currentStage.id,
+            stage: stages[i].id,
             remote_active: $vhdStore.remoteActive,
             vm_name: $vhdStore.vmName || null
           });
           
-          currentStage.status = "complete";
+          stages[i].status = "complete";
           stages = [...stages];
         }
         logs = [...logs, "\nMISSION ACCOMPLISHED: All provisioning stages finalized successfully."];
@@ -154,16 +100,14 @@
           activeStage = stages[i].id;
           stages[i].status = "running";
           stages = [...stages];
-          await new Promise(r => setTimeout(r, 1500));
-          logs = [...logs, `[MOCK] Stage ${activeStage} logic sequence verified.`];
+          await new Promise(r => setTimeout(r, 1000));
           stages[i].status = "complete";
           stages = [...stages];
         }
       }
-    } catch (e) {
-      const errorMsg = typeof e === "string" ? e : JSON.stringify(e);
-      logs = [...logs, `\nCRITICAL ERROR: ${errorMsg}`];
-      notificationStore.add(`Deployment failed: ${errorMsg}`, "error");
+    } catch (e: any) {
+      logs = [...logs, `\nCRITICAL ERROR: ${e.message || JSON.stringify(e)}`];
+      notificationStore.add("Deployment failed.", "error");
       if (activeStage > 0) {
         stages[activeStage - 1].status = "error";
         stages = [...stages];
@@ -180,8 +124,6 @@
     stage.status = "running";
     stages = [...stages];
     
-    logs = [...logs, `\n>>> EXECUTING INDIVIDUAL STAGE: ${stage.title.toUpperCase()}...`];
-    
     try {
       if (isTauri) {
         await invoke("run_provisioning_stage", { 
@@ -190,13 +132,11 @@
           vm_name: $vhdStore.vmName || null
         });
       } else {
-        await new Promise(r => setTimeout(r, 1500));
-        logs = [...logs, `[MOCK] Single stage ${stage.id} completed.`];
+        await new Promise(r => setTimeout(r, 1000));
       }
       stage.status = "complete";
-    } catch (e) {
-      const errorMsg = typeof e === "string" ? e : JSON.stringify(e);
-      logs = [...logs, `\nCRITICAL ERROR in Stage ${stage.id}: ${errorMsg}`];
+    } catch (e: any) {
+      logs = [...logs, `\nERROR in Stage ${stage.id}: ${e.message || JSON.stringify(e)}`];
       stage.status = "error";
     } finally {
       stages = [...stages];
@@ -205,85 +145,45 @@
   }
 
   async function handleTransition(target: string) {
-    if (!vhdPath || vhdProcessing) return;
-    if (target === "VM" && !vm_name) return;
-
-    updateStore({ processing: true });
-    logs = [...logs, `\n>>> INITIATING VHD TRANSITION -> ${target.toUpperCase()}`];
-    logs = [...logs, `    [*] Enforcing Mutual Exclusivity...`];
-    
+    if (!$vhdStore.vhdPath || $vhdStore.processing) return;
+    vhdStore.update(s => ({ ...s, processing: true }));
     try {
       if (isTauri) {
-        const info: any = await invoke("transition_vhd", { 
-          target, 
-          vhdPath, 
-          vmName: vm_name || null 
-        });
-        
+        const info: any = await invoke("transition_vhd", { target, vhdPath: $vhdStore.vhdPath, vmName: $vhdStore.vmName || null });
         if (target === "Host") {
-          updateStore({
-            vhdMounted: info.Attached,
-            vhdDiskNumber: info.DiskNumber,
-            vhdAttached: false
-          });
+          vhdStore.update(s => ({ ...s, vhdMounted: info.Attached, vhdDiskNumber: info.DiskNumber, vhdAttached: false }));
         } else {
-          updateStore({
-            vhdAttached: info.Attached,
-            vhdMounted: false,
-            vhdDiskNumber: null
-          });
+          vhdStore.update(s => ({ ...s, vhdAttached: info.Attached, vhdMounted: false, vhdDiskNumber: null }));
         }
-        
-        logs = [...logs, `>>> SUCCESS: VHD transitioned to ${target}.`];
-        if (info.DiskNumber) logs = [...logs, `    -> Identified as Host Disk ${info.DiskNumber}`];
       } else {
-        await new Promise(r => setTimeout(r, 1200));
-        updateStore({
-          vhdMounted: target === "Host",
-          vhdAttached: target === "VM",
-          vhdDiskNumber: target === "Host" ? 3 : null
-        });
-        logs = [...logs, `>>> [MOCK] VHD transitioned to ${target} successfully.`];
+        await new Promise(r => setTimeout(r, 1000));
+        vhdStore.update(s => ({ ...s, vhdMounted: target === "Host", vhdAttached: target === "VM" }));
       }
       notificationStore.add(`VHD active on ${target}.`, "success");
     } catch (e: any) {
-      const msg = typeof e === "string" ? e : e.Message || JSON.stringify(e);
-      logs = [...logs, `>>> TRANSITION ERROR: ${msg}`];
-      notificationStore.add(`Transition failed: ${msg}`, "error");
+      notificationStore.add(`Transition failed: ${e.message || JSON.stringify(e)}`, "error");
     } finally {
-      updateStore({ processing: false });
+      vhdStore.update(s => ({ ...s, processing: false }));
     }
   }
 
   async function handleRelease() {
-    if (!vhdPath || vhdProcessing) return;
-    updateStore({ processing: true });
-    logs = [...logs, `\n>>> RELEASING ALL VHD HANDLES: ${vhdPath}`];
+    if (!$vhdStore.vhdPath || $vhdStore.processing) return;
+    vhdStore.update(s => ({ ...s, processing: true }));
     try {
       if (isTauri) {
-        await invoke("unmount_vhd", { vhdPath });
-        if (vm_name) await invoke("detach_vhd_from_vm", { vhdPath, vmName: vm_name });
-        
-        updateStore({
-          vhdMounted: false,
-          vhdAttached: false,
-          vhdDiskNumber: null
-        });
-        logs = [...logs, `>>> SUCCESS: VHD is now neutral.`];
+        await invoke("unmount_vhd", { vhdPath: $vhdStore.vhdPath });
+        if ($vhdStore.vmName) await invoke("detach_vhd_from_vm", { vhdPath: $vhdStore.vhdPath, vmName: $vhdStore.vmName });
+        vhdStore.update(s => ({ ...s, vhdMounted: false, vhdAttached: false, vhdDiskNumber: null }));
       } else {
-        await new Promise(r => setTimeout(r, 800));
-        updateStore({
-          vhdMounted: false,
-          vhdAttached: false
-        });
-        logs = [...logs, ">>> [MOCK] VHD released from all hosts."];
+        await new Promise(r => setTimeout(r, 500));
+        vhdStore.update(s => ({ ...s, vhdMounted: false, vhdAttached: false }));
       }
       notificationStore.add("VHD released.", "info");
     } catch (e: any) {
-      const msg = typeof e === "string" ? e : e.Message || JSON.stringify(e);
-      logs = [...logs, `>>> ERROR: ${msg}`];
+      notificationStore.add(`Release failed: ${e.message || JSON.stringify(e)}`, "error");
     } finally {
-      updateStore({ processing: false });
+      vhdStore.update(s => ({ ...s, processing: false }));
     }
   }
 </script>
@@ -295,7 +195,7 @@
       <h2>Tactical Provisioning Engine</h2>
     </div>
     <div class="spacer"></div>
-    <BloomControl on:click={startDeployment} disabled={running}>
+    <BloomControl onclick={startDeployment} disabled={running}>
       {#if running}
         <Loader2 size={14} class="spin" />
         <span>EXECUTING...</span>
@@ -404,7 +304,7 @@
                     <div class="row-actions">
                       <button 
                         class="row-action-btn" 
-                        onclick={stopPropagation(() => runSingleStage(stage))}
+                        onclick={() => runSingleStage(stage)}
                         disabled={running}
                       >
                         <Play size={10} fill="currentColor" />
