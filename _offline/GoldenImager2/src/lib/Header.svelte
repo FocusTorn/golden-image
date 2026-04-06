@@ -34,7 +34,7 @@
 <style>
   .header {
     height: 36px;
-    background: #1e2327; /* Matched to sidebar top */
+    background: #1C2427; /* Matches sidebar top and panel background */
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;

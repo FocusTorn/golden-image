@@ -124,24 +124,24 @@
   :global(:root) {
     --accent-rgb: 0, 188, 212;
     --accent-color: rgb(var(--accent-rgb));
-    --bg-main: #0b0f10;
-    --bg-darker: #050708;
-    --grad-main: #0b0f10; /* Solid dark base to match original reference */
-    --grad-panel: linear-gradient(180deg, #1e2327 0%, #0b0f10 100%);
+    --bg-main: #182224;
+    --bg-darker: #0b0f10;
+    --grad-main: linear-gradient(180deg, #161e20 0%, #161e20 66%, #0d1113 100%);
+    --grad-panel: linear-gradient(180deg, #1C2427 0%, #1C2427 66%, #101517 100%);
     --risk-safe: #4caf50;
     --risk-warn: #ffeb3b;
     --risk-unsafe: #ff1744;
     --risk-user: #00bcd4;
     
-    /* MODULAR SLAB SYSTEM (v7) */
-    --slab-base: #14181B;    /* Deep Machine Grey */
-    --slab-edge: #0E1113;    /* Bevel Shadow */
-    --slab-rim: #3A3E42;     /* Milled Silver Catch */
-    --slab-patina: #1A1D20;  /* Oxidation Cloud */
+    /* MODULAR SLAB SYSTEM (v8) - Synced with commit 4e6eb37 */
+    --slab-base: #1a1f21;    /* Master Industrial Grey */
+    --slab-edge: #0f1213;    /* Deep Milled Shadow */
+    --slab-rim: rgba(255, 255, 255, 0.08); /* Specular Edge Catch */
+    --slab-patina: #121617;
 
     /* PIPE TOKENS */
-    --divider-core: #2a3133; 
-    --divider-edge: rgba(0, 0, 0, 0.15); /* Softened to remove "cut" effect */
+    --divider-core: #2C3233; 
+    --divider-edge: #0d1214; 
   }
 
   :global(body) {
@@ -209,7 +209,7 @@
   .v-core {
     width: 2px;
     height: 100%;
-    background: linear-gradient(180deg, var(--divider-core) 0%, var(--divider-edge) 100%);
+    background: linear-gradient(180deg, #2c3233 0%, #1d2325 100%);
   }
 
   /* Horizontal Divider (The Pipe) */
@@ -234,10 +234,10 @@
   }
 
   .h-divider.top .h-core {
-    background: var(--divider-core);
+    background: #2c3233; 
   }
 
   .h-divider.bottom .h-core {
-    background: var(--divider-core);
+    background: #1d2325; 
   }
 </style>
